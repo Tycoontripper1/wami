@@ -1,25 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ImageBackground, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
-import { useRouter } from 'expo-router';
 import Colors from '@/constants/Colors';
+import { authService } from '@/services/authService';
+import { restoreSession } from '@/store/authSlice';
+import { RootState } from '@/store/store';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, ImageBackground, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
 
 const { width } = Dimensions.get('window');
 
 const slides = [
   {
     id: '1',
-    image: require('@/assets/images/onboarding_bg_creative.png'),
+    image: require('@/assets/images/onboarding_bg_creative.webp'),
     text: 'Bringing the best for creatives, sellers and buyers at the comfort of your home.',
   },
   {
     id: '2',
-    image: require('@/assets/images/onboarding_bg_seller.png'),
+    image: require('@/assets/images/onboarding_bg_seller.webp'),
     text: 'Bringing the best for creatives, sellers and buyers at the comfort of your home.',
   },
   {
     id: '3',
-    image: require('@/assets/images/onboarding_bg_service.png'),
+    image: require('@/assets/images/onboarding_bg_service.webp'),
     text: 'Bringing the best for creatives, sellers and buyers at the comfort of your home.',
   },
 ];
@@ -27,7 +31,29 @@ const slides = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const session = await authService.restoreSession();
+        if (session) {
+          dispatch(restoreSession(session));
+          router.replace('/(tabs)');
+        }
+      } catch (error) {
+        console.log('No existing session');
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    checkSession();
+  }, []);
 
   // Auto-advance slides every 4 seconds
   useEffect(() => {
@@ -48,6 +74,16 @@ export default function OnboardingScreen() {
   };
 
   const currentSlide = slides[currentIndex];
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <StatusBar barStyle="light-content" />
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -142,5 +178,9 @@ const styles = StyleSheet.create({
     color: '#fff', // White for dark mode readability
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

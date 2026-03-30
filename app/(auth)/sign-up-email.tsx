@@ -1,19 +1,32 @@
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
+import { authService } from '@/services/authService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SignUpEmailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  
+
   const themeColors = {
     background: isDark ? '#000' : '#fff',
     text: isDark ? '#fff' : '#000',
@@ -21,23 +34,32 @@ export default function SignUpEmailScreen() {
     icon: isDark ? '#fff' : '#000',
   };
 
-  const handleNext = () => {
-    if (email.trim()) {
-      // Navigate to verification code screen with email
+  const handleNext = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+
+    setIsLoading(true);
+    try {
+      const { token, message } = await authService.sendSignUpCode(trimmedEmail);
+      Alert.alert('Success', message || 'Verification code sent to your email address.');
       router.push({
         pathname: './verification-code',
-        params: { email: email.trim() }
+        params: { email: trimmedEmail, token },
       } as any);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not send verification code. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-      
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         {/* Header */}
         <View style={styles.header}>
@@ -56,7 +78,9 @@ export default function SignUpEmailScreen() {
         {/* Title */}
         <View style={styles.titleContainer}>
           <Text style={[styles.title, { color: themeColors.text }]}>Enter your email.</Text>
-          <Text style={[styles.subtitle, { color: themeColors.subText }]}>Use this email to verify your account.</Text>
+          <Text style={[styles.subtitle, { color: themeColors.subText }]}>
+            Use this email to verify your account.
+          </Text>
         </View>
 
         {/* Email Input */}
@@ -81,12 +105,16 @@ export default function SignUpEmailScreen() {
         <View style={{ flex: 1 }} />
 
         {/* Next Button */}
-        <TouchableOpacity 
-          style={[styles.nextButton, !email.trim() && styles.nextButtonDisabled]}
+        <TouchableOpacity
+          style={[styles.nextButton, (!email.trim() || isLoading) && styles.nextButtonDisabled]}
           onPress={handleNext}
-          disabled={!email.trim()}
+          disabled={!email.trim() || isLoading}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.nextButtonText}>Next</Text>
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -143,16 +171,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 24,
-  },
-  input: {
-    height: 56,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#000',
-    backgroundColor: '#fff',
   },
   footerText: {
     fontSize: 12,

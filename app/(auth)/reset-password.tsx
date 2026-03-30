@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ email: string; token: string; otp: string }>();
   const dispatch = useAppDispatch();
   const { isLoading } = useAppSelector((state) => state.auth);
   
@@ -23,34 +23,34 @@ export default function ResetPasswordScreen() {
 
   const handleNext = async () => {
     if (!newPassword || !reEnterPassword) {
-        Alert.alert('Error', 'Please fill in both fields.');
-        return;
+      Alert.alert('Error', 'Please fill in both fields.');
+      return;
     }
     if (newPassword !== reEnterPassword) {
-        Alert.alert('Error', 'Passwords do not match.');
-        return;
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
     }
     if (newPassword.length < 8) {
-        Alert.alert('Error', 'Password must be at least 8 characters.');
-        return;
+      Alert.alert('Error', 'Password must be at least 8 characters.');
+      return;
     }
 
     try {
-        dispatch(resetPasswordStart());
-        await authService.resetPassword(
-            params.email as string, 
-            params.code as string, 
-            newPassword
-        );
-        dispatch(resetPasswordSuccess());
-        
-        Alert.alert('Success', 'Your password has been reset.', [
-            { text: 'OK', onPress: () => router.push('/(auth)/sign-in') }
-        ]);
-        
+      dispatch(resetPasswordStart());
+      const { message } = await authService.resetPassword(
+        params.token as string,
+        params.otp as string,
+        newPassword,
+        reEnterPassword
+      );
+      dispatch(resetPasswordSuccess());
+
+      Alert.alert('Success', message || 'Your password has been reset.', [
+        { text: 'OK', onPress: () => router.push('/(auth)/sign-in') },
+      ]);
     } catch (err: any) {
-        dispatch(resetPasswordFailure(err.message || 'Reset failed'));
-        Alert.alert('Error', err.message || 'Failed to reset password.');
+      dispatch(resetPasswordFailure(err.message || 'Reset failed'));
+      Alert.alert('Error', err.message || 'Failed to reset password.');
     }
   };
 

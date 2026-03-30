@@ -21,13 +21,14 @@ export default function ForgotPasswordScreen() {
 
     try {
       dispatch(resetPasswordStart());
-      await authService.forgotPassword(email);
+      const { token, message } = await authService.forgotPassword(email.trim());
       dispatch(resetPasswordSuccess());
-      
-      // Navigate to verification code screen
+
+      Alert.alert('Success', message || 'Reset code sent to your email.');
+
       router.push({
         pathname: './reset-verification-code',
-        params: { email: email.trim() }
+        params: { email: email.trim(), token },
       } as any);
     } catch (err: any) {
       dispatch(resetPasswordFailure(err.message || 'Failed to send reset code'));

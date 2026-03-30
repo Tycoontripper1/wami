@@ -1,14 +1,14 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, StatusBar } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import { StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ResetVerificationCodeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ email: string; token: string }>();
   const [code, setCode] = useState(['', '', '', '']); // 4 digits
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -31,15 +31,15 @@ export default function ResetVerificationCodeScreen() {
 
   const handleNext = () => {
     const fullCode = code.join('');
-    // Validating length locally
     if (fullCode.length === 4) {
-        router.push({
-            pathname: './reset-password',
-            params: { 
-                email: params.email,
-                code: fullCode 
-             }
-        } as any);
+      router.push({
+        pathname: './reset-password',
+        params: {
+          email: params.email,
+          token: params.token,
+          otp: fullCode,
+        },
+      } as any);
     }
   };
 
@@ -75,7 +75,7 @@ export default function ResetVerificationCodeScreen() {
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref: TextInput | null) => (inputRefs.current[index] = ref)}
+              ref={(ref: TextInput | null) => { inputRefs.current[index] = ref; }}
               style={[styles.codeInput, digit && styles.codeInputFilled]}
               value={digit}
               onChangeText={(text: string) => handleCodeChange(text, index)}

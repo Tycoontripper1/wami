@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function CreateAccountScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ email: string; token: string }>();
   const dispatch = useAppDispatch();
   const { isLoading } = useAppSelector((state) => state.auth);
   
@@ -20,7 +20,9 @@ export default function CreateAccountScreen() {
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
   const [agreeToPrivacy, setAgreeToPrivacy] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
@@ -36,7 +38,7 @@ export default function CreateAccountScreen() {
   };
 
   const handleCreateAccount = async () => {
-    if (!firstName || !lastName || !username || !password || !agreeToPrivacy || !agreeToTerms) {
+    if (!firstName || !lastName || !username || !password || !passwordConfirmation || !agreeToPrivacy || !agreeToTerms) {
       Alert.alert('Error', 'Please fill all fields and agree to the terms');
       return;
     }
@@ -46,26 +48,33 @@ export default function CreateAccountScreen() {
       return;
     }
 
+    if (password !== passwordConfirmation) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
     try {
       dispatch(signUpStart());
-      const result = await authService.signUp({
-        email: (params.email as string) || 'user@example.com',
-        password,
-        firstName,
-        lastName,
+      const result = await authService.completeSignUp({
+        token: params.token as string,
+        first_name: firstName,
+        last_name: lastName,
         username,
+        password,
+        password_confirmation: passwordConfirmation,
       });
       dispatch(signUpSuccess(result));
-      
-      // Navigate to success screen
-      router.push('./account-success' as any);
+
+      Alert.alert('Success', result.message || 'Registration completed successfully', [
+        { text: 'OK', onPress: () => router.push('./account-success' as any) }
+      ]);
     } catch (err: any) {
       dispatch(signUpFailure(err.message || 'Sign up failed'));
       Alert.alert('Sign Up Failed', err.message || 'Please try again');
     }
   };
 
-  const isFormValid = firstName && lastName && username && password && agreeToPrivacy && agreeToTerms;
+  const isFormValid = firstName && lastName && username && password && passwordConfirmation && agreeToPrivacy && agreeToTerms;
 
   return (
     <KeyboardAvoidingView 
@@ -137,13 +146,13 @@ export default function CreateAccountScreen() {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               rightAccessory={
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.eyeButton}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Ionicons 
-                    name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                    size={20} 
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
                     color={themeColors.subText}
                   />
                 </TouchableOpacity>
@@ -152,6 +161,29 @@ export default function CreateAccountScreen() {
             <Text style={[styles.passwordHint, { color: themeColors.subText }]}>
               Password must be at least 8 characters
             </Text>
+          </View>
+
+          {/* Password Confirmation */}
+          <View style={styles.inputWrapper}>
+            <FloatingLabelInput
+              label="Confirm Password"
+              value={passwordConfirmation}
+              onChangeText={setPasswordConfirmation}
+              secureTextEntry={!showPasswordConfirmation}
+              autoCapitalize="none"
+              rightAccessory={
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                >
+                  <Ionicons
+                    name={showPasswordConfirmation ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={themeColors.subText}
+                  />
+                </TouchableOpacity>
+              }
+            />
           </View>
 
           {/* Checkboxes */}
