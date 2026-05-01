@@ -1,4 +1,5 @@
 import SwipeableCardStack, { CreativeData } from '@/components/SwipeableCardStack';
+import AppGuidance from '@/components/AppGuidance';
 import Colors from '@/constants/Colors';
 import { getCreativeLocationDisplay, useLocation, useLocationCreatives } from '@/hooks/useLocationData';
 import { addFavorite } from '@/store/favoritesSlice';
@@ -98,15 +99,16 @@ export default function DiscoverScreen() {
             </Text>
             <Ionicons name="chevron-down" size={16} color={themeColors.subText} />
           </TouchableOpacity>
+
           <View style={styles.headerActions}>
             <TouchableOpacity 
               style={styles.shopButton} 
               onPress={() => router.push('/products-listing' as any)}
             >
-              <Ionicons name="basket-outline" size={24} color={themeColors.text} />
+              <Ionicons name="basket" size={24} color={themeColors.text} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications-outline" size={24} color={themeColors.text} />
+              <Ionicons name="notifications" size={24} color={themeColors.text} />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
           </View>
@@ -166,6 +168,9 @@ export default function DiscoverScreen() {
 
       {/* Bottom Home Indicator Spacer */}
       <View style={{ height: insets.bottom }} />
+
+      {/* Onboarding Guidance */}
+      <AppGuidance />
     </View>
   );
 }
@@ -196,6 +201,9 @@ topBar: {
   },
   notificationButton: {
     position: 'relative',
+    padding: 4,
+  },
+  walletButton: {
     padding: 4,
   },
   notificationBadge: {
