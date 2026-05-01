@@ -28,7 +28,7 @@ export default function OnboardingLocationScreen() {
   };
 
   const handleSkip = () => {
-    router.push('./onboarding-notifications' as any);
+    router.replace('./sign-in' as any);
   };
 
   const handleNext = () => {

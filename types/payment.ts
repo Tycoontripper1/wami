@@ -2,6 +2,19 @@
 
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
 
+export type OrderStatus =
+  | 'packed'               // Order packed by seller
+  | 'on_way_to_logistics'  // Headed to logistics facility
+  | 'at_logistics'         // Arrived at logistics facility
+  | 'shipped'              // Shipped out
+  | 'out_for_delivery'     // Out for delivery
+  | 'delivered'            // Delivered
+  | 'delivery_failed';     // Delivery attempt failed
+
+export type ShippingOption = 'pickup' | 'express';
+export type PaymentMethodType = 'card' | 'bank_transfer' | 'wallet';
+
+
 export type BookingStatus = 
   | 'negotiating'      // Still discussing price
   | 'awaiting_payment' // Price agreed, waiting for payment
@@ -112,3 +125,67 @@ export const formatCurrency = (amount: number, currency: string = 'NGN'): string
     minimumFractionDigits: 0,
   }).format(amount);
 };
+
+// Product order timeline event
+export interface OrderTimelineEvent {
+  status: OrderStatus;
+  label: string;
+  description: string;
+  timestamp?: string;
+  completed: boolean;
+}
+
+// Product order (separate from service bookings)
+export interface ProductOrder {
+  id: string;
+  customerId: string;
+  productId: string;
+  productName: string;
+  productImage?: string;
+  sellerName: string;
+  price: number;           // base price
+  serviceFee: number;      // 3%
+  deliveryFee: number;     // 0 for pickup, 2000 for express
+  total: number;
+  currency: string;
+  shippingOption: ShippingOption;
+  shippingAddress: {
+    country: string;
+    address: string;
+    city: string;
+  };
+  contactInfo: {
+    phoneNumber: string;
+    email: string;
+  };
+  paymentMethod: PaymentMethodType;
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
+  trackingNumber: string;
+  estimatedDelivery?: string;
+  timeline: OrderTimelineEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Build order timeline with all steps
+export const buildOrderTimeline = (currentStatus: OrderStatus): OrderTimelineEvent[] => {
+  const steps: Array<{ status: OrderStatus; label: string; description: string }> = [
+    { status: 'packed', label: 'Packed', description: 'Your parcel is packed and will be handed over to our delivery partner.' },
+    { status: 'on_way_to_logistics', label: 'On the Way to Logistics', description: 'Your parcel is on its way to the logistics facility.' },
+    { status: 'at_logistics', label: 'Arrived at Logistics Facility', description: 'Your parcel has arrived and is being processed.' },
+    { status: 'shipped', label: 'Shipped', description: 'Your parcel has been dispatched from the facility.' },
+    { status: 'out_for_delivery', label: 'Out for Delivery', description: 'Your parcel is out for delivery today.' },
+    { status: 'delivered', label: 'Delivered', description: 'Your parcel has been delivered successfully.' },
+  ];
+
+  const statusOrder = ['packed', 'on_way_to_logistics', 'at_logistics', 'shipped', 'out_for_delivery', 'delivered'];
+  const currentIndex = statusOrder.indexOf(currentStatus === 'delivery_failed' ? 'out_for_delivery' : currentStatus);
+
+  return steps.map((step, index) => ({
+    ...step,
+    completed: index <= currentIndex,
+    timestamp: index <= currentIndex ? new Date(Date.now() - (currentIndex - index) * 3600000 * 8).toISOString() : undefined,
+  }));
+};
+

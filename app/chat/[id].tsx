@@ -1,18 +1,22 @@
 import Colors from '@/constants/Colors';
 import { addBooking, addPayment } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
+import { addTransaction, deductFromBalance } from '@/store/walletSlice';
 import { Message, calculateEscrow, formatCurrency } from '@/types/payment';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Alert,
+    Animated,
     Dimensions,
+    Easing,
     FlatList,
     Image,
     Keyboard,
     Modal,
     Platform,
+    ScrollView,
     StatusBar,
     StyleSheet,
     Text,
@@ -87,12 +91,19 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showBankSheet, setShowBankSheet] = useState(false);
   const [proposedPrice, setProposedPrice] = useState('');
   const [currentProposal, setCurrentProposal] = useState<Message['priceProposal'] | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'bank_transfer' | 'wallet'>('card');
+  const [paymentResult, setPaymentResult] = useState<'processing' | 'success' | 'failed' | null>(null);
+  const [lastBookingId, setLastBookingId] = useState<string | null>(null);
+  const resultScale = useRef(new Animated.Value(0)).current;
+  const resultOpacity = useRef(new Animated.Value(0)).current;
 
   const user = useSelector((state: RootState) => state.auth.user);
+  const walletBalance = useSelector((state: RootState) => state.wallet?.balances?.NGN ?? 0);
   const currentUserId = user?.id || '1';
 
   // Handle keyboard events
@@ -197,73 +208,121 @@ export default function ChatScreen() {
   const processPayment = async () => {
     if (!currentProposal) return;
 
-    setIsProcessingPayment(true);
+    // Wallet validation before proceeding
+    if (selectedPaymentMethod === 'wallet' && walletBalance < currentProposal.amount) {
+      Alert.alert('Insufficient Balance', 'Your wallet balance is too low. Please top up or choose another payment method.');
+      return;
+    }
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Close all modals, show processing screen
+    setShowPaymentModal(false);
+    setShowBankSheet(false);
+    setPaymentResult('processing');
+    resultScale.setValue(0);
+    resultOpacity.setValue(0);
+
+    // Simulate network processing
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Simulate random failure for demo (90% success rate)
+    const succeeded = Math.random() > 0.1;
+
+    if (!succeeded) {
+      setPaymentResult('failed');
+      Animated.parallel([
+        Animated.spring(resultScale, { toValue: 1, useNativeDriver: true, damping: 10 }),
+        Animated.timing(resultOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
 
     const escrow = calculateEscrow(currentProposal.amount, currentProposal.currency);
     const bookingId = `booking_${Date.now()}`;
     const paymentId = `payment_${Date.now()}`;
+    setLastBookingId(bookingId);
+
+    // Deduct from wallet if wallet payment
+    if (selectedPaymentMethod === 'wallet') {
+      dispatch(deductFromBalance({ currency: 'NGN', amount: currentProposal.amount }));
+      dispatch(addTransaction({
+        id: `txn_${Date.now()}`,
+        title: `Service Payment — ${MOCK_CREATIVE.name}`,
+        description: currentProposal.service,
+        amount: currentProposal.amount,
+        currency: 'NGN',
+        type: 'debit',
+        category: 'booking',
+        status: 'success',
+        date: new Date().toISOString(),
+        reference: paymentId,
+        paymentMethod: 'Wami Wallet',
+      }));
+    }
 
     // Create booking
-    const booking = {
+    dispatch(addBooking({
       id: bookingId,
       customerId: currentUserId,
       creativeId: MOCK_CREATIVE.id,
       creativeName: MOCK_CREATIVE.name,
       creativeImage: MOCK_CREATIVE.image,
       service: currentProposal.service,
-      description: 'Portrait Photography Session - 2 hours',
+      description: currentProposal.service,
       agreedPrice: currentProposal.amount,
       currency: currentProposal.currency,
-      status: 'paid' as const,
+      status: 'paid',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    }));
 
-    // Create payment
-    const payment = {
+    // Create payment record
+    dispatch(addPayment({
       id: paymentId,
       bookingId,
       customerId: currentUserId,
       creativeId: MOCK_CREATIVE.id,
       amount: currentProposal.amount,
       currency: currentProposal.currency,
-      status: 'completed' as const,
+      status: 'completed',
       escrow,
-      paymentMethod: 'Card',
+      paymentMethod: selectedPaymentMethod === 'card' ? 'Card' : selectedPaymentMethod === 'wallet' ? 'Wami Wallet' : 'Bank Transfer',
       transactionId: `TXN${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
+    }));
 
-    dispatch(addBooking(booking));
-    dispatch(addPayment(payment));
-
-    // Add payment confirmation message
+    // Add confirmation message to chat
     const confirmMessage: Message = {
       id: Date.now().toString(),
       conversationId: id as string,
       senderId: 'system',
       text: `Payment of ${formatCurrency(currentProposal.amount)} successful! 🎉\n\n${MOCK_CREATIVE.name} has received ${formatCurrency(escrow.creativeInitialPayment)} (70%).\n\n${formatCurrency(escrow.heldAmount)} (30%) is held in escrow until service completion.`,
       type: 'payment_confirmation',
-      paymentInfo: {
-        bookingId,
-        amount: currentProposal.amount,
-        status: 'completed',
-      },
+      paymentInfo: { bookingId, amount: currentProposal.amount, status: 'completed' },
       timestamp: new Date().toISOString(),
       isRead: false,
     };
 
     setMessages(prev => [...prev, confirmMessage]);
-    setIsProcessingPayment(false);
-    setShowPaymentModal(false);
     setCurrentProposal(null);
+
+    // Show success screen
+    setPaymentResult('success');
+    Animated.parallel([
+      Animated.spring(resultScale, { toValue: 1, useNativeDriver: true, damping: 8, stiffness: 100 }),
+      Animated.timing(resultOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start();
   };
 
+  const dismissResult = () => {
+    setPaymentResult(null);
+    resultScale.setValue(0);
+    resultOpacity.setValue(0);
+  };
+
+
   const renderMessage = ({ item }: { item: Message }) => {
+
     const isMyMessage = item.senderId === currentUserId;
     const isSystem = item.senderId === 'system';
 
@@ -440,6 +499,7 @@ export default function ChatScreen() {
       <Modal visible={showPaymentModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.paymentModalContent, { backgroundColor: themeColors.background }]}>
+            {/* Header */}
             <View style={styles.paymentHeader}>
               <Text style={[styles.modalTitle, { color: themeColors.text }]}>Complete Payment</Text>
               <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
@@ -456,17 +516,56 @@ export default function ChatScreen() {
                     <Text style={[styles.serviceName, { color: themeColors.text }]}>{MOCK_CREATIVE.name}</Text>
                     <Text style={[styles.serviceType, { color: themeColors.subText }]}>{currentProposal.service}</Text>
                   </View>
+                  <Text style={[styles.escrowValue, { color: Colors.light.primary }]}>
+                    {formatCurrency(currentProposal.amount)}
+                  </Text>
                 </View>
+
+                {/* Payment Method Selector */}
+                <Text style={[styles.escrowTitle, { color: themeColors.text, marginBottom: 8 }]}>Pay with</Text>
+                <View style={styles.methodRow}>
+                  {[
+                    { key: 'card', icon: 'card', label: 'Card' },
+                    { key: 'bank_transfer', icon: 'swap-horizontal', label: 'Transfer' },
+                    { key: 'wallet', icon: 'wallet', label: 'Wallet' },
+                  ].map((m) => {
+                    const sel = selectedPaymentMethod === m.key;
+                    return (
+                      <TouchableOpacity
+                        key={m.key}
+                        style={[styles.methodChip, sel && { backgroundColor: Colors.light.primary, borderColor: Colors.light.primary }, { borderColor: themeColors.border, backgroundColor: sel ? Colors.light.primary : themeColors.inputBg }]}
+                        onPress={() => setSelectedPaymentMethod(m.key as any)}
+                      >
+                        <Ionicons name={m.icon as any} size={16} color={sel ? '#fff' : themeColors.subText} />
+                        <Text style={[styles.methodChipText, { color: sel ? '#fff' : themeColors.text }]}>{m.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {selectedPaymentMethod === 'wallet' && (
+                  <Text style={[styles.escrowNote, { color: walletBalance >= currentProposal.amount ? '#4CD964' : '#FF3B30', marginBottom: 12 }]}>
+                    Wallet balance: {formatCurrency(walletBalance)}
+                    {walletBalance < currentProposal.amount ? ' — Insufficient' : ' — Sufficient ✓'}
+                  </Text>
+                )}
+
+                {selectedPaymentMethod === 'bank_transfer' && (
+                  <View style={[styles.bankInfoBox, { backgroundColor: themeColors.inputBg }]}>
+                    <Text style={[styles.bankInfoRow, { color: themeColors.subText }]}>Bank: <Text style={{ color: themeColors.text, fontWeight: '700' }}>GT Bank</Text></Text>
+                    <Text style={[styles.bankInfoRow, { color: themeColors.subText }]}>Account: <Text style={{ color: themeColors.text, fontWeight: '700' }}>0123456789</Text></Text>
+                    <Text style={[styles.bankInfoRow, { color: themeColors.subText }]}>Name: <Text style={{ color: themeColors.text, fontWeight: '700' }}>Wami Technologies Ltd</Text></Text>
+                    <Text style={[styles.bankInfoRow, { color: Colors.light.primary, fontWeight: '800', fontSize: 16, marginTop: 6 }]}>Transfer: {formatCurrency(currentProposal.amount)}</Text>
+                  </View>
+                )}
 
                 {/* Escrow Breakdown */}
                 <View style={styles.escrowSection}>
                   <Text style={[styles.escrowTitle, { color: themeColors.text }]}>Payment Breakdown</Text>
-                  
+
                   <View style={styles.escrowRow}>
                     <Text style={[styles.escrowLabel, { color: themeColors.subText }]}>Total Amount</Text>
-                    <Text style={[styles.escrowValue, { color: themeColors.text }]}>
-                      {formatCurrency(currentProposal.amount)}
-                    </Text>
+                    <Text style={[styles.escrowValue, { color: themeColors.text }]}>{formatCurrency(currentProposal.amount)}</Text>
                   </View>
 
                   <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
@@ -474,38 +573,35 @@ export default function ChatScreen() {
                   <View style={styles.escrowRow}>
                     <View style={styles.escrowLabelRow}>
                       <Ionicons name="flash" size={16} color="#4CD964" />
-                      <Text style={[styles.escrowLabel, { color: themeColors.subText }]}>
-                        Instant Payment (70%)
-                      </Text>
+                      <Text style={[styles.escrowLabel, { color: themeColors.subText }]}>Instant Payment (70%)</Text>
                     </View>
-                    <Text style={[styles.escrowValue, { color: '#4CD964' }]}>
-                      {formatCurrency(currentProposal.amount * 0.7)}
-                    </Text>
+                    <Text style={[styles.escrowValue, { color: '#4CD964' }]}>{formatCurrency(currentProposal.amount * 0.7)}</Text>
                   </View>
-                  <Text style={[styles.escrowNote, { color: themeColors.subText }]}>
-                    Released to {MOCK_CREATIVE.name} immediately
-                  </Text>
+                  <Text style={[styles.escrowNote, { color: themeColors.subText }]}>Released to {MOCK_CREATIVE.name} immediately</Text>
 
                   <View style={styles.escrowRow}>
                     <View style={styles.escrowLabelRow}>
                       <Ionicons name="shield-checkmark" size={16} color={Colors.light.primary} />
-                      <Text style={[styles.escrowLabel, { color: themeColors.subText }]}>
-                        Escrow (30%)
-                      </Text>
+                      <Text style={[styles.escrowLabel, { color: themeColors.subText }]}>Escrow (30%)</Text>
                     </View>
-                    <Text style={[styles.escrowValue, { color: Colors.light.primary }]}>
-                      {formatCurrency(currentProposal.amount * 0.3)}
-                    </Text>
+                    <Text style={[styles.escrowValue, { color: Colors.light.primary }]}>{formatCurrency(currentProposal.amount * 0.3)}</Text>
                   </View>
-                  <Text style={[styles.escrowNote, { color: themeColors.subText }]}>
-                    Released after service completion
-                  </Text>
+                  <Text style={[styles.escrowNote, { color: themeColors.subText }]}>Released after service completion</Text>
                 </View>
 
                 {/* Pay Button */}
                 <TouchableOpacity
                   style={[styles.payNowButton, isProcessingPayment && styles.payNowButtonDisabled]}
-                  onPress={processPayment}
+                  onPress={() => {
+                    if (selectedPaymentMethod === 'bank_transfer') {
+                      setShowPaymentModal(false);
+                      setShowBankSheet(true);
+                    } else if (selectedPaymentMethod === 'wallet' && walletBalance < (currentProposal?.amount ?? 0)) {
+                      Alert.alert('Insufficient Balance', 'Please top up your wallet or choose another payment method.');
+                    } else {
+                      processPayment();
+                    }
+                  }}
                   disabled={isProcessingPayment}
                 >
                   {isProcessingPayment ? (
@@ -513,19 +609,121 @@ export default function ChatScreen() {
                   ) : (
                     <>
                       <Ionicons name="lock-closed" size={20} color="#fff" />
-                      <Text style={styles.payNowButtonText}>
-                        Pay {formatCurrency(currentProposal.amount)}
-                      </Text>
+                      <Text style={styles.payNowButtonText}>Pay {formatCurrency(currentProposal.amount)}</Text>
                     </>
                   )}
                 </TouchableOpacity>
 
                 <Text style={[styles.secureText, { color: themeColors.subText }]}>
-                  <Ionicons name="shield-checkmark" size={14} /> Secured by Wami Escrow Protection
+                  🔒 Secured by Wami Escrow Protection
                 </Text>
               </>
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* Bank Transfer Sheet */}
+      <Modal visible={showBankSheet} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.paymentModalContent, { backgroundColor: themeColors.background }]}>
+            <View style={styles.paymentHeader}>
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>Bank Transfer</Text>
+              <TouchableOpacity onPress={() => setShowBankSheet(false)}>
+                <Ionicons name="close" size={24} color={themeColors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.escrowNote, { color: themeColors.subText, marginBottom: 16 }]}>
+              Transfer exactly the amount below to complete your service payment
+            </Text>
+            <View style={[styles.bankInfoBox, { backgroundColor: themeColors.inputBg }]}>
+              <Text style={[styles.bankInfoRow, { color: themeColors.subText }]}>Bank: <Text style={{ color: themeColors.text, fontWeight: '700' }}>GT Bank</Text></Text>
+              <Text style={[styles.bankInfoRow, { color: themeColors.subText }]}>Account: <Text style={{ color: themeColors.text, fontWeight: '700' }}>0123456789</Text></Text>
+              <Text style={[styles.bankInfoRow, { color: themeColors.subText }]}>Name: <Text style={{ color: themeColors.text, fontWeight: '700' }}>Wami Technologies Ltd</Text></Text>
+              {currentProposal && (
+                <Text style={[styles.bankInfoRow, { color: Colors.light.primary, fontWeight: '800', fontSize: 18, marginTop: 8 }]}>
+                  {formatCurrency(currentProposal.amount)}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity
+              style={styles.payNowButton}
+              onPress={() => { setShowBankSheet(false); processPayment(); }}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Text style={styles.payNowButtonText}>I've Transferred — Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Payment Result Overlay ─── */}
+      <Modal visible={paymentResult !== null} transparent animationType="fade">
+        <View style={styles.resultOverlay}>
+          {paymentResult === 'processing' && (
+            <View style={styles.resultCard}>
+              <View style={styles.processingRing}>
+                <Ionicons name="card" size={48} color={Colors.light.primary} />
+              </View>
+              <Text style={styles.resultTitle}>Processing Payment</Text>
+              <Text style={styles.resultSub}>Please wait while we secure your payment…</Text>
+              <View style={styles.processingDots}>
+                {[0, 1, 2].map(i => (
+                  <View key={i} style={[styles.dot, { opacity: 0.3 + i * 0.3 }]} />
+                ))}
+              </View>
+            </View>
+          )}
+
+          {paymentResult === 'success' && (
+            <Animated.View style={[styles.resultCard, { opacity: resultOpacity, transform: [{ scale: resultScale }] }]}>
+              <Ionicons name="checkmark-circle" size={80} color="#4CD964" />
+              <Text style={styles.resultTitle}>Payment Successful!</Text>
+              <Text style={styles.resultSub}>
+                Your service has been booked and the payment is secured in escrow.
+              </Text>
+              <View style={[styles.resultInfoBox, { backgroundColor: 'rgba(76,217,100,0.1)' }]}>
+                <Text style={styles.resultInfoLabel}>Method used</Text>
+                <Text style={styles.resultInfoValue}>
+                  {selectedPaymentMethod === 'card' ? '💳 Card' : selectedPaymentMethod === 'wallet' ? '👛 Wami Wallet' : '🏦 Bank Transfer'}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.resultPrimaryBtn} 
+                onPress={() => {
+                  dismissResult();
+                  if (lastBookingId) {
+                    router.push(`/service-tracking/${lastBookingId}` as any);
+                  }
+                }}
+              >
+                <Ionicons name="location" size={20} color="#fff" />
+                <Text style={styles.resultPrimaryBtnText}>Track My Service</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resultSecondaryBtn} onPress={dismissResult}>
+                <Text style={styles.resultSecondaryBtnText}>Back to Chat</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
+          {paymentResult === 'failed' && (
+            <Animated.View style={[styles.resultCard, { opacity: resultOpacity, transform: [{ scale: resultScale }] }]}>
+              <Ionicons name="close-circle" size={80} color="#FF3B30" />
+              <Text style={styles.resultTitle}>Payment Failed</Text>
+              <Text style={styles.resultSub}>
+                We couldn't process your payment. Please try again or use a different payment method.
+              </Text>
+              <TouchableOpacity
+                style={styles.resultPrimaryBtn}
+                onPress={() => { dismissResult(); setShowPaymentModal(true); }}
+              >
+                <Text style={styles.resultPrimaryBtnText}>Try Again</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resultSecondaryBtn} onPress={dismissResult}>
+                <Text style={styles.resultSecondaryBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
         </View>
       </Modal>
     </View>
@@ -822,4 +1020,129 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
+  serviceInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  methodRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  methodChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  methodChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bankInfoBox: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    marginBottom: 20,
+  },
+  bankInfoRow: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  resultOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  resultCard: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 28,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    gap: 12,
+  },
+  processingRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: Colors.light.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  resultSub: {
+    fontSize: 14,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  processingDots: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.light.primary,
+  },
+  resultInfoBox: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 4,
+  },
+  resultInfoLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
+  },
+  resultInfoValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  resultPrimaryBtn: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: 30,
+    paddingVertical: 16,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  resultPrimaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  resultSecondaryBtn: {
+    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  resultSecondaryBtnText: {
+    color: '#8E8E93',
+    fontSize: 15,
+    fontWeight: '500',
+  },
 });
+

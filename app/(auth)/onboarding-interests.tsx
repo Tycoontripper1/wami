@@ -30,7 +30,7 @@ export default function OnboardingInterestsScreen() {
   };
 
   const handleSkip = () => {
-    router.push('./onboarding-location' as any);
+    router.replace('./sign-in' as any);
   };
 
   const handleNext = () => {

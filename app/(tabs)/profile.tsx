@@ -1,19 +1,20 @@
 import Colors from '@/constants/Colors';
-import { signOut } from '@/store/authSlice';
+import { profileService } from '@/services/api/profileService';
+import { signOut, updateUser } from '@/store/authSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -28,6 +29,27 @@ export default function ProfileScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await profileService.getProfile();
+      if (response.success && response.data) {
+        dispatch(updateUser(response.data));
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -43,18 +65,19 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: 'person-outline', label: 'Edit Profile', route: '/edit-profile' },
-    { icon: 'wallet-outline', label: 'Wallet', route: '/(tabs)/wallet' },
-    { icon: 'basket-outline', label: 'My Products', route: '/my-products' },
-    { icon: 'calendar-outline', label: 'Manage Availability', route: '/creative-dashboard' },
-    { icon: 'card-outline', label: 'Payment Methods', route: '/payment-methods' },
-    { icon: 'bookmark-outline', label: 'Saved', route: '/favourites' },
-    { icon: 'time-outline', label: 'Booking History', route: '/booking-history' },
-    { icon: 'notifications-outline', label: 'Notifications', toggle: true, value: notificationsEnabled, onToggle: setNotificationsEnabled },
-    { icon: 'location-outline', label: 'Location Services', toggle: true, value: locationEnabled, onToggle: setLocationEnabled },
-    { icon: 'shield-checkmark-outline', label: 'Privacy & Security', route: '/privacy' },
-    { icon: 'help-circle-outline', label: 'Help & Support', route: '/support' },
-    { icon: 'information-circle-outline', label: 'About', route: '/about' },
+    { icon: 'person', label: 'Edit Profile', route: '/edit-profile' },
+    { icon: 'wallet', label: 'Wallet', route: '/(tabs)/wallet' },
+    { icon: 'basket', label: 'My Products', route: '/my-products' },
+    { icon: 'calendar', label: 'Manage Availability', route: '/creative-dashboard' },
+    { icon: 'card', label: 'Payment Methods', route: '/payment-methods' },
+    { icon: 'bookmark', label: 'Saved', route: '/favourites' },
+    { icon: 'time', label: 'Booking History', route: '/booking-history' },
+    { icon: 'bag', label: 'My Orders', route: '/orders' },
+    { icon: 'notifications', label: 'Notifications', toggle: true, value: notificationsEnabled, onToggle: setNotificationsEnabled },
+    { icon: 'location', label: 'Location Services', toggle: true, value: locationEnabled, onToggle: setLocationEnabled },
+    { icon: 'shield-checkmark', label: 'Privacy & Security', route: '/privacy' },
+    { icon: 'help-circle', label: 'Help & Support', route: '/support' },
+    { icon: 'information-circle', label: 'About', route: '/about' },
   ];
 
   return (
@@ -69,31 +92,37 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: themeColors.text }]}>Profile</Text>
           <TouchableOpacity>
-            <Ionicons name="settings-outline" size={24} color={themeColors.text} />
+            <Ionicons name="settings" size={24} color={themeColors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Profile Card */}
-        <TouchableOpacity style={[styles.profileCard, { backgroundColor: themeColors.cardBg }]}>
+        <TouchableOpacity style={[styles.profileCard, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/edit-profile')}>
           <View style={styles.avatarContainer}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            {(user?.profile_image || user?.avatar) ? (
+              <Image source={{ uri: user?.profile_image || user?.avatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Ionicons name="person" size={40} color={themeColors.subText} />
               </View>
             )}
-            <TouchableOpacity style={styles.editAvatarButton}>
+            <TouchableOpacity style={styles.editAvatarButton} onPress={() => router.push('/edit-profile')}>
               <Ionicons name="camera" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
           <View style={styles.profileInfo}>
             <Text style={[styles.userName, { color: themeColors.text }]}>
-              {user?.firstName ? `${user.firstName} ${user.lastName}` : 'Guest User'}
+              {user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name}` : 'Guest User')}
             </Text>
             <Text style={[styles.userEmail, { color: themeColors.subText }]}>
               {user?.email || 'guest@wami.com'}
             </Text>
+            <View style={styles.locationContainer}>
+              <Ionicons name="location" size={14} color={themeColors.subText} />
+              <Text style={[styles.userLocation, { color: themeColors.subText }]}>
+                {user?.location?.city ? `${user.location.city}, ${user.location.country}` : 'Nigeria'}
+              </Text>
+            </View>
             {user?.username && (
               <Text style={[styles.userHandle, { color: Colors.light.primary }]}>
                 @{user.username}
@@ -102,6 +131,27 @@ export default function ProfileScreen() {
           </View>
           <Ionicons name="chevron-forward" size={24} color={themeColors.subText} />
         </TouchableOpacity>
+
+        {/* Bio Section (New) */}
+        {user?.bio && (
+          <View style={[styles.bioSection, { backgroundColor: themeColors.cardBg }]}>
+            <Text style={[styles.bioText, { color: themeColors.text }]}>{user.bio}</Text>
+          </View>
+        )}
+
+        {/* Categories Section (New) */}
+        {user?.categories && user.categories.length > 0 && (
+          <View style={styles.categoriesSection}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
+              {user.categories.map((cat: any) => (
+                <View key={cat.id} style={[styles.categoryBadge, { backgroundColor: Colors.light.primary + '20' }]}>
+                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                  <Text style={[styles.categoryName, { color: Colors.light.primary }]}>{cat.name}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Become a Creative Banner */}
         <TouchableOpacity
@@ -192,7 +242,7 @@ export default function ProfileScreen() {
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
+          <Ionicons name="log-out" size={22} color="#FF3B30" />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
@@ -272,6 +322,46 @@ const styles = StyleSheet.create({
   userHandle: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  userLocation: {
+    fontSize: 13,
+  },
+  bioSection: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  bioText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  categoriesSection: {
+    marginBottom: 16,
+  },
+  categoriesScroll: {
+    gap: 10,
+    paddingRight: 16,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  categoryIcon: {
+    fontSize: 14,
+  },
+  categoryName: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   statsContainer: {
     flexDirection: 'row',

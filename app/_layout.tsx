@@ -36,7 +36,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {
+        /* ignore error */
+      });
     }
   }, [loaded]);
 
@@ -64,6 +66,20 @@ function RootLayoutNav() {
           <Stack.Screen name="creative-dna-quiz" options={{ headerShown: false }} />
           <Stack.Screen name="location-picker" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="checkout" options={{ headerShown: false }} />
+          <Stack.Screen name="checkout/success" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="order-tracking/[orderId]" options={{ headerShown: false }} />
+          <Stack.Screen name="service-tracking/[bookingId]" options={{ headerShown: false }} />
+          <Stack.Screen name="orders" options={{ headerShown: false }} />
+          <Stack.Screen name="my-products" options={{ headerShown: false }} />
+          <Stack.Screen name="products-listing" options={{ headerShown: false }} />
+          <Stack.Screen name="product-detail/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="favourites" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="account-actions" options={{ headerShown: false }} />
+          <Stack.Screen name="wallet/add-funds" options={{ headerShown: false }} />
+          <Stack.Screen name="wallet/payment-methods" options={{ headerShown: false }} />
+          <Stack.Screen name="wallet/withdraw" options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
     </Provider>

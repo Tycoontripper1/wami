@@ -11,15 +11,15 @@
 export const API_CONFIG = {
   // Base URL for API calls
   // Mock: local/simulated, Real: https://api.yourbackend.com
-  BASE_URL: 'https://api.joinwami.com', // Production API
+  BASE_URL: 'https://api.joinwami.com/api/v1', // Production API
   
   // Enable/Disable mock API mode
-  USE_MOCK: true, // Set to false when using real backend
+  USE_MOCK: false, // Set to false when using real backend
   
   // Mock API settings
   MOCK_DELAY_MS: 1000, // Simulated network delay (500-2000ms recommended)
   
-  // Request timeout
+  // Request timeout  
   TIMEOUT_MS: 30000, // 30 seconds
   
   // Retry configuration
@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     VERIFY_CODE: '/auth/verify-code',
     COMPLETE_SIGNUP: '/auth/complete',
   },
+
   
   // User Profile
   PROFILE: {
@@ -70,6 +71,8 @@ export const API_ENDPOINTS = {
     BY_REGION: (region: string) => `/creatives/region/${region}`,
   },
   
+
+
   // Bookings
   BOOKINGS: {
     LIST: '/bookings',
@@ -80,6 +83,7 @@ export const API_ENDPOINTS = {
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
   },
   
+
   // Wallet & Payments
   WALLET: {
     BALANCE: '/wallet/balance',
@@ -89,6 +93,7 @@ export const API_ENDPOINTS = {
     TRANSFER: '/wallet/transfer',
   },
   
+
   // Chat & Messaging
   CHAT: {
     CONVERSATIONS: '/conversations',
@@ -97,6 +102,7 @@ export const API_ENDPOINTS = {
     SEND_MESSAGE: (id: string) => `/conversations/${id}/messages`,
     MARK_READ: (messageId: string) => `/messages/${messageId}/read`,
   },
+  
   
   // Products
   PRODUCTS: {
@@ -122,6 +128,8 @@ export const API_ENDPOINTS = {
     STATUS: '/account/setup-status',
     UPDATE: '/account/update',
   },
+
+
 } as const;
 
 
@@ -130,5 +138,5 @@ export const buildUrl = (endpoint: string): string => {
   if (API_CONFIG.USE_MOCK) {
     return endpoint; // Mock handlers use endpoint patterns
   }
-  return `${API_CONFIG.BASE_URL}/api/${API_CONFIG.API_VERSION}${endpoint}`;
+  return `${API_CONFIG.BASE_URL}${endpoint}`;
 };

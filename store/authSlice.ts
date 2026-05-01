@@ -1,11 +1,45 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface User {
-  id: string;
+  id: number | string;
   email: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
+  full_name?: string;
   username: string;
+  phone?: string | null;
+  account_type?: string;
+  discovery_preference?: string;
+  offering_type?: string | null;
+  profile_completed?: boolean;
+  bio?: string | null;
+  profile_image?: string | null;
+  instagram_handle?: string | null;
+  website?: string | null;
+  availability?: any;
+  visibility?: string;
+  email_verified_at?: string;
+  is_active?: boolean;
+  last_login_at?: string;
+  profile_completed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  location?: {
+    city: string;
+    country: string;
+    state?: string;
+    latitude?: string;
+    longitude?: string;
+  };
+  categories?: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    icon: string;
+  }>;
+  // Aliases for legacy compatibility
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
 }
 

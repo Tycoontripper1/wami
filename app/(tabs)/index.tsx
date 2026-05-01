@@ -174,17 +174,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 10,
-  },
+header: {
+  paddingBottom: 8,   // was 0
+  paddingHorizontal: 16,
+},
+topBar: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 8,   // was 16
+  marginTop: 4,      // was 10
+},
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+
   },
   tabItem: {
     flexDirection: 'row',
@@ -245,13 +246,16 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#fff',
   },
-  mainContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
+mainContent: {
+  flex: 1,
+  paddingHorizontal: 16,
+  paddingTop: 16,
+
+},
   cardStackContainer: {
     flex: 1,
     marginBottom: 8,
+
   },
   emptyState: {
     flex: 1,

@@ -4,21 +4,21 @@ import { ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Image,
-    ImageSourcePropType,
-    PanResponder,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  ImageSourcePropType,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import SocialProofBadge from './SocialProofBadge';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
-const CARD_HEIGHT = height * 0.58; // Reduced to show stacked cards below
+const CARD_HEIGHT = height * 0.62; // Reduced to show stacked cards below
 const SWIPE_THRESHOLD = width * 0.25;
 
 export interface CreativeData {
@@ -320,7 +320,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 16,
   },
   card: {
     position: 'absolute',

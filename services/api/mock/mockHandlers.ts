@@ -86,6 +86,18 @@ function findHandler(method: string, endpoint: string): ((config?: MockRequestCo
     return (config) => handleGetProductById(endpoint.split('/').pop()!);
   }
 
+  // Account & Onboarding
+  if (method === 'GET' && endpoint === API_ENDPOINTS.ACCOUNT.CATEGORIES) return handleGetCategories;
+  if (method === 'GET' && endpoint === API_ENDPOINTS.ACCOUNT.SETUP_OPTIONS) return handleGetSetupOptions;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.ACCOUNT.SETUP) return handleAccountSetup;
+  if (method === 'GET' && endpoint === API_ENDPOINTS.ACCOUNT.STATUS) return handleGetSetupStatus;
+  if (method === 'PATCH' && endpoint === API_ENDPOINTS.ACCOUNT.UPDATE) return handleUpdateAccount;
+  
+  // Profile
+  if (method === 'GET' && endpoint === API_ENDPOINTS.PROFILE.GET) return handleGetProfile;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.PROFILE.UPDATE) return handleUpdateProfile;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.PROFILE.IMAGE) return handleUploadImage;
+
   return null;
 }
 
@@ -346,6 +358,75 @@ async function handleGetProductById(id: string): Promise<any> {
     throw createError('NOT_FOUND', 'Product not found', HttpStatusCode.NOT_FOUND);
   }
   return product;
+}
+
+// ============================================
+// ACCOUNT HANDLERS
+// ============================================
+
+async function handleGetCategories(): Promise<any> {
+  return [
+    { id: 'photography', name: 'Photography', icon: 'camera' },
+    { id: 'hair', name: 'Hair Stylist', icon: 'cut' },
+    { id: 'makeup', name: 'Makeup Artist', icon: 'brush' },
+  ];
+}
+
+async function handleGetSetupOptions(): Promise<any> {
+  return [
+    { id: 'discover', title: 'Discover creatives', icon: 'search' },
+    { id: 'promote', title: 'Promote my work', icon: 'megaphone' },
+  ];
+}
+
+async function handleAccountSetup(config?: MockRequestConfig): Promise<any> {
+  console.log('Mock account setup received:', config?.body);
+  return { success: true, message: 'Account setup completed successfully' };
+}
+
+async function handleGetSetupStatus(): Promise<any> {
+  return { isSetupComplete: true, step: 'completed' };
+}
+
+async function handleUpdateAccount(config?: MockRequestConfig): Promise<any> {
+  return { success: true, message: 'Account updated successfully' };
+}
+
+// ============================================
+// PROFILE HANDLERS
+// ============================================
+
+async function handleGetProfile(): Promise<any> {
+  const userId = 'test_user_001';
+  return {
+    id: userId,
+    email: 'obedugwuv@gmail.com',
+    first_name: 'Obed',
+    last_name: 'Ugwu',
+    full_name: 'Obed Ugwu',
+    username: 'vjazzy',
+    profile_image: "https://res.cloudinary.com/dtfn6grwf/image/upload/v1777105295/wami/profile-images/o8ohot61zhjicqeavsnq.jpg",
+    account_type: 'discover',
+    bio: "Mock bio for testing",
+    location: {
+      city: "Lagos",
+      country: "Nigeria"
+    }
+  };
+}
+
+async function handleUpdateProfile(config?: MockRequestConfig): Promise<any> {
+  console.log('Mock profile update received:', config?.body);
+  return { success: true, message: 'Profile updated successfully' };
+}
+
+async function handleUploadImage(config?: MockRequestConfig): Promise<any> {
+  console.log('Mock image upload received (base64 length):', config?.body?.image?.length);
+  return {
+    success: true,
+    message: "Profile image updated successfully!",
+    profile_image: "https://res.cloudinary.com/dtfn6grwf/image/upload/v1777105295/wami/profile-images/o8ohot61zhjicqeavsnq.jpg"
+  };
 }
 
 // ============================================

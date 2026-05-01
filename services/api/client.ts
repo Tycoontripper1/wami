@@ -79,41 +79,58 @@ class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     const url = buildUrl(endpoint);
-    const headers = this.buildHeaders(config?.headers);
+    const isFormData = config?.body instanceof FormData;
+    const headers = this.buildHeaders(config?.headers, isFormData);
 
-    const fetchConfig: RequestInit = {
-      method,
-      headers,
-      signal: AbortSignal.timeout(config?.timeout ?? API_CONFIG.TIMEOUT_MS),
-    };
+    const controller = new AbortController();
+    const timeout = config?.timeout ?? API_CONFIG.TIMEOUT_MS;
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    // Add body for POST, PUT, PATCH
-    if (config?.body && ['POST', 'PUT', 'PATCH'].includes(method)) {
-      fetchConfig.body = JSON.stringify(config.body);
+    try {
+      const fetchConfig: RequestInit = {
+        method,
+        headers,
+        signal: controller.signal,
+      };
+
+      // Add body for POST, PUT, PATCH
+      if (config?.body && ['POST', 'PUT', 'PATCH'].includes(method)) {
+        if (config.body instanceof FormData) {
+          fetchConfig.body = config.body;
+        } else {
+          fetchConfig.body = JSON.stringify(config.body);
+        }
+      }
+
+      const response = await fetch(url, fetchConfig);
+
+      if (!response.ok) {
+        throw await this.handleHttpError(response);
+      }
+
+        const data = await response.json();
+      
+      // Transform to ApiResponse format
+      return {
+        success: true,
+        data: data.user ?? data.data ?? data,
+        message: data.message,
+      };
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const response = await fetch(url, fetchConfig);
-
-    if (!response.ok) {
-      throw await this.handleHttpError(response);
-    }
-
-    const data = await response.json();
-    
-    // Transform to ApiResponse format
-    return {
-      success: true,
-      data: data.data ?? data,
-      message: data.message,
-    };
   }
 
   // Build request headers
-  private buildHeaders(customHeaders?: Record<string, string>): Record<string, string> {
+  private buildHeaders(customHeaders?: Record<string, string>, isFormData?: boolean): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...customHeaders,
     };
+
+    if (isFormData) {
+      delete headers['Content-Type'];
+    }
 
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;

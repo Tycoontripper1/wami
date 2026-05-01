@@ -26,7 +26,7 @@ export default function OnboardingPurposeScreen() {
   };
 
   const handleSkip = () => {
-    router.push('./onboarding-interests' as any);
+    router.replace('./sign-in' as any);
   };
 
   const handleNext = () => {

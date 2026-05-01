@@ -53,8 +53,8 @@ export const authService = {
     const newUser: User = {
       id: userId,
       email: data.email.toLowerCase(),
-      firstName: data.firstName,
-      lastName: data.lastName,
+      first_name: data.firstName,
+      last_name: data.lastName,
       username: data.username,
     };
 
@@ -218,11 +218,13 @@ export const authService = {
     const rawUser = json.user ?? json.data?.user ?? json.data ?? json;
 
     const user: User = {
+      ...rawUser,
       id: String(rawUser.id ?? rawUser._id ?? ''),
       email: rawUser.email ?? email,
-      firstName: rawUser.first_name ?? rawUser.firstName ?? '',
-      lastName: rawUser.last_name ?? rawUser.lastName ?? '',
+      first_name: rawUser.first_name ?? rawUser.firstName ?? '',
+      last_name: rawUser.last_name ?? rawUser.lastName ?? '',
       username: rawUser.username ?? '',
+      profile_image: rawUser.profile_image ?? rawUser.avatar ?? null,
     };
 
     await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
@@ -305,11 +307,13 @@ export const authService = {
     const rawUser = json.user ?? json.data?.user ?? json.data ?? json;
 
     const user: User = {
+      ...rawUser,
       id: String(rawUser.id ?? rawUser._id ?? ''),
       email: rawUser.email ?? '',
-      firstName: rawUser.first_name ?? rawUser.firstName ?? data.first_name,
-      lastName: rawUser.last_name ?? rawUser.lastName ?? data.last_name,
+      first_name: rawUser.first_name ?? rawUser.firstName ?? data.first_name,
+      last_name: rawUser.last_name ?? rawUser.lastName ?? data.last_name,
       username: rawUser.username ?? data.username,
+      profile_image: rawUser.profile_image ?? rawUser.avatar ?? null,
     };
 
     // Persist session

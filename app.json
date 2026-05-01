@@ -41,7 +41,8 @@
         {
           "locationWhenInUsePermission": "Show creatives near you."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

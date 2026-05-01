@@ -52,14 +52,9 @@ export default function ProductDetailScreen() {
   }
 
   const handleBuyNow = () => {
-    Alert.alert('Purchase', `Purchase ${product.name} for ₦${product.price.toLocaleString()}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Buy Now',
-        onPress: () => Alert.alert('Success', 'Purchase initiated! (Demo)'),
-      },
-    ]);
+    router.push(`/checkout?productId=${product.id}` as any);
   };
+
 
   const handleAddToCart = () => {
     Alert.alert('Added to Cart', `${product.name} has been added to your cart`);

@@ -8,33 +8,35 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateUser } from '@/store/authSlice';
 
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const user = useSelector((state: RootState) => state.auth.user);
 
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [firstName, setFirstName] = useState(user?.first_name || '');
+  const [lastName, setLastName] = useState(user?.last_name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [website, setWebsite] = useState(user?.website || '');
-  const [instagramHandle, setInstagramHandle] = useState(user?.username || '');
+  const [instagramHandle, setInstagramHandle] = useState(user?.instagram_handle || user?.username || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -71,10 +73,10 @@ export default function EditProfileScreen() {
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.5,
     });
 
     if (!result.canceled && result.assets[0].uri) {
@@ -85,9 +87,20 @@ export default function EditProfileScreen() {
   const uploadImage = async (uri: string) => {
     try {
       setIsUploadingImage(true);
-      await profileService.uploadProfileImage(uri);
-      Alert.alert('Success', 'Profile image updated');
-      // In a real app, we'd update the Redux user state here
+      const response = await profileService.uploadProfileImage(uri);
+      if (response.success && response.data) {
+        // Fetch full profile to ensure all data is synced
+        const profileRes = await profileService.getProfile();
+        if (profileRes.success && profileRes.data) {
+          dispatch(updateUser(profileRes.data));
+        } else {
+          // Fallback: just update the image URL
+          dispatch(updateUser({ 
+            profile_image: response.data.profile_image 
+          }));
+        }
+        Alert.alert('Success', 'Profile image updated successfully');
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to upload image');
     } finally {
@@ -147,8 +160,8 @@ export default function EditProfileScreen() {
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            {(user?.profile_image || user?.avatar) ? (
+              <Image source={{ uri: user?.profile_image || user?.avatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Ionicons name="person" size={50} color={themeColors.subText} />

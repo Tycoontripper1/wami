@@ -35,20 +35,20 @@ export const consolidateOnboardingData = (
   onboarding: any,
   creative: any
 ): SetupAccountRequest => {
-  const purpose = onboarding.purpose;
+  const purpose = onboarding.purpose || 'discover';
 
   if (purpose === 'discover') {
     return {
       account_type: 'discover',
-      categories: mapInterestsToIds(onboarding.interests),
+      categories: mapInterestsToIds(onboarding.interests || []),
       discovery_preference: onboarding.locationType as DiscoveryPreference || 'near_me',
       location: {
         city: onboarding.location?.city || onboarding.selectedCity || 'Unknown',
-        country: 'Nigeria', // Default or extract from location string
+        country: 'Nigeria',
         latitude: onboarding.location?.latitude,
         longitude: onboarding.location?.longitude,
       },
-      interests: mapInterestsToIds(onboarding.interests),
+      interests: mapInterestsToIds(onboarding.interests || []),
     };
   }
 

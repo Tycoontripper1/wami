@@ -25,7 +25,8 @@ export default function OnboardingCompleteScreen() {
     subText: isDark ? '#ccc' : '#666',
   };
 
-  const { onboarding, creativeOnboarding: creative } = useSelector((state: RootState) => state);
+  const onboarding = useSelector((state: RootState) => state.onboarding);
+  const creative = useSelector((state: RootState) => state.creativeOnboarding);
   const [isSubmitting, setIsSubmitting] = React.useState(true);
 
   useEffect(() => {

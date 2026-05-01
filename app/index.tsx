@@ -37,22 +37,11 @@ export default function OnboardingScreen() {
 
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
-  // Check for existing session on mount
+  // DEV: jump straight to the onboarding carousel every time.
+  // To restore normal behaviour: delete this block, uncomment the PROD block below,
+  // and uncomment the `dispatch` / `router` imports used by the session check.
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const session = await authService.restoreSession();
-        if (session) {
-          dispatch(restoreSession(session));
-          router.replace('/(tabs)');
-        }
-      } catch (error) {
-        console.log('No existing session');
-      } finally {
-        setIsCheckingAuth(false);
-      }
-    };
-    checkSession();
+    router.replace('/(auth)/onboarding-discover' as any);
   }, []);
 
   // Auto-advance slides every 4 seconds

@@ -125,7 +125,6 @@ export default function DiscoverScreen() {
   };
 
   const handleCategoryPress = (category: string) => {
-    // Navigate to category-specific swipe view
     router.push({
       pathname: '/(tabs)',
       params: { category },
@@ -139,9 +138,12 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      
+      {/* Status bar spacer - minimal on Android */}
+      <View style={{ height: insets.top > 20 ? insets.top : 8 }} />
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 10 }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Search Bar */}
@@ -308,6 +310,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
+    // No paddingTop here - space is now handled by the status bar spacer above
   },
   searchContainer: {
     flexDirection: 'row',

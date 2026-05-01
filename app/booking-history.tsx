@@ -75,11 +75,19 @@ export default function BookingHistoryScreen() {
       router.push(`/profile/${item.id || '1'}` as any);
     };
 
+    const handlePress = () => {
+      if (item.status === 'paid' || item.status === 'in_progress' || item.status === 'completed') {
+        router.push(`/service-tracking/${item.id}` as any);
+      } else {
+        // Just stay or show chat
+      }
+    };
+
     return (
       <View style={[styles.bookingCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}>
         <TouchableOpacity
           style={styles.bookingContent}
-          onPress={() => router.push(`/booking-history` as any)}
+          onPress={handlePress}
         >
           <View style={[styles.creativeImage, styles.avatarPlaceholder]}>
             <Ionicons name="person" size={24} color={themeColors.subText} />
@@ -97,6 +105,7 @@ export default function BookingHistoryScreen() {
               <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
             </View>
           </View>
+          <Ionicons name="chevron-forward" size={20} color={themeColors.subText} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
         {/* Rebook Button */}
         {(item.status === 'completed' || item.status === 'cancelled') && (

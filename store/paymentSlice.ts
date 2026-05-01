@@ -1,4 +1,4 @@
-import { Booking, BookingStatus, Conversation, Message, Payment, PaymentStatus } from '@/types/payment';
+import { Booking, BookingStatus, Conversation, Message, OrderStatus, Payment, PaymentStatus, ProductOrder } from '@/types/payment';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface PaymentState {
@@ -7,6 +7,7 @@ interface PaymentState {
   conversations: Conversation[];
   activeConversation: Conversation | null;
   messages: { [conversationId: string]: Message[] };
+  productOrders: ProductOrder[];
   isLoading: boolean;
   error: string | null;
 }
@@ -17,6 +18,7 @@ const initialState: PaymentState = {
   conversations: [],
   activeConversation: null,
   messages: {},
+  productOrders: [],
   isLoading: false,
   error: null,
 };
@@ -72,7 +74,6 @@ const paymentSlice = createSlice({
     },
     addPayment: (state, action: PayloadAction<Payment>) => {
       state.payments.push(action.payload);
-      // Update related booking
       const booking = state.bookings.find(b => b.id === action.payload.bookingId);
       if (booking) {
         booking.payment = action.payload;
@@ -89,17 +90,27 @@ const paymentSlice = createSlice({
     releaseEscrow: (state, action: PayloadAction<{ paymentId: string }>) => {
       const payment = state.payments.find(p => p.id === action.payload.paymentId);
       if (payment) {
-        // Release the held 30% to creative
         payment.escrow.releasedToCreative = payment.escrow.totalAmount - payment.escrow.platformFee;
         payment.status = 'completed';
         payment.updatedAt = new Date().toISOString();
-        
-        // Update booking status
         const booking = state.bookings.find(b => b.id === payment.bookingId);
         if (booking) {
           booking.status = 'completed';
           booking.updatedAt = new Date().toISOString();
         }
+      }
+    },
+
+    // Product Orders
+    addProductOrder: (state, action: PayloadAction<ProductOrder>) => {
+      state.productOrders.unshift(action.payload);
+    },
+    updateProductOrderStatus: (state, action: PayloadAction<{ orderId: string; orderStatus: OrderStatus; timeline?: ProductOrder['timeline'] }>) => {
+      const order = state.productOrders.find(o => o.id === action.payload.orderId);
+      if (order) {
+        order.orderStatus = action.payload.orderStatus;
+        if (action.payload.timeline) order.timeline = action.payload.timeline;
+        order.updatedAt = new Date().toISOString();
       }
     },
 
@@ -129,6 +140,8 @@ export const {
   addPayment,
   updatePaymentStatus,
   releaseEscrow,
+  addProductOrder,
+  updateProductOrderStatus,
   setLoading,
   setError,
   clearError,

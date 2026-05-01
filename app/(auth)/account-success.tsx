@@ -19,8 +19,8 @@ export default function AccountSuccessScreen() {
   };
 
   const handleDiscover = () => {
-    // Navigate to new onboarding flow
-    router.push('./onboarding-intro' as any);
+    // Navigate to the promotional onboarding carousel
+    router.push('./onboarding-discover' as any);
   };
 
   const handleCreative = () => {

@@ -3,6 +3,7 @@ import Colors from '@/constants/Colors';
 import { setLocation, setNotificationsEnabled } from '@/store/onboardingSlice';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
@@ -24,30 +25,45 @@ export default function OnboardingNotificationsScreen() {
     cardBg: isDark ? '#1A1A1A' : '#F5F5F5',
   };
 
+  const proceedAfterNotifications = async () => {
+    // Request location permissions
+    const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
+    
+    if (locationStatus === 'granted') {
+      try {
+        const location = await Location.getCurrentPositionAsync({});
+        dispatch(setLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }));
+      } catch (error) {
+        console.log('Error getting location:', error);
+      }
+    }
+
+    // Navigate to completion screen
+    router.push('./onboarding-complete' as any);
+  };
+
   const requestPermissions = async () => {
     setIsLoading(true);
     try {
+      const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+      if (isExpoGo && Platform.OS === 'android') {
+        Alert.alert(
+          'Expo Go Limitation',
+          'Push notifications are not supported in Expo Go on Android. Please use a development build to test this feature.',
+          [{ text: 'Continue', onPress: () => proceedAfterNotifications() }]
+        );
+        return;
+      }
+
       // Request notification permissions
       const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
       dispatch(setNotificationsEnabled(notificationStatus === 'granted'));
-
-      // Request location permissions
-      const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
       
-      if (locationStatus === 'granted') {
-        try {
-          const location = await Location.getCurrentPositionAsync({});
-          dispatch(setLocation({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          }));
-        } catch (error) {
-          console.log('Error getting location:', error);
-        }
-      }
-
-      // Navigate to completion screen
-      router.push('./onboarding-complete' as any);
+      await proceedAfterNotifications();
     } catch (error) {
       console.error('Error requesting permissions:', error);
       Alert.alert('Error', 'Failed to request permissions. Please try again.');

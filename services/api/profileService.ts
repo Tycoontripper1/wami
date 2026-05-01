@@ -44,9 +44,9 @@ const deleteAccount = async (
 // Upload profile image
 const uploadProfileImage = async (
   imageUri: string
-): Promise<ApiResponse<{ avatarUrl: string }>> => {
-  // Use FormData for image upload
+): Promise<ApiResponse<{ profile_image: string }>> => {
   const formData = new FormData();
+  
   // @ts-ignore
   formData.append('image', {
     uri: imageUri,
@@ -55,7 +55,9 @@ const uploadProfileImage = async (
   });
 
   return apiClient.post(API_ENDPOINTS.PROFILE.IMAGE, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
   });
 };
 
