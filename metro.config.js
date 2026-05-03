@@ -1,31 +1,9 @@
 const { getDefaultConfig } = require('expo/metro-config');
 
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Optimize bundle size
-config.transformer = {
-  ...config.transformer,
-  minifierConfig: {
-    compress: {
-      // Remove all console.* statements in production
-      drop_console: true,
-    },
-  },
-};
-
-// Enable compact output
-config.serializer = {
-  ...config.serializer,
-  customSerializer: undefined,
-};
-
-// Optimize asset resolution
-config.resolver = {
-  ...config.resolver,
-  assetExts: [
-    ...config.resolver.assetExts,
-    'webp', // Add WebP support
-  ],
-};
+// Add WebP support
+config.resolver.assetExts.push('webp');
 
 module.exports = config;

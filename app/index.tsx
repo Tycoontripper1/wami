@@ -13,17 +13,17 @@ const { width } = Dimensions.get('window');
 const slides = [
   {
     id: '1',
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
+    image: require('../assets/images/onboarding_bg_creative.webp'),
     text: 'Bringing the best for creatives, sellers and buyers at the comfort of your home.',
   },
   {
     id: '2',
-    image: require('@/assets/images/onboarding_bg_seller.webp'),
+    image: require('../assets/images/onboarding_bg_seller.webp'),
     text: 'Bringing the best for creatives, sellers and buyers at the comfort of your home.',
   },
   {
     id: '3',
-    image: require('@/assets/images/onboarding_bg_service.webp'),
+    image: require('../assets/images/onboarding_bg_service.webp'),
     text: 'Bringing the best for creatives, sellers and buyers at the comfort of your home.',
   },
 ];

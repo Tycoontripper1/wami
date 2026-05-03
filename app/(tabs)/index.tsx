@@ -54,7 +54,7 @@ export default function DiscoverScreen() {
       distance: creative.location.region === regionCode ? '2.5 km away' : undefined,
       rating: creative.rating,
       reviews: creative.reviews,
-      image: creative.images[0] ? { uri: creative.images[0] } : require('@/assets/images/onboarding_bg_creative.webp'),
+      image: creative.images[0] ? { uri: creative.images[0] } : require('../../assets/images/onboarding_bg_creative.webp'),
       video: creative.video,
       tags: creative.tags.slice(0, 3),
     }));

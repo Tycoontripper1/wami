@@ -35,7 +35,7 @@ const MOCK_CREATIVE = {
   id: '1',
   name: 'Paul Studio',
   role: 'Photographer',
-  image: require('@/assets/images/onboarding_bg_creative.png'),
+  image: require('../../assets/images/onboarding_bg_creative.webp'),
   online: true,
 };
 

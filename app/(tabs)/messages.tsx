@@ -54,7 +54,7 @@ const CONVERSATIONS = [
     lastMessage: 'The venue is confirmed for Saturday',
     time: 'Yesterday',
     unread: 0,
-    image: require('@/assets/images/onboarding_bg_creative.png'),
+    image: require('@/assets/images/onboarding_bg_creative.webp'),
     online: false,
   },
 ];
