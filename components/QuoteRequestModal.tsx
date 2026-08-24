@@ -1,8 +1,13 @@
 import Colors from '@/constants/Colors';
+import { createBooking } from '@/services/api/bookingsService';
+import { createQuote } from '@/services/api/quotesService';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
+    Image,
     Modal,
     ScrollView,
     StyleSheet,
@@ -27,6 +32,7 @@ interface QuoteRequestModalProps {
 
 export interface QuoteRequest {
   id: string;
+  bookingId: string;
   creativeId: string;
   creativeName: string;
   service: string;
@@ -59,6 +65,23 @@ export default function QuoteRequestModal({
   const [budget, setBudget] = useState('');
   const [description, setDescription] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAddReferenceImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setReferenceImages((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
+    }
+  };
+
+  const handleRemoveReferenceImage = (index: number) => {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const themeColors = {
     background: isDark ? '#1a1a1a' : '#fff',
@@ -68,36 +91,70 @@ export default function QuoteRequestModal({
     border: isDark ? '#333' : '#e0e0e0',
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedService || !budget || !description) {
       Alert.alert('Missing Information', 'Please fill in all required fields');
       return;
     }
 
-    const quote: QuoteRequest = {
-      id: `quote_${Date.now()}`,
-      creativeId: creative.id,
-      creativeName: creative.name,
-      service: selectedService,
-      budget,
-      description,
-      preferredDate: preferredDate || 'Flexible',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
+    const budgetAmount = Number(budget.replace(/[^\d]/g, '')) || 0;
+    const today = new Date().toISOString().split('T')[0];
 
-    onSubmit(quote);
-    Alert.alert(
-      'Quote Request Sent! 🎉',
-      `Your request has been sent to ${creative.name}. They will respond within 24 hours.`,
-      [{ text: 'OK', onPress: onClose }]
-    );
+    setIsSubmitting(true);
+    try {
+      // A quote is created against a booking, so we open a (negotiating)
+      // booking first, then attach the buyer's proposed quote to it.
+      const bookingRes = await createBooking({
+        offering_id: creative.id,
+        project_title: selectedService,
+        project_details: description,
+        start_date: preferredDate || today,
+        end_date: preferredDate || today,
+        total_amount: budgetAmount,
+        currency: 'NGN',
+      });
+      const bookingId = String(bookingRes.data?.id ?? `booking_${Date.now()}`);
 
-    // Reset form
-    setSelectedService('');
-    setBudget('');
-    setDescription('');
-    setPreferredDate('');
+      const quoteRes = await createQuote({
+        booking_id: bookingId,
+        price: budgetAmount,
+        currency: 'NGN',
+        message: description,
+      });
+      const quoteId = String(quoteRes.data?.id ?? `quote_${Date.now()}`);
+
+      const quote: QuoteRequest = {
+        id: quoteId,
+        bookingId,
+        creativeId: creative.id,
+        creativeName: creative.name,
+        service: selectedService,
+        budget,
+        description,
+        preferredDate: preferredDate || 'Flexible',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      onSubmit(quote);
+      Alert.alert(
+        'Quote Request Sent! 🎉',
+        `Your request has been sent to ${creative.name}. They will respond within 24 hours.`,
+        [{ text: 'OK', onPress: onClose }]
+      );
+
+      // Reset form
+      setSelectedService('');
+      setBudget('');
+      setDescription('');
+      setPreferredDate('');
+      setReferenceImages([]);
+    } catch (error) {
+      console.error('Failed to send quote request:', error);
+      Alert.alert("Couldn't Send Request", 'Something went wrong while sending your quote request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -195,15 +252,38 @@ export default function QuoteRequestModal({
               value={preferredDate}
               onChangeText={setPreferredDate}
             />
+
+            {/* Reference Images */}
+            <Text style={[styles.label, { color: themeColors.text }]}>Reference Images (Optional)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+              {referenceImages.map((uri, index) => (
+                <View key={uri + index} style={styles.refImageWrap}>
+                  <Image source={{ uri }} style={styles.refImage} />
+                  <TouchableOpacity style={styles.refImageRemove} onPress={() => handleRemoveReferenceImage(index)}>
+                    <Ionicons name="close" size={12} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                style={[styles.addImageButton, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}
+                onPress={handleAddReferenceImage}
+              >
+                <Ionicons name="camera-outline" size={22} color={themeColors.subText} />
+              </TouchableOpacity>
+            </ScrollView>
           </ScrollView>
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitButton, (!selectedService || !budget || !description) && styles.buttonDisabled]}
+            style={[styles.submitButton, (!selectedService || !budget || !description || isSubmitting) && styles.buttonDisabled]}
             onPress={handleSubmit}
-            disabled={!selectedService || !budget || !description}
+            disabled={!selectedService || !budget || !description || isSubmitting}
           >
-            <Text style={styles.submitButtonText}>Send Quote Request</Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitButtonText}>Send Quote Request</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -328,5 +408,36 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  refImageWrap: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    marginRight: 10,
+    overflow: 'hidden',
+  },
+  refImage: {
+    width: '100%',
+    height: '100%',
+  },
+  refImageRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addImageButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -21,7 +21,7 @@ export default function InsightCard({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const getGradient = () => {
+  const getGradient = (): [string, string] => {
     switch (type) {
       case 'income':
         return ['#4CAF50', '#66BB6A'];

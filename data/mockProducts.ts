@@ -19,6 +19,9 @@ export interface Product {
   featured: boolean;
   tags: string[];
   createdAt: string;
+  condition: 'New' | 'Pre-owned' | 'Refurbished';
+  size?: string;
+  officialStore: boolean;
 }
 
 export type ProductCategory = 
@@ -51,6 +54,9 @@ export const MOCK_PRODUCTS: Product[] = [
     featured: true,
     tags: ['Ankara', 'Fashion', 'Dress', 'Handmade'],
     createdAt: formatDate(new Date('2026-01-10')),
+    condition: 'New',
+    size: 'M',
+    officialStore: false,
   },
   {
     id: 'prod_002',
@@ -71,6 +77,8 @@ export const MOCK_PRODUCTS: Product[] = [
     featured: true,
     tags: ['Makeup', 'Brushes', 'Beauty'],
     createdAt: formatDate(new Date('2026-01-15')),
+    condition: 'New',
+    officialStore: false,
   },
   {
     id: 'prod_003',
@@ -91,6 +99,8 @@ export const MOCK_PRODUCTS: Product[] = [
     featured: true,
     tags: ['Photography', 'Presets', 'Lightroom', 'Digital'],
     createdAt: formatDate(new Date('2026-01-05')),
+    condition: 'New',
+    officialStore: false,
   },
   {
     id: 'prod_004',
@@ -111,6 +121,8 @@ export const MOCK_PRODUCTS: Product[] = [
     featured: false,
     tags: ['Jewelry', 'Beads', 'Accessories', 'Handmade'],
     createdAt: formatDate(new Date('2026-01-12')),
+    condition: 'New',
+    officialStore: false,
   },
   {
     id: 'prod_005',
@@ -131,6 +143,8 @@ export const MOCK_PRODUCTS: Product[] = [
     featured: true,
     tags: ['Art', 'Portrait', 'Custom', 'Digital'],
     createdAt: formatDate(new Date('2026-01-08')),
+    condition: 'New',
+    officialStore: false,
   },
   {
     id: 'prod_006',
@@ -151,6 +165,8 @@ export const MOCK_PRODUCTS: Product[] = [
     featured: true,
     tags: ['Hair', 'Extensions', 'Beauty'],
     createdAt: formatDate(new Date('2026-01-18')),
+    condition: 'Pre-owned',
+    officialStore: true,
   },
 ];
 

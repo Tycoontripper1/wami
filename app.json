@@ -11,7 +11,12 @@
     "splash": {
       "image": "./assets/images/wami-splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#00BCD4"
+      "backgroundColor": "#00BCD4",
+      "dark": {
+        "image": "./assets/images/wami-splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0F1419"
+      }
     },
     "ios": {
       "supportsTablet": true

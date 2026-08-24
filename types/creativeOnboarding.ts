@@ -57,6 +57,8 @@ export interface CreativeProfile {
   discoverLocation: DiscoverLocationType | null;
   brand: BrandDetails;
   instagram?: InstagramProfile;
+  selectedInstagramPostIds?: string[];
+  instagramAutoSync?: boolean;
   website?: string;
   availability: AvailabilityOption[];
   visibility: ProfileVisibility;

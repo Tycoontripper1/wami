@@ -1,11 +1,13 @@
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import PhotoUploadRequirements from '@/components/sell/PhotoUploadRequirements';
 import Colors from '@/constants/Colors';
+import { createProduct } from '@/services/api/productsService';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Image,
     KeyboardAvoidingView,
@@ -31,7 +33,9 @@ export default function SellScreen() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [stock, setStock] = useState('1');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [isListing, setIsListing] = useState(false);
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -66,15 +70,42 @@ export default function SellScreen() {
     }
   };
 
-  const handleListProduct = () => {
+  const handleListProduct = async () => {
     if (!productName || !price || !description) {
       Alert.alert('Missing Information', 'Please fill in all required fields.');
       return;
     }
-    Alert.alert('Success', 'Your product has been listed!', [
-      { text: 'View My Products', onPress: () => router.push('/my-products') },
-      { text: 'OK', style: 'cancel' }
-    ]);
+
+    // Note: image upload isn't wired up to the backend yet — photos are
+    // collected locally but not sent with the create-product request.
+    setIsListing(true);
+    try {
+      await createProduct({
+        title: productName,
+        description,
+        price: Number(price),
+        currency: 'NGN',
+        category: category || 'Other',
+        stock: Number(stock) || 1,
+        status: 'published',
+      });
+      Alert.alert('Success', 'Your product has been listed!', [
+        { text: 'View My Products', onPress: () => router.push('/my-products') },
+        { text: 'OK', style: 'cancel' },
+      ]);
+      setProductName('');
+      setDescription('');
+      setPrice('');
+      setCategory('');
+      setDeliveryFee('');
+      setStock('1');
+      setPhotos([]);
+    } catch (error) {
+      console.error('Failed to list product:', error);
+      Alert.alert('Couldn\'t List Product', 'Something went wrong while listing your product. Please try again.');
+    } finally {
+      setIsListing(false);
+    }
   };
 
   return (
@@ -88,8 +119,12 @@ export default function SellScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={[styles.title, { color: themeColors.text }]}>Sell Product</Text>
-        <TouchableOpacity onPress={handleListProduct} style={styles.listButton}>
-          <Text style={styles.listButtonText}>List Now</Text>
+        <TouchableOpacity onPress={handleListProduct} style={[styles.listButton, isListing && { opacity: 0.7 }]} disabled={isListing}>
+          {isListing ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.listButtonText}>List Now</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -165,6 +200,14 @@ export default function SellScreen() {
               />
             </View>
           </View>
+
+          <FloatingLabelInput
+            label="Stock Quantity"
+            value={stock}
+            onChangeText={setStock}
+            keyboardType="numeric"
+            placeholder="1"
+          />
 
           <FloatingLabelInput
             label="Description *"

@@ -1,16 +1,21 @@
+import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
-import { MOCK_PRODUCTS } from '@/constants/MockProducts';
+import { getProductById } from '@/services/api/productsService';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     Image,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     useColorScheme,
     View,
@@ -19,15 +24,85 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+interface ProductDetail {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  image: string;
+  images?: string[];
+  status: string;
+  condition?: string;
+  size?: string;
+  sellerName?: string;
+  officialStore?: boolean;
+}
+
+const mapApiProductToDetail = (p: any): ProductDetail => ({
+  id: String(p.id),
+  name: p.title || p.name || 'Untitled',
+  price: p.price ?? 0,
+  category: p.category || '',
+  image: p.image || p.images?.[0] || '',
+  images: p.images,
+  status: p.stock === 0 ? 'Sold' : (p.status === 'published' ? 'Active' : p.status || 'Active'),
+  condition: p.condition,
+  size: p.size,
+  sellerName: p.sellerName || p.seller?.name,
+  officialStore: p.officialStore,
+});
+
 export default function ProductDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showOfferInput, setShowOfferInput] = useState(false);
+  const [offerPrice, setOfferPrice] = useState('');
 
   const productId = params.id as string;
-  const product = MOCK_PRODUCTS.find((p) => p.id === productId);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const loadProduct = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const res = await getProductById(productId);
+      setProduct(mapApiProductToDetail(res.data));
+    } catch (error) {
+      console.error('Failed to load product:', error);
+      setProduct(null);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    loadProduct();
+  }, [loadProduct]);
+
+  const productImages = product?.images?.length ? product.images : product ? [product.image] : [];
+
+  const handleImageScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / width);
+    setSelectedImageIndex(index);
+  };
+
+  const handleSendOffer = () => {
+    if (!offerPrice.trim()) {
+      Alert.alert('Missing Offer', 'Please enter an offer amount');
+      return;
+    }
+    Alert.alert(
+      'Offer Sent! 🎉',
+      `Your offer of ₦${Number(offerPrice).toLocaleString()} has been sent to the seller. They typically respond within 24 hours, or may counter with a different price.`,
+      [{ text: 'OK', onPress: () => { setShowOfferInput(false); setOfferPrice(''); } }]
+    );
+  };
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -37,16 +112,24 @@ export default function ProductDetailScreen() {
     border: isDark ? '#333' : '#E0E0E0',
   };
 
-  if (!product) {
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background, alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color={Colors.light.primary} size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (hasError || !product) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={themeColors.subText} />
-          <Text style={[styles.errorText, { color: themeColors.text }]}>Product not found</Text>
-          <TouchableOpacity style={styles.backToHomeButton} onPress={() => router.back()}>
-            <Text style={styles.backToHomeText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon={hasError ? 'cloud-offline-outline' : 'alert-circle-outline'}
+          title={hasError ? "Oops, we can't find anything" : 'Product not found'}
+          message={hasError ? 'Something went wrong while loading this product. Please check your connection and try again.' : undefined}
+          onRetry={hasError ? loadProduct : () => router.back()}
+          retryLabel={hasError ? 'Try Again' : 'Go Back'}
+        />
       </SafeAreaView>
     );
   }
@@ -81,9 +164,25 @@ export default function ProductDetailScreen() {
       </SafeAreaView>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Product Image */}
+        {/* Product Image Carousel */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={styles.productImage} />
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleImageScroll}
+          >
+            {productImages.map((img, index) => (
+              <Image key={index} source={{ uri: img }} style={styles.productImage} />
+            ))}
+          </ScrollView>
+
+          {product.status !== 'Active' && (
+            <View style={styles.soldOutOverlay}>
+              <Text style={styles.soldOutText}>Sold Out</Text>
+            </View>
+          )}
+
           <View
             style={[
               styles.statusBadge,
@@ -92,6 +191,20 @@ export default function ProductDetailScreen() {
           >
             <Text style={styles.statusText}>{product.status}</Text>
           </View>
+
+          {productImages.length > 1 && (
+            <View style={styles.dotsContainer}>
+              {productImages.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.dot,
+                    { backgroundColor: index === selectedImageIndex ? '#fff' : 'rgba(255,255,255,0.5)' },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Product Info */}
@@ -103,24 +216,75 @@ export default function ProductDetailScreen() {
 
           <Text style={[styles.productName, { color: themeColors.text }]}>{product.name}</Text>
 
-          <Text style={styles.productPrice}>₦{product.price.toLocaleString()}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.productPrice}>₦{product.price.toLocaleString()}</Text>
+            <View style={styles.conditionTag}>
+              <Ionicons name="star" size={12} color={Colors.light.primary} />
+              <Text style={styles.conditionTagText}>{product.condition || 'New'}</Text>
+            </View>
+          </View>
+          <Text style={[styles.serviceChargeNote, { color: themeColors.subText }]}>
+            Price includes Wami buyer protection · service charge calculated at checkout
+          </Text>
 
           {/* Seller Info */}
-          <TouchableOpacity
-            style={[styles.sellerCard, { backgroundColor: themeColors.cardBg }]}
-            onPress={handleContactSeller}
-          >
+          <View style={[styles.sellerCard, { backgroundColor: themeColors.cardBg }]}>
             <View style={styles.sellerInfo}>
               <View style={styles.sellerAvatar}>
                 <Ionicons name="person" size={24} color={themeColors.subText} />
               </View>
               <View style={styles.sellerTextContainer}>
+                <View style={styles.sellerNameRow}>
+                  <Text style={[styles.sellerName, { color: themeColors.text }]}>
+                    {product.sellerName || 'Creative Seller'}
+                  </Text>
+                  {product.officialStore && (
+                    <View style={styles.officialBadge}>
+                      <Ionicons name="checkmark-circle" size={12} color="#fff" />
+                      <Text style={styles.officialBadgeText}>Official Store</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={[styles.sellerLabel, { color: themeColors.subText }]}>Sold by</Text>
-                <Text style={[styles.sellerName, { color: themeColors.text }]}>Creative Seller</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={themeColors.subText} />
-          </TouchableOpacity>
+          </View>
+
+          <View style={styles.sellerActionsRow}>
+            <TouchableOpacity
+              style={[styles.offerButton, { borderColor: Colors.light.primary }]}
+              onPress={() => setShowOfferInput((v) => !v)}
+            >
+              <Text style={[styles.offerButtonText, { color: Colors.light.primary }]}>Offer Price</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.messageButton} onPress={handleContactSeller}>
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
+              <Text style={styles.messageButtonText}>Message</Text>
+            </TouchableOpacity>
+          </View>
+
+          {showOfferInput && (
+            <View style={[styles.offerInlineCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}>
+              <Text style={[styles.offerInlineLabel, { color: themeColors.text }]}>Make an Offer</Text>
+              <View style={[styles.offerInputRow, { borderColor: themeColors.border }]}>
+                <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '600' }}>₦</Text>
+                <TextInput
+                  style={[styles.offerInput, { color: themeColors.text }]}
+                  placeholder="Enter your offer"
+                  placeholderTextColor={themeColors.subText}
+                  keyboardType="numeric"
+                  value={offerPrice}
+                  onChangeText={setOfferPrice}
+                />
+              </View>
+              <Text style={[styles.offerCounterNote, { color: themeColors.subText }]}>
+                The seller may accept, counter, or decline your offer.
+              </Text>
+              <TouchableOpacity style={styles.sendOfferButton} onPress={handleSendOffer}>
+                <Text style={styles.sendOfferButtonText}>Send Offer</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Description */}
           <View style={styles.section}>
@@ -140,13 +304,15 @@ export default function ProductDetailScreen() {
               <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.category}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Listed Date</Text>
-              <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.date}</Text>
-            </View>
-            <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Condition</Text>
-              <Text style={[styles.detailValue, { color: themeColors.text }]}>New</Text>
+              <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.condition || 'New'}</Text>
             </View>
+            {product.size && (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Size</Text>
+                <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.size}</Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -215,6 +381,146 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  soldOutOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  soldOutText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+  },
+  conditionTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.light.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  conditionTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.primary,
+  },
+  serviceChargeNote: {
+    fontSize: 12,
+    marginBottom: 16,
+  },
+  sellerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  officialBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  officialBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  sellerActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  offerButton: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 24,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  offerButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  messageButton: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 24,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  offerInlineCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 24,
+  },
+  offerInlineLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  offerInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  offerInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  offerCounterNote: {
+    fontSize: 12,
+    marginBottom: 14,
+  },
+  sendOfferButton: {
+    backgroundColor: Colors.light.primary,
+    borderRadius: 24,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  sendOfferButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   infoContainer: {
     padding: 16,

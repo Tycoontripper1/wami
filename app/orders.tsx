@@ -108,14 +108,14 @@ export default function OrdersScreen() {
       {orders.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIcon, { backgroundColor: Colors.light.primary + '15' }]}>
-            <Ionicons name="bag" size={48} color={Colors.light.primary} />
+            <Ionicons name="cube-outline" size={48} color={Colors.light.primary} />
           </View>
           <Text style={[styles.emptyTitle, { color: tc.text }]}>No Orders Yet</Text>
           <Text style={[styles.emptySubtitle, { color: tc.sub }]}>
             Your orders will appear here once you make a purchase
           </Text>
           <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/products-listing' as any)}>
-            <Text style={styles.shopBtnText}>Browse Products</Text>
+            <Text style={styles.shopBtnText}>Browse Shop</Text>
           </TouchableOpacity>
         </View>
       ) : (

@@ -19,6 +19,8 @@ const initialState: CreativeProfile = {
     location: '',
   },
   instagram: undefined,
+  selectedInstagramPostIds: [],
+  instagramAutoSync: true,
   website: undefined,
   availability: [],
   visibility: 'public',
@@ -64,6 +66,12 @@ const creativeOnboardingSlice = createSlice({
     clearInstagram: (state) => {
       state.instagram = undefined;
     },
+    setSelectedInstagramPosts: (state, action: PayloadAction<string[]>) => {
+      state.selectedInstagramPostIds = action.payload;
+    },
+    setInstagramAutoSync: (state, action: PayloadAction<boolean>) => {
+      state.instagramAutoSync = action.payload;
+    },
 
     // Website
     setWebsite: (state, action: PayloadAction<string>) => {
@@ -106,6 +114,8 @@ export const {
   setBrandDetails,
   setInstagramProfile,
   clearInstagram,
+  setSelectedInstagramPosts,
+  setInstagramAutoSync,
   setWebsite,
   setAvailability,
   toggleAvailability,

@@ -9,7 +9,8 @@ export type OrderStatus =
   | 'shipped'              // Shipped out
   | 'out_for_delivery'     // Out for delivery
   | 'delivered'            // Delivered
-  | 'delivery_failed';     // Delivery attempt failed
+  | 'delivery_failed'      // Delivery attempt failed
+  | 'cancelled';           // Order cancelled
 
 export type ShippingOption = 'pickup' | 'express';
 export type PaymentMethodType = 'card' | 'bank_transfer' | 'wallet';

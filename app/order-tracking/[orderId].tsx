@@ -1,4 +1,6 @@
+import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
+import { updateProductOrderStatus } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { buildOrderTimeline } from '@/types/payment';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +18,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 const STATUS_STEPS = ['packed', 'on_way_to_logistics', 'at_logistics', 'shipped', 'out_for_delivery', 'delivered'];
 
@@ -33,6 +35,7 @@ const STEP_ICONS: Record<string, string> = {
 export default function OrderTrackingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const params = useLocalSearchParams();
@@ -79,6 +82,22 @@ export default function OrderTrackingScreen() {
         <Ionicons name="search" size={64} color={tc.sub} />
         <Text style={[styles.emptyText, { color: tc.text }]}>Order not found</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtnCentered}>
+          <Text style={styles.backBtnText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (order.orderStatus === 'cancelled') {
+    return (
+      <View style={[styles.container, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <EmptyState
+          icon="close-circle-outline"
+          title="Order Cancelled"
+          message={`Your order (${order.trackingNumber}) has been cancelled. If this wasn't you, please contact support.`}
+        />
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backBtnCentered, { alignSelf: 'center' }]}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -164,6 +183,33 @@ export default function OrderTrackingScreen() {
             </Text>
           )}
         </View>
+
+        {/* Arrange Delivery / Cancel */}
+        {order.orderStatus === 'packed' && (
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity
+              style={styles.arrangeDeliveryBtn}
+              onPress={() => router.push(`/delivery/arrange/${order.id}` as any)}
+            >
+              <Ionicons name="bicycle" size={18} color="#fff" />
+              <Text style={styles.arrangeDeliveryBtnText}>Arrange Delivery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
+                  { text: 'No', style: 'cancel' },
+                  {
+                    text: 'Yes, Cancel',
+                    style: 'destructive',
+                    onPress: () => dispatch(updateProductOrderStatus({ orderId: order.id, orderStatus: 'cancelled' })),
+                  },
+                ])
+              }
+            >
+              <Text style={[styles.cancelOrderText, { color: '#FF3B30' }]}>Cancel Order</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Delivery Failed Banner */}
         {isDeliveryFailed && (
@@ -269,6 +315,12 @@ const styles = StyleSheet.create({
   trackingNum: { fontSize: 16, fontWeight: '700', letterSpacing: 1.2 },
   copyBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   estimatedDelivery: { fontSize: 13, marginTop: 10 },
+  arrangeDeliveryBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: Colors.light.primary, borderRadius: 16, paddingVertical: 14,
+  },
+  arrangeDeliveryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  cancelOrderText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   failedBanner: {
     flexDirection: 'row', gap: 12, padding: 16,
     borderRadius: 16, borderWidth: 1, alignItems: 'flex-start',

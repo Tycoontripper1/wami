@@ -59,7 +59,18 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (userId: string) => `/profile/${userId}`,
   },
 
-  
+
+  // Discovery (feed, near-you, search, saved, swipe)
+  DISCOVERY: {
+    FEED: '/discovery/feed',
+    NEAR_YOU: '/discovery/near-you',
+    MY_ITEMS: '/discovery/my-items',
+    SEARCH: '/discovery/search',
+    SAVED: '/discovery/saved',
+    UNSAVE: (offeringId: string | number) => `/discovery/saved/${offeringId}`,
+    SWIPE: '/discovery/swipe',
+  },
+
   // Creatives
   CREATIVES: {
     LIST: '/creatives',
@@ -77,10 +88,21 @@ export const API_ENDPOINTS = {
   BOOKINGS: {
     LIST: '/bookings',
     CREATE: '/bookings',
-    BY_ID: (id: string) => `/bookings/${id}`,
+    BY_ID: (id: string | number) => `/bookings/${id}`,
     UPDATE: (id: string) => `/bookings/${id}`,
     COMPLETE: (id: string) => `/bookings/${id}/complete`,
     CANCEL: (id: string) => `/bookings/${id}/cancel`,
+    STATUS: (id: string | number) => `/bookings/${id}/status`,
+    MILESTONES: (id: string | number) => `/bookings/${id}/milestones`,
+    RELEASE_MILESTONE: (bookingId: string | number, milestoneId: string | number) =>
+      `/bookings/${bookingId}/milestones/${milestoneId}/release`,
+  },
+
+  // Quotes
+  QUOTES: {
+    LIST: '/quotes',
+    CREATE: '/quotes',
+    RESPOND: (id: string | number) => `/quotes/${id}/respond`,
   },
   
 
@@ -107,8 +129,11 @@ export const API_ENDPOINTS = {
   // Products
   PRODUCTS: {
     LIST: '/products',
+    CREATE: '/products',
     FEATURED: '/products/featured',
     BY_ID: (id: string) => `/products/${id}`,
+    UPDATE: (id: string) => `/products/${id}`,
+    DELETE: (id: string) => `/products/${id}`,
     BY_CATEGORY: (category: string) => `/products/category/${category}`,
   },
   

@@ -6,9 +6,9 @@ import {
     chatService,
     creativesService,
     productsService,
-    profileService,
     walletService,
 } from '@/services/api';
+import { profileService } from '@/services/api/profileService';
 
 // ============================================
 // CREATIVE DISCOVERY EXAMPLES
@@ -71,15 +71,13 @@ export async function exampleGetFeatured() {
 export async function exampleCreateBooking() {
   try {
     const response = await bookingsService.createBooking({
-      creativeId: 'ng-1',
-      creativeName: 'Paul Studio',
-      service: 'Wedding Photography Package',
-      description: 'Full day coverage with engagement shoot',
-      agreedPrice: 150000,
+      offering_id: 'ng-1',
+      project_title: 'Wedding Photography Package',
+      project_details: 'Full day coverage with engagement shoot',
+      start_date: '2026-03-15',
+      end_date: '2026-03-15',
+      total_amount: 150000,
       currency: 'NGN',
-      scheduledDate: '2026-03-15',
-      scheduledTime: '10:00 AM',
-      location: 'Lagos, Nigeria',
     });
 
     if (response.success) {
@@ -96,19 +94,14 @@ export async function exampleGetUserBookings() {
     // Get all bookings
     const allBookings = await bookingsService.getBookings();
 
-    // Get only paid bookings
-    const paidBookings = await bookingsService.getBookings({
-      status: 'paid',
-    });
-
     // Get bookings with pagination
     const pagedBookings = await bookingsService.getBookings({
       page: 1,
       limit: 5,
     });
 
-    if (allBookings.success) {
-      console.log(`Total bookings: ${allBookings.data.pagination.total}`);
+    if (allBookings.success && Array.isArray(allBookings.data)) {
+      console.log(`Total bookings: ${allBookings.data.length}`);
     }
   } catch (error: any) {
     console.error('Error:', error.message);
@@ -117,9 +110,7 @@ export async function exampleGetUserBookings() {
 
 export async function exampleUpdateBooking() {
   try {
-    const response = await bookingsService.updateBooking('booking_001', {
-      status: 'completed',
-    });
+    const response = await bookingsService.updateBookingStatus('booking_001', 'completed');
 
     if (response.success) {
       console.log('Booking updated:', response.data.status);
@@ -340,10 +331,10 @@ export async function exampleGetProfile() {
 export async function exampleUpdateProfile() {
   try {
     const response = await profileService.updateProfile({
-      firstName: 'John',
-      lastName: 'Doe',
+      first_name: 'John',
+      last_name: 'Doe',
       bio: 'Professional event planner',
-      location: 'Lagos, Nigeria',
+      location: { city: 'Lagos', country: 'Nigeria' },
     });
 
     if (response.success) {

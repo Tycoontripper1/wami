@@ -195,6 +195,20 @@ export default function ServiceTrackingScreen() {
           })}
         </View>
 
+        {/* File Delivery Area */}
+        {booking.status === 'completed' && (
+          <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+            <Text style={[styles.cardLabel, { color: tc.sub, marginBottom: 12 }]}>Delivered Files</Text>
+            {['Final_Edit_01.jpg', 'Final_Edit_02.jpg', 'Project_Files.zip'].map((file) => (
+              <TouchableOpacity key={file} style={[styles.fileRow, { borderColor: tc.border }]}>
+                <Ionicons name="document-attach-outline" size={20} color={Colors.light.primary} />
+                <Text style={[styles.fileName, { color: tc.text }]} numberOfLines={1}>{file}</Text>
+                <Ionicons name="download-outline" size={20} color={tc.sub} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Action Button */}
         {booking.status === 'completed' && (
           <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirmCompletion}>
@@ -261,6 +275,8 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1, alignItems: 'flex-start',
   },
   infoText: { fontSize: 14, flex: 1, lineHeight: 20 },
+  fileRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderTopWidth: 1, marginTop: 0 },
+  fileName: { flex: 1, fontSize: 14, fontWeight: '500' },
   emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24 },
   backBtnCentered: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,

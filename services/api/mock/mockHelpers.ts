@@ -54,7 +54,7 @@ export function filterByQuery<T extends Record<string, any>>(
         return value.toLowerCase().includes(lowerQuery);
       }
       if (Array.isArray(value)) {
-        return value.some(v => 
+        return value.some((v: unknown) =>
           typeof v === 'string' && v.toLowerCase().includes(lowerQuery)
         );
       }

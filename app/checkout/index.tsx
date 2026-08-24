@@ -1,5 +1,6 @@
+import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
-import { MOCK_PRODUCTS } from '@/constants/MockProducts';
+import { MOCK_PRODUCTS } from '@/data/mockProducts';
 import { addProductOrder } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { PaymentMethodType, ShippingOption, buildOrderTimeline, formatCurrency } from '@/types/payment';
@@ -43,7 +44,7 @@ export default function CheckoutScreen() {
   const params = useLocalSearchParams();
   const productId = params.productId as string;
   const user = useSelector((state: RootState) => state.auth.user);
-  const walletBalance = useSelector((state: RootState) => state.wallet?.balance ?? 0);
+  const walletBalance = useSelector((state: RootState) => state.wallet?.balances?.NGN ?? 0);
 
   const product = MOCK_PRODUCTS.find(p => p.id === productId) || MOCK_PRODUCTS[0];
 
@@ -59,6 +60,7 @@ export default function CheckoutScreen() {
   const [showContactSheet, setShowContactSheet] = useState(false);
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentFailed, setPaymentFailed] = useState(false);
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -102,16 +104,27 @@ export default function CheckoutScreen() {
 
   const processOrder = () => {
     setIsProcessing(true);
+    setPaymentFailed(false);
+
+    // Simulate an occasional card decline so the payment-failed state is reachable
+    if (paymentMethod === 'card' && Math.random() < 0.3) {
+      setTimeout(() => {
+        setIsProcessing(false);
+        setPaymentFailed(true);
+      }, 1500);
+      return;
+    }
+
     const orderId = `ORD${Date.now()}`;
     const trackingNumber = `LGS-${Math.random().toString(36).substring(2, 8).toUpperCase()}${Math.floor(Math.random() * 1000)}`;
 
     const newOrder = {
       id: orderId,
-      customerId: user?.id || 'guest',
+      customerId: String(user?.id ?? 'guest'),
       productId: product.id,
       productName: product.name,
-      productImage: product.image,
-      sellerName: 'Creative Seller',
+      productImage: product.images[0],
+      sellerName: product.sellerName,
       price: product.price,
       serviceFee,
       deliveryFee,
@@ -137,6 +150,24 @@ export default function CheckoutScreen() {
       router.replace(`/checkout/success?orderId=${orderId}&trackingNumber=${trackingNumber}`);
     }, 2000);
   };
+
+  if (paymentFailed) {
+    return (
+      <View style={[styles.container, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <EmptyState
+          icon="close-circle-outline"
+          title="Payment Failed"
+          message="We couldn't process your card payment. Please check your card details or try a different payment method."
+          onRetry={processOrder}
+          retryLabel="Try Again"
+        />
+        <TouchableOpacity style={styles.goBackBtn} onPress={() => setPaymentFailed(false)}>
+          <Text style={[styles.goBackBtnText, { color: tc.sub }]}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: tc.bg }]}>
@@ -425,6 +456,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700' },
+  goBackBtn: { alignItems: 'center', paddingBottom: 40 },
+  goBackBtnText: { fontSize: 15, fontWeight: '600' },
   scrollContent: { padding: 16, gap: 12 },
   sectionRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

@@ -49,7 +49,22 @@ class ApiClient {
       return await this.realRequest<T>(method, endpoint, config);
     } catch (error: any) {
       console.error('API Request Error:', error);
-      throw this.transformError(error);
+      const apiError = this.transformError(error);
+
+      // Dev-only: surface backend failures loudly (RN red-box / Expo Go crash
+      // overlay) so they can't be missed behind a screen's own graceful
+      // "couldn't load, try again" fallback UI. Thrown outside this promise
+      // chain so the caller's own try/catch still runs normally in every
+      // build — production behavior (and this rethrow) is unaffected.
+      if (__DEV__) {
+        setTimeout(() => {
+          throw new Error(
+            `[Backend Error] ${method} ${endpoint} -> ${apiError.code}: ${apiError.message}`
+          );
+        }, 0);
+      }
+
+      throw apiError;
     }
   }
 
@@ -78,7 +93,7 @@ class ApiClient {
     endpoint: string,
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
-    const url = buildUrl(endpoint);
+    const url = this.appendQueryParams(buildUrl(endpoint), config?.params);
     const isFormData = config?.body instanceof FormData;
     const headers = this.buildHeaders(config?.headers, isFormData);
 
@@ -119,6 +134,17 @@ class ApiClient {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  // Serialize params onto a URL's query string
+  private appendQueryParams(url: string, params?: Record<string, any>): string {
+    if (!params) return url;
+    const search = Object.entries(params)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join('&');
+    if (!search) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}${search}`;
   }
 
   // Build request headers

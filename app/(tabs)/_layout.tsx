@@ -128,9 +128,70 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const POST_OPTIONS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; route: string }[] = [
+  { key: 'service', label: 'Add a Service', icon: 'briefcase-outline', route: '/add-service' },
+  { key: 'product', label: 'List a Product', icon: 'pricetag-outline', route: '/(tabs)/sell' },
+  { key: 'post', label: 'Share a Post', icon: 'image-outline', route: '/share-post' },
+];
+
+function PostOptionsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  const handleSelect = (route: string) => {
+    onClose();
+    router.push(route as any);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={modalStyles.overlay} activeOpacity={1} onPress={onClose}>
+        <View
+          style={[
+            modalStyles.sheet,
+            { backgroundColor: isDark ? '#1C1C1E' : '#fff', paddingBottom: insets.bottom + 20 },
+          ]}
+        >
+          <View style={modalStyles.handle} />
+          <Text style={[modalStyles.title, { color: isDark ? '#fff' : '#000' }]}>What would you like to post?</Text>
+          {POST_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[modalStyles.option, { borderColor: isDark ? '#2C2C2E' : '#E5E7EB' }]}
+              onPress={() => handleSelect(opt.route)}
+            >
+              <View style={[modalStyles.optionIcon, { backgroundColor: Colors.light.primary + '20' }]}>
+                <Ionicons name={opt.icon} size={22} color={Colors.light.primary} />
+              </View>
+              <Text style={[modalStyles.optionLabel, { color: isDark ? '#fff' : '#000' }]}>{opt.label}</Text>
+              <Ionicons name="chevron-forward" size={18} color={isDark ? '#8E8E93' : '#6B7280'} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#8E8E93', alignSelf: 'center', marginBottom: 16 },
+  title: { fontSize: 17, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
+  option: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 14, borderBottomWidth: 1,
+  },
+  optionIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  optionLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
+});
 
 type TabIconProps = {
   focused: boolean;
@@ -157,8 +218,10 @@ function TabItem({ focused, iconFocused, iconUnfocused, label }: TabIconProps) {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [showPostModal, setShowPostModal] = useState(false);
 
   return (
+    <>
     <Tabs
       screenOptions={{
         tabBarShowLabel: false,
@@ -228,6 +291,12 @@ export default function TabLayout() {
             />
           ),
         }}
+        listeners={() => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            setShowPostModal(true);
+          },
+        })}
       />
       <Tabs.Screen
         name="messages"
@@ -258,6 +327,8 @@ export default function TabLayout() {
       <Tabs.Screen name="wallet" options={{ href: null }} />
       <Tabs.Screen name="two" options={{ href: null }} />
     </Tabs>
+    <PostOptionsModal visible={showPostModal} onClose={() => setShowPostModal(false)} />
+    </>
   );
 }
 

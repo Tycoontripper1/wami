@@ -51,3 +51,35 @@ export const searchProducts = async (
     params: { search: query, ...params },
   });
 };
+
+export interface CreateProductPayload {
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  category: string;
+  stock: number;
+  status: 'draft' | 'published';
+}
+
+export type UpdateProductPayload = Partial<CreateProductPayload>;
+
+// Create a new product listing
+export const createProduct = async (
+  payload: CreateProductPayload
+): Promise<ApiResponse<Product>> => {
+  return apiClient.post(API_ENDPOINTS.PRODUCTS.CREATE, payload);
+};
+
+// Update a product listing (e.g. price, stock)
+export const updateProduct = async (
+  id: string,
+  payload: UpdateProductPayload
+): Promise<ApiResponse<Product>> => {
+  return apiClient.patch(API_ENDPOINTS.PRODUCTS.UPDATE(id), payload);
+};
+
+// Delete a product listing
+export const deleteProduct = async (id: string): Promise<ApiResponse<null>> => {
+  return apiClient.delete(API_ENDPOINTS.PRODUCTS.DELETE(id));
+};

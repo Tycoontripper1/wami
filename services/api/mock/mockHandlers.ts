@@ -79,6 +79,16 @@ function findHandler(method: string, endpoint: string): ((config?: MockRequestCo
     return (config) => handleSendMessage(endpoint.split('/')[2], config);
   }
 
+  // Discovery
+  if (method === 'GET' && endpoint === API_ENDPOINTS.DISCOVERY.FEED) return handleGetDiscoveryFeed;
+  if (method === 'GET' && endpoint === API_ENDPOINTS.DISCOVERY.NEAR_YOU) return handleGetNearYouOfferings;
+  if (method === 'GET' && endpoint === API_ENDPOINTS.DISCOVERY.SAVED) return handleGetSavedOfferings;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.DISCOVERY.SAVED) return handleSaveOffering;
+  if (method === 'DELETE' && endpoint.startsWith('/discovery/saved/')) {
+    return (config) => handleUnsaveOffering(endpoint.split('/').pop()!);
+  }
+  if (method === 'POST' && endpoint === API_ENDPOINTS.DISCOVERY.SWIPE) return handleSwipeOffering;
+
   // Products
   if (method === 'GET' && endpoint === API_ENDPOINTS.PRODUCTS.LIST) return handleGetProducts;
   if (method === 'GET' && endpoint === API_ENDPOINTS.PRODUCTS.FEATURED) return handleGetFeaturedProducts;
@@ -146,6 +156,96 @@ async function handleGetCreativeById(id: string): Promise<any> {
     throw createError('NOT_FOUND', 'Creative not found', HttpStatusCode.NOT_FOUND);
   }
   return creative;
+}
+
+// ============================================
+// DISCOVERY HANDLERS
+// ============================================
+
+function creativeToOffering(creative: (typeof MOCK_CREATIVES)[number]): any {
+  return {
+    id: creative.id,
+    offering_id: creative.id,
+    type: 'creative',
+    name: creative.name,
+    role: creative.role,
+    category: creative.category,
+    rating: creative.rating,
+    reviews: creative.reviews,
+    images: creative.images,
+    image: creative.images?.[0],
+    location: { city: creative.location.city, region: creative.location.region },
+  };
+}
+
+function productToOffering(product: (typeof MOCK_PRODUCTS)[number]): any {
+  return {
+    id: product.id,
+    offering_id: product.id,
+    type: 'product',
+    name: product.name,
+    title: product.name,
+    category: product.category,
+    price: product.price,
+    currency: product.currency,
+    rating: product.rating,
+    reviews: product.reviews,
+    images: product.images,
+    image: product.images?.[0],
+    tags: product.tags,
+  };
+}
+
+async function handleGetDiscoveryFeed(config?: MockRequestConfig): Promise<any> {
+  const { page = 1, limit = 10 } = config?.params || {};
+  const offerings = [
+    ...MOCK_CREATIVES.map(creativeToOffering),
+    ...MOCK_PRODUCTS.map(productToOffering),
+  ];
+  return paginate(offerings, page, limit);
+}
+
+async function handleGetNearYouOfferings(config?: MockRequestConfig): Promise<any> {
+  const { page = 1, limit = 10 } = config?.params || {};
+  const nearby = getNearbyCreatives('Lagos').map(creativeToOffering);
+  return paginate(nearby, page, limit);
+}
+
+const savedOfferingIds = new Set<string>();
+
+async function handleGetSavedOfferings(config?: MockRequestConfig): Promise<any> {
+  const { page = 1, limit = 10 } = config?.params || {};
+  const allOfferings = [
+    ...MOCK_CREATIVES.map(creativeToOffering),
+    ...MOCK_PRODUCTS.map(productToOffering),
+  ];
+  const saved = allOfferings.filter(o => savedOfferingIds.has(String(o.id)));
+  return paginate(saved, page, limit);
+}
+
+async function handleSaveOffering(config?: MockRequestConfig): Promise<any> {
+  const { offering_id } = config?.body || {};
+  if (!offering_id) {
+    throw createError('BAD_REQUEST', 'offering_id is required', HttpStatusCode.BAD_REQUEST);
+  }
+  savedOfferingIds.add(String(offering_id));
+  return { offering_id, is_saved: true };
+}
+
+async function handleUnsaveOffering(offeringId: string): Promise<any> {
+  savedOfferingIds.delete(offeringId);
+  return null;
+}
+
+async function handleSwipeOffering(config?: MockRequestConfig): Promise<any> {
+  const { offering_id, action } = config?.body || {};
+  if (!offering_id || !action) {
+    throw createError('BAD_REQUEST', 'offering_id and action are required', HttpStatusCode.BAD_REQUEST);
+  }
+  if (action === 'like' || action === 'super_like') {
+    savedOfferingIds.add(String(offering_id));
+  }
+  return { offering_id, action, recorded: true };
 }
 
 // ============================================

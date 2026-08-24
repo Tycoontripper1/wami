@@ -1,10 +1,12 @@
+import { WAMILogo } from '@/components/logo';
+import { Brand } from '@/constants/Brand';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
 import { restoreSession } from '@/store/authSlice';
 import { RootState } from '@/store/store';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, ImageBackground, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ImageBackground, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -32,16 +34,24 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
-  // DEV: jump straight to the onboarding carousel every time.
-  // To restore normal behaviour: delete this block, uncomment the PROD block below,
-  // and uncomment the `dispatch` / `router` imports used by the session check.
   useEffect(() => {
-    router.replace('/(auth)/onboarding-discover' as any);
+    const checkSession = async () => {
+      const session = await authService.restoreSession();
+      if (session) {
+        dispatch(restoreSession(session));
+        router.replace('/(tabs)');
+      } else {
+        setIsCheckingAuth(false);
+      }
+    };
+    checkSession();
   }, []);
 
   // Auto-advance slides every 4 seconds
@@ -66,10 +76,16 @@ export default function OnboardingScreen() {
 
   // Show loading while checking auth
   if (isCheckingAuth) {
+    const loadingBg = isDark ? Brand.splash.dark : Brand.splash.light;
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: loadingBg }]}>
         <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+        <WAMILogo
+          size="large"
+          variant="pin"
+          color={Brand.white}
+          cutoutColor={loadingBg}
+        />
       </View>
     );
   }

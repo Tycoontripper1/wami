@@ -104,7 +104,7 @@ export default function ChatScreen() {
 
   const user = useSelector((state: RootState) => state.auth.user);
   const walletBalance = useSelector((state: RootState) => state.wallet?.balances?.NGN ?? 0);
-  const currentUserId = user?.id || '1';
+  const currentUserId = String(user?.id ?? '1');
 
   // Handle keyboard events
   useEffect(() => {
@@ -952,9 +952,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-  },
-  serviceInfo: {
-    marginLeft: 12,
   },
   serviceName: {
     fontSize: 16,

@@ -122,6 +122,12 @@ export default function MessagesScreen() {
       <Text style={[styles.emptySubtitle, { color: themeColors.subText }]}>
         Start a conversation with creatives you're interested in!
       </Text>
+      <TouchableOpacity
+        style={styles.findCreativeButton}
+        onPress={() => router.push('/(tabs)/discover')}
+      >
+        <Text style={styles.findCreativeButtonText}>Find a Creative</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -289,5 +295,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  findCreativeButton: {
+    marginTop: 24,
+    backgroundColor: Colors.light.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 24,
+  },
+  findCreativeButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

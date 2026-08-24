@@ -1,14 +1,14 @@
+import { AppSplashScreen } from '@/components/AppSplashScreen';
+import { useColorScheme } from '@/components/useColorScheme';
 import { store } from '@/store/store';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
-
-import { useColorScheme } from '@/components/useColorScheme';
 
 export {
     // Catch any errors thrown by the Layout component.
@@ -28,6 +28,11 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [splashReady, setSplashReady] = useState(false);
+
+  const handleSplashReady = useCallback(() => {
+    setSplashReady(true);
+  }, []);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -42,8 +47,8 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
+  if (!loaded || !splashReady) {
+    return <AppSplashScreen onReady={handleSplashReady} />;
   }
 
   return <RootLayoutNav />;
@@ -66,7 +71,7 @@ function RootLayoutNav() {
           <Stack.Screen name="creative-dna-quiz" options={{ headerShown: false }} />
           <Stack.Screen name="location-picker" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="checkout" options={{ headerShown: false }} />
+          <Stack.Screen name="checkout/index" options={{ headerShown: false }} />
           <Stack.Screen name="checkout/success" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="order-tracking/[orderId]" options={{ headerShown: false }} />
           <Stack.Screen name="service-tracking/[bookingId]" options={{ headerShown: false }} />
@@ -80,6 +85,13 @@ function RootLayoutNav() {
           <Stack.Screen name="wallet/add-funds" options={{ headerShown: false }} />
           <Stack.Screen name="wallet/payment-methods" options={{ headerShown: false }} />
           <Stack.Screen name="wallet/withdraw" options={{ headerShown: false }} />
+          <Stack.Screen name="add-service" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="share-post" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="delivery/arrange/[orderId]" options={{ headerShown: false }} />
+          <Stack.Screen name="delivery/waiting/[orderId]" options={{ headerShown: false }} />
+          <Stack.Screen name="delivery/compare/[orderId]" options={{ headerShown: false }} />
+          <Stack.Screen name="delivery/tracking/[orderId]" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="delivery/rate/[orderId]" options={{ headerShown: false, gestureEnabled: false }} />
         </Stack>
       </ThemeProvider>
     </Provider>

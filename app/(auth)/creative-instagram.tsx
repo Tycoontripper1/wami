@@ -61,7 +61,7 @@ export default function CreativeInstagramScreen() {
       const profile = await instagramService.fetchProfile(instagramUsername);
       dispatch(setInstagramProfile(profile));
       setShowConnectModal(false);
-      Alert.alert('Success', 'Instagram connected successfully!');
+      router.push('./creative-instagram-posts' as any);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to connect Instagram');
     } finally {

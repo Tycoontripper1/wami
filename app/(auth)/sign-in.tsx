@@ -1,3 +1,4 @@
+import { AuthBrandLogo } from '@/components/AuthBrandLogo';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
@@ -77,11 +78,8 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Logo */}
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>W</Text>
-          </View>
+          <AuthBrandLogo size="medium" variant="pin" backgroundColor={themeColors.background} />
         </View>
 
         {/* Title */}
@@ -199,19 +197,6 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 30,
-  },
-  logoCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.light.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#fff',
   },
   titleContainer: {
     marginBottom: 24,

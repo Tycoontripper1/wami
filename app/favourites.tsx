@@ -1,9 +1,12 @@
 import Colors from '@/constants/Colors';
+import SharedEmptyState from '@/components/EmptyState';
+import { SkeletonRow } from '@/components/Skeleton';
+import { getSavedOfferings, unsaveOffering } from '@/services/api/discoveryService';
 import { removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     FlatList,
     Image,
@@ -15,7 +18,17 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+
+interface FavoriteItem {
+  id: string;
+  name: string;
+  role: string;
+  location: string;
+  rating: number;
+  reviews: number;
+  image?: { uri: string };
+}
 
 export default function FavouritesScreen() {
   const insets = useSafeAreaInsets();
@@ -24,8 +37,40 @@ export default function FavouritesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  // Get favorites from Redux store
-  const favorites = useSelector((state: RootState) => state.favorites.items);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const loadSaved = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const res = await getSavedOfferings();
+      const data: any = res.data;
+      const items = Array.isArray(data) ? data : data?.items ?? [];
+      setFavorites(
+        items.map((item: any) => ({
+          id: String(item.id ?? item.offering_id),
+          name: item.name || item.title || 'Untitled',
+          role: item.role || item.category || '',
+          location: item.location?.city || '',
+          rating: item.rating ?? 0,
+          reviews: item.reviews ?? item.reviews_count ?? 0,
+          image: item.image ? { uri: item.image } : item.images?.[0] ? { uri: item.images[0] } : undefined,
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to load saved offerings:', error);
+      setFavorites([]);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSaved();
+  }, [loadSaved]);
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -37,6 +82,8 @@ export default function FavouritesScreen() {
 
   const handleRemove = (id: string) => {
     dispatch(removeFavorite(id));
+    setFavorites((prev) => prev.filter((f) => f.id !== id));
+    unsaveOffering(id).catch((error) => console.error('Failed to unsave offering:', error));
   };
 
   const renderSavedItem = ({ item }: { item: typeof favorites[0] }) => (
@@ -75,16 +122,16 @@ export default function FavouritesScreen() {
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="heart-outline" size={80} color={themeColors.subText} />
-      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No favourites yet</Text>
+      <Ionicons name="bookmark-outline" size={80} color={themeColors.subText} />
+      <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No saved creatives</Text>
       <Text style={[styles.emptySubtitle, { color: themeColors.subText }]}>
         Tap the heart icon on creatives you love to save them here!
       </Text>
       <TouchableOpacity
         style={styles.exploreButton}
-        onPress={() => router.push('/(tabs)')}
+        onPress={() => router.push('/(tabs)/discover')}
       >
-        <Text style={styles.exploreButtonText}>Explore Creatives</Text>
+        <Text style={styles.exploreButtonText}>Explore</Text>
       </TouchableOpacity>
     </View>
   );
@@ -102,7 +149,20 @@ export default function FavouritesScreen() {
       </View>
 
       {/* Saved List */}
-      {favorites.length > 0 ? (
+      {isLoading ? (
+        <View style={styles.listContainer}>
+          {[...Array(5)].map((_, i) => (
+            <SkeletonRow key={i} style={styles.skeletonRow} />
+          ))}
+        </View>
+      ) : hasError ? (
+        <SharedEmptyState
+          icon="cloud-offline-outline"
+          title="Oops, we can't find anything"
+          message="Something went wrong while loading your favourites. Please check your connection and try again."
+          onRetry={loadSaved}
+        />
+      ) : favorites.length > 0 ? (
         <FlatList
           data={favorites}
           renderItem={renderSavedItem}
@@ -136,6 +196,9 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+  },
+  skeletonRow: {
+    marginBottom: 12,
   },
   savedCard: {
     flexDirection: 'row',

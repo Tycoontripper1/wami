@@ -1,17 +1,45 @@
 import SwipeableCardStack, { CreativeData } from '@/components/SwipeableCardStack';
 import AppGuidance from '@/components/AppGuidance';
+import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
-import { getCreativeLocationDisplay, useLocation, useLocationCreatives } from '@/hooks/useLocationData';
+import { useLocation } from '@/hooks/useLocationData';
 import { addFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
+import { DiscoveryOffering, getDiscoveryFeed, getNearYou, saveOffering, swipeOffering } from '@/services/api/discoveryService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 
 const TABS = ['Discover', 'Trending', 'Near You'];
+
+// Map a backend discovery offering onto the shape SwipeableCardStack expects
+const mapOfferingToCreativeData = (offering: DiscoveryOffering): CreativeData => ({
+  id: String(offering.id ?? offering.offering_id),
+  name: offering.name || offering.title || 'Untitled',
+  role: offering.role || offering.category || '',
+  location: offering.location?.city
+    ? `${offering.location.city}${offering.location.region ? ', ' + offering.location.region : ''}`
+    : '',
+  distance: offering.distance_km !== undefined ? `${offering.distance_km.toFixed(1)} km away` : undefined,
+  rating: offering.rating ?? 0,
+  reviews: offering.reviews ?? offering.reviews_count ?? 0,
+  image: offering.image
+    ? { uri: offering.image }
+    : offering.images?.[0]
+    ? { uri: offering.images[0] }
+    : require('../../assets/images/onboarding_bg_creative.webp'),
+  video: offering.video,
+  tags: offering.tags?.slice(0, 3),
+});
+
+const extractItems = (data: any): DiscoveryOffering[] => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+};
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
@@ -21,10 +49,14 @@ export default function DiscoverScreen() {
   const isDark = colorScheme === 'dark';
   const dispatch = useDispatch();
   const favorites = useSelector((state: RootState) => state.favorites.items);
-  
-  // Get location data
-  const { region, city, regionCode } = useLocation();
-  const { discoverCreatives, nearbyCreatives, regionCreatives } = useLocationCreatives();
+
+  const { region, city } = useLocation();
+
+  const [feedOfferings, setFeedOfferings] = useState<DiscoveryOffering[] | null>(null);
+  const [nearYouOfferings, setNearYouOfferings] = useState<DiscoveryOffering[] | null>(null);
+  const [feedError, setFeedError] = useState(false);
+  const [nearYouError, setNearYouError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -35,37 +67,68 @@ export default function DiscoverScreen() {
     border: isDark ? '#333' : '#F0F0F0',
   };
 
-  // Convert creatives from mock data format to SwipeableCardStack format
+  const loadFeed = useCallback(async () => {
+    setIsLoading(true);
+    setFeedError(false);
+    try {
+      const res = await getDiscoveryFeed();
+      setFeedOfferings(extractItems(res.data));
+    } catch (error) {
+      console.error('Failed to load discovery feed:', error);
+      setFeedOfferings(null);
+      setFeedError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loadNearYou = useCallback(async () => {
+    setIsLoading(true);
+    setNearYouError(false);
+    try {
+      const res = await getNearYou();
+      setNearYouOfferings(extractItems(res.data));
+    } catch (error) {
+      console.error('Failed to load near-you offerings:', error);
+      setNearYouOfferings(null);
+      setNearYouError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFeed();
+  }, [loadFeed]);
+
+  useEffect(() => {
+    if (activeTab === 'Near You' && nearYouOfferings === null) {
+      loadNearYou();
+    }
+  }, [activeTab, nearYouOfferings, loadNearYou]);
+
+  // Convert offerings to SwipeableCardStack format
   const creativesForSwipe: CreativeData[] = useMemo(() => {
-    // Choose creatives based on active tab
-    let creatives = discoverCreatives;
     if (activeTab === 'Near You') {
-      creatives = nearbyCreatives;
-    } else if (activeTab === 'Trending') {
-      // For trending, sort by rating and reviews
-      creatives = [...discoverCreatives].sort((a, b) => (b.rating * b.reviews) - (a.rating * a.reviews));
+      return (nearYouOfferings ?? []).map(mapOfferingToCreativeData);
     }
 
-    return creatives.map((creative) => ({
-      id: creative.id,
-      name: creative.name,
-      role: creative.role,
-      location: getCreativeLocationDisplay(creative, regionCode),
-      distance: creative.location.region === regionCode ? '2.5 km away' : undefined,
-      rating: creative.rating,
-      reviews: creative.reviews,
-      image: creative.images[0] ? { uri: creative.images[0] } : require('../../assets/images/onboarding_bg_creative.webp'),
-      video: creative.video,
-      tags: creative.tags.slice(0, 3),
-    }));
-  }, [discoverCreatives, nearbyCreatives, activeTab, regionCode]);
+    const items = (feedOfferings ?? []).map(mapOfferingToCreativeData);
+    if (activeTab === 'Trending') {
+      return [...items].sort((a, b) => b.rating * b.reviews - a.rating * a.reviews);
+    }
+    return items;
+  }, [feedOfferings, nearYouOfferings, activeTab]);
+
+  const currentError = activeTab === 'Near You' ? nearYouError : feedError;
+  const handleRetry = activeTab === 'Near You' ? loadNearYou : loadFeed;
 
   const handleSwipeLeft = (item: CreativeData) => {
-    console.log('Swiped left on:', item.name);
+    swipeOffering(item.id, 'pass').catch((error) => console.error('Swipe (pass) failed:', error));
   };
 
   const handleSwipeRight = (item: CreativeData) => {
-    console.log('Swiped right on:', item.name);
+    swipeOffering(item.id, 'like').catch((error) => console.error('Swipe (like) failed:', error));
     // Navigate to profile
     router.push(`/profile/${item.id}`);
   };
@@ -74,10 +137,11 @@ export default function DiscoverScreen() {
     const isAlreadySaved = favorites.some((fav) => fav.id === item.id);
     if (isAlreadySaved) {
       Alert.alert('Already Saved', `${item.name} is already in your favourites!`);
-    } else {
-      dispatch(addFavorite(item));
-      Alert.alert('Saved!', `${item.name} added to your favourites`);
+      return;
     }
+    dispatch(addFavorite(item));
+    saveOffering(item.id).catch((error) => console.error('Save offering failed:', error));
+    Alert.alert('Saved!', `${item.name} added to your favourites`);
   };
 
   const handleLocationPress = () => {
@@ -142,7 +206,18 @@ export default function DiscoverScreen() {
       {/* Main Content Area - Swipeable Cards Only */}
       <View style={styles.mainContent}>
         <View style={styles.cardStackContainer}>
-          {creativesForSwipe.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator color={Colors.light.primary} size="large" />
+            </View>
+          ) : currentError ? (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title="Oops, we can't find anything"
+              message="Something went wrong while loading creatives. Please check your connection and try again."
+              onRetry={handleRetry}
+            />
+          ) : creativesForSwipe.length > 0 ? (
             <SwipeableCardStack
               data={creativesForSwipe}
               onSwipeLeft={handleSwipeLeft}
@@ -150,18 +225,13 @@ export default function DiscoverScreen() {
               onSave={handleSave}
             />
           ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="location-outline" size={64} color={themeColors.subText} />
-              <Text style={[styles.emptyTitle, { color: themeColors.text }]}>
-                No creatives nearby
-              </Text>
-              <Text style={[styles.emptySubtitle, { color: themeColors.subText }]}>
-                Try changing your location to discover more creatives
-              </Text>
-              <TouchableOpacity style={styles.changeLocationButton} onPress={handleLocationPress}>
-                <Text style={styles.changeLocationText}>Change Location</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState
+              icon="location-outline"
+              title="No creatives nearby"
+              message="Try changing your location to discover more creatives"
+              onRetry={handleLocationPress}
+              retryLabel="Change Location"
+            />
           )}
         </View>
       </View>

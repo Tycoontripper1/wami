@@ -1,17 +1,18 @@
+import EmptyState from '@/components/EmptyState';
+import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
+import { getFeaturedProducts, getProducts } from '@/services/api/productsService';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Dimensions,
+  FlatList,
   Image,
-  ImageBackground,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   useColorScheme,
   View,
@@ -19,285 +20,307 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
-const CATEGORY_CARD_WIDTH = (width - 48) / 2;
+const GRID_CARD_WIDTH = (width - 48) / 2;
+const FEATURED_CARD_WIDTH = 158;
 
-// Category filter pills
-const FILTER_CATEGORIES = ['Hair', 'Makeup', 'Photography', 'Sneakers', 'Fashion', 'Food'];
+interface ShopProduct {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  image: string;
+  rating?: number;
+  reviews?: number;
+  featured?: boolean;
+  officialStore?: boolean;
+  inStock: boolean;
+}
 
-// Featured Categories with images
-const FEATURED_CATEGORIES = [
-  { id: '1', name: 'Photography', image: require('@/assets/images/photography.webp') },
-  { id: '2', name: 'Hair Stylist', image: require('@/assets/images/onboarding_bg_service.webp') },
-  { id: '3', name: 'Makeup', image: require('@/assets/images/makeup.webp') },
-  { id: '4', name: 'Fashion', image: require('@/assets/images/onboarding_bg_creative.webp') },
-  { id: '5', name: 'Food', image: require('@/assets/images/food.webp') },
-  { id: '6', name: 'Sneakers', image: require('@/assets/images/sneakers.webp') },
+const mapProduct = (p: any): ShopProduct => ({
+  id: String(p.id),
+  name: p.name || p.title || 'Untitled',
+  price: p.price ?? 0,
+  category: p.category || '',
+  image: p.images?.[0] || p.image || '',
+  rating: p.rating,
+  reviews: p.reviews,
+  featured: p.featured,
+  officialStore: p.officialStore,
+  inStock: p.stock === undefined || p.stock > 0,
+});
+
+const CATEGORIES: { name: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { name: 'Fashion', icon: 'shirt-outline' },
+  { name: 'Beauty', icon: 'sparkles-outline' },
+  { name: 'Accessories', icon: 'watch-outline' },
+  { name: 'Art', icon: 'color-palette-outline' },
+  { name: 'Photography', icon: 'camera-outline' },
+  { name: 'Digital', icon: 'phone-portrait-outline' },
 ];
 
-// Trending creatives data
-const TRENDING_CREATIVES = [
-  {
-    id: '1',
-    name: 'Sam photography',
-    category: 'Photography',
-    rating: 5.0,
-    reviews: 500,
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
-  },
-  {
-    id: '2',
-    name: 'Paul Cocktails',
-    category: 'Food',
-    rating: 5.0,
-    reviews: 500,
-    image: require('@/assets/images/onboarding_bg_seller.webp'),
-  },
-  {
-    id: '3',
-    name: 'Sarah Styles',
-    category: 'Hair Stylist',
-    rating: 4.9,
-    reviews: 320,
-    image: require('@/assets/images/onboarding_bg_service.webp'),
-  },
-  {
-    id: '4',
-    name: 'Mike Fashion',
-    category: 'Fashion',
-    rating: 4.8,
-    reviews: 280,
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
-  },
-];
+const ProductCard = React.memo(function ProductCard({
+  product,
+  cardWidth,
+  isDark,
+  saved,
+  onToggleSave,
+  onPress,
+}: {
+  product: ShopProduct;
+  cardWidth: number;
+  isDark: boolean;
+  saved: boolean;
+  onToggleSave: () => void;
+  onPress: () => void;
+}) {
+  const tc = {
+    card: isDark ? '#1C1C1E' : '#FFFFFF',
+    text: isDark ? '#FFFFFF' : '#0A0A0A',
+    sub: isDark ? '#8E8E93' : '#6B7280',
+    border: isDark ? '#2C2C2E' : '#EFEFEF',
+  };
 
-// Top rated this week
-const TOP_RATED_CREATIVES = [
-  {
-    id: '5',
-    name: 'Adam Gadgets',
-    category: 'Technology',
-    rating: 5.0,
-    reviews: 500,
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
-  },
-  {
-    id: '6',
-    name: 'Zew Restaurant',
-    category: 'Food',
-    rating: 5.0,
-    reviews: 500,
-    image: require('@/assets/images/onboarding_bg_seller.webp'),
-  },
-  {
-    id: '7',
-    name: 'Saw Creatives',
-    category: 'Fashion',
-    rating: 4.9,
-    reviews: 450,
-    image: require('@/assets/images/onboarding_bg_service.webp'),
-  },
-  {
-    id: '8',
-    name: 'Luna Beauty',
-    category: 'Makeup',
-    rating: 4.9,
-    reviews: 380,
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
-  },
-];
+  return (
+    <TouchableOpacity
+      style={[styles.card, { width: cardWidth, backgroundColor: tc.card, borderColor: tc.border }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      <View style={[styles.cardImageWrap, { width: cardWidth, height: cardWidth }]}>
+        {product.image ? (
+          <Image source={{ uri: product.image }} style={styles.cardImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.cardImage, styles.cardImagePlaceholder, { backgroundColor: tc.border }]}>
+            <Ionicons name="image-outline" size={28} color={tc.sub} />
+          </View>
+        )}
+
+        {product.featured && (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.featuredBadgeText}>Featured</Text>
+          </View>
+        )}
+        {!product.inStock && (
+          <View style={styles.soldOutOverlay}>
+            <Text style={styles.soldOutText}>Sold Out</Text>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.saveBtn} onPress={onToggleSave} hitSlop={8}>
+          <Ionicons name={saved ? 'heart' : 'heart-outline'} size={16} color={saved ? '#FF3B30' : '#fff'} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.cardContent}>
+        {!!product.category && (
+          <Text style={[styles.cardCategory, { color: tc.sub }]} numberOfLines={1}>
+            {product.category.toUpperCase()}
+          </Text>
+        )}
+        <Text style={[styles.cardName, { color: tc.text }]} numberOfLines={1}>{product.name}</Text>
+
+        <View style={styles.cardBottomRow}>
+          <Text style={[styles.cardPrice, { color: tc.text }]}>₦{product.price.toLocaleString()}</Text>
+          {product.rating !== undefined && (
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={12} color="#FFD700" />
+              <Text style={[styles.ratingText, { color: tc.sub }]}>{product.rating}</Text>
+            </View>
+          )}
+        </View>
+        {product.officialStore && (
+          <View style={styles.verifiedRow}>
+            <Ionicons name="checkmark-circle" size={12} color={Colors.light.primary} />
+            <Text style={[styles.verifiedText, { color: Colors.light.primary }]}>Verified Seller</Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
+  const [featured, setFeatured] = useState<ShopProduct[]>([]);
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
 
   const themeColors = {
-    background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
-    subText: isDark ? '#ccc' : '#666',
-    cardBg: isDark ? '#1A1A1A' : '#fff',
+    background: isDark ? '#0A0A0A' : '#F8F9FA',
+    text: isDark ? '#fff' : '#0A0A0A',
+    subText: isDark ? '#8E8E93' : '#6B7280',
+    cardBg: isDark ? '#1C1C1E' : '#fff',
     inputBg: isDark ? '#1A1A1A' : '#F5F5F5',
-    border: isDark ? '#333' : '#E0E0E0',
-    pillBg: isDark ? '#1A1A1A' : '#F5F5F5',
+    border: isDark ? '#2C2C2E' : '#EFEFEF',
   };
 
-  const handleCategoryPress = (category: string) => {
-    router.push({
-      pathname: '/(tabs)',
-      params: { category },
-    });
+  const loadShop = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const [featuredRes, productsRes] = await Promise.all([
+        getFeaturedProducts(),
+        getProducts({ limit: 8 }),
+      ]);
+      const featuredData: any = featuredRes.data;
+      const productsData: any = productsRes.data;
+      setFeatured((Array.isArray(featuredData) ? featuredData : featuredData?.items ?? []).map(mapProduct));
+      setProducts((Array.isArray(productsData) ? productsData : productsData?.items ?? []).map(mapProduct));
+    } catch (error) {
+      console.error('Failed to load shop:', error);
+      setFeatured([]);
+      setProducts([]);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadShop();
+  }, [loadShop]);
+
+  const toggleSave = (id: string) => {
+    setSavedIds(prev => (prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]));
   };
 
-  const handleCreativePress = (creativeId: string) => {
-    router.push(`/profile/${creativeId}`);
-  };
+  const goToProduct = (id: string) => router.push(`/product-detail/${id}` as any);
+  const goToListing = (params?: Record<string, string>) =>
+    router.push({ pathname: '/products-listing', params } as any);
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      
-      {/* Status bar spacer - minimal on Android */}
       <View style={{ height: insets.top > 20 ? insets.top : 8 }} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: themeColors.inputBg }]}>
-          <Ionicons name="search" size={20} color={themeColors.subText} />
-          <TextInput
-            style={[styles.searchInput, { color: themeColors.text }]}
-            placeholder="Search creatives, categories..."
-            placeholderTextColor={themeColors.subText}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={[styles.pageTitle, { color: themeColors.text }]}>Shop</Text>
+            <Text style={[styles.pageSubtitle, { color: themeColors.subText }]}>
+              Discover products from creatives near you
+            </Text>
+          </View>
         </View>
 
-        {/* Filter Pills */}
+        {/* Search entry point */}
+        <TouchableOpacity
+          style={[styles.searchContainer, { backgroundColor: themeColors.inputBg }]}
+          onPress={() => goToListing()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="search" size={20} color={themeColors.subText} />
+          <Text style={[styles.searchPlaceholder, { color: themeColors.subText }]}>Search products...</Text>
+        </TouchableOpacity>
+
+        {/* Categories */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
+          contentContainerStyle={styles.categoriesRow}
         >
-          {FILTER_CATEGORIES.map((category) => (
+          {CATEGORIES.map((cat) => (
             <TouchableOpacity
-              key={category}
-              style={[
-                styles.filterPill,
-                { 
-                  backgroundColor: selectedFilter === category 
-                    ? Colors.light.primary 
-                    : themeColors.pillBg,
-                  borderColor: selectedFilter === category 
-                    ? Colors.light.primary 
-                    : themeColors.border,
-                },
-              ]}
-              onPress={() => setSelectedFilter(selectedFilter === category ? null : category)}
+              key={cat.name}
+              style={styles.categoryItem}
+              onPress={() => goToListing({ category: cat.name })}
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  { color: selectedFilter === category ? '#fff' : themeColors.text },
-                ]}
-              >
-                {category}
-              </Text>
+              <View style={[styles.categoryCircle, { backgroundColor: themeColors.inputBg }]}>
+                <Ionicons name={cat.icon} size={22} color={Colors.light.primary} />
+              </View>
+              <Text style={[styles.categoryLabel, { color: themeColors.text }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Featured Categories */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Featured Categories</Text>
-          <View style={styles.categoryGrid}>
-            {FEATURED_CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.categoryCard}
-                onPress={() => handleCategoryPress(category.name)}
-                activeOpacity={0.8}
-              >
-                <ImageBackground
-                  source={category.image}
-                  style={styles.categoryImage}
-                  imageStyle={styles.categoryImageStyle}
-                >
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.7)'] as const}
-                    style={styles.categoryGradient}
-                  >
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                  </LinearGradient>
-                </ImageBackground>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Trending Creatives */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Trending Creatives</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.trendingContainer}
-          >
-            {TRENDING_CREATIVES.map((creative) => (
-              <TouchableOpacity
-                key={creative.id}
-                style={[styles.trendingCard, { backgroundColor: themeColors.cardBg }]}
-                onPress={() => handleCreativePress(creative.id)}
-              >
-                <Image source={creative.image} style={styles.trendingImage} resizeMode="cover" />
-                <View style={styles.trendingInfo}>
-                  <Text style={[styles.trendingName, { color: themeColors.text }]} numberOfLines={1}>
-                    {creative.name}
-                  </Text>
-                  <View style={styles.trendingCategoryRow}>
-                    <Ionicons name="pricetag-outline" size={12} color={themeColors.subText} />
-                    <Text style={[styles.trendingCategory, { color: themeColors.subText }]}>
-                      {creative.category}
-                    </Text>
-                  </View>
-                  <View style={styles.trendingRatingRow}>
-                    <Ionicons name="star" size={12} color="#FFD700" />
-                    <Text style={[styles.trendingRating, { color: themeColors.text }]}>
-                      {creative.rating}
-                    </Text>
-                    <Text style={[styles.trendingReviews, { color: themeColors.subText }]}>
-                      ({creative.reviews} reviews)
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Top Rated This Week */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Top Rated This Week</Text>
-          {TOP_RATED_CREATIVES.map((creative) => (
-            <TouchableOpacity
-              key={creative.id}
-              style={[styles.topRatedCard, { borderBottomColor: themeColors.border }]}
-              onPress={() => handleCreativePress(creative.id)}
-            >
-              <Image source={creative.image} style={styles.topRatedImage} resizeMode="cover" />
-              <View style={styles.topRatedInfo}>
-                <Text style={[styles.topRatedName, { color: themeColors.text }]}>{creative.name}</Text>
-                <View style={styles.topRatedCategoryRow}>
-                  <Ionicons name="pricetag-outline" size={14} color={themeColors.subText} />
-                  <Text style={[styles.topRatedCategory, { color: themeColors.subText }]}>
-                    {creative.category}
-                  </Text>
-                </View>
-                <View style={styles.topRatedRatingRow}>
-                  <Ionicons name="star" size={14} color="#FFD700" />
-                  <Text style={[styles.topRatedRating, { color: themeColors.text }]}>
-                    {creative.rating}
-                  </Text>
-                  <Text style={[styles.topRatedReviews, { color: themeColors.subText }]}>
-                    ({creative.reviews} reviews)
-                  </Text>
-                </View>
+        {isLoading ? (
+          <>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Featured Products</Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {[...Array(3)].map((_, i) => <SkeletonCard key={i} style={{ width: FEATURED_CARD_WIDTH }} />)}
               </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+            </View>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>All Products</Text>
+              <View style={styles.grid}>
+                {[...Array(4)].map((_, i) => <SkeletonCard key={i} style={{ width: GRID_CARD_WIDTH }} />)}
+              </View>
+            </View>
+          </>
+        ) : hasError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Oops, we can't find anything"
+            message="Something went wrong while loading the shop. Please check your connection and try again."
+            onRetry={loadShop}
+          />
+        ) : (
+          <>
+            {/* Featured Products */}
+            {featured.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Featured Products</Text>
+                  <TouchableOpacity onPress={() => goToListing()}>
+                    <Text style={styles.seeAllText}>See All</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={featured}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={{ gap: 12 }}
+                  renderItem={({ item }) => (
+                    <ProductCard
+                      product={item}
+                      cardWidth={FEATURED_CARD_WIDTH}
+                      isDark={isDark}
+                      saved={savedIds.includes(item.id)}
+                      onToggleSave={() => toggleSave(item.id)}
+                      onPress={() => goToProduct(item.id)}
+                    />
+                  )}
+                />
+              </View>
+            )}
 
-        {/* Bottom Spacer */}
+            {/* All Products */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>All Products</Text>
+                <TouchableOpacity onPress={() => goToListing()}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              {products.length === 0 ? (
+                <EmptyState icon="basket-outline" title="No products available yet" />
+              ) : (
+                <View style={styles.grid}>
+                  {products.map((item) => (
+                    <ProductCard
+                      key={item.id}
+                      product={item}
+                      cardWidth={GRID_CARD_WIDTH}
+                      isDark={isDark}
+                      saved={savedIds.includes(item.id)}
+                      onToggleSave={() => toggleSave(item.id)}
+                      onPress={() => goToProduct(item.id)}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
         <View style={{ height: insets.bottom + 20 }} />
       </ScrollView>
     </View>
@@ -305,174 +328,69 @@ export default function DiscoverScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    // No paddingTop here - space is now handled by the status bar spacer above
-  },
+  container: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16 },
+  headerRow: { marginBottom: 16 },
+  pageTitle: { fontSize: 26, fontWeight: '800' },
+  pageSubtitle: { fontSize: 13, marginTop: 4 },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 20,
     gap: 10,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
+  searchPlaceholder: { fontSize: 15 },
+  categoriesRow: { gap: 18, paddingBottom: 24 },
+  categoryItem: { alignItems: 'center', width: 68 },
+  categoryCircle: {
+    width: 56, height: 56, borderRadius: 28,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6,
   },
-  filterContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingBottom: 16,
-  },
-  filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  section: {
-    marginBottom: 24,
-  },
+  categoryLabel: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  section: { marginBottom: 28 },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: Colors.light.primary,
-    fontWeight: '500',
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  categoryCard: {
-    width: CATEGORY_CARD_WIDTH,
-    height: 120,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  categoryImage: {
-    width: '100%',
-    height: '100%',
-  },
-  categoryImageStyle: {
-    borderRadius: 16,
-  },
-  categoryGradient: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 12,
-  },
-  categoryName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  trendingContainer: {
-    gap: 12,
-    paddingRight: 16,
-  },
-  trendingCard: {
-    width: 160,
-    borderRadius: 16,
+  sectionTitle: { fontSize: 18, fontWeight: '700' },
+  seeAllText: { fontSize: 13, fontWeight: '600', color: Colors.light.primary },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 16 },
+  card: {
+    borderRadius: 18,
+    borderWidth: 1,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  trendingImage: {
-    width: '100%',
-    height: 120,
+  cardImageWrap: { position: 'relative' },
+  cardImage: { width: '100%', height: '100%' },
+  cardImagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  featuredBadge: {
+    position: 'absolute', top: 8, left: 8,
+    backgroundColor: '#FFA000', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
-  trendingInfo: {
-    padding: 12,
+  featuredBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
+  soldOutOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',
   },
-  trendingName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+  soldOutText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  saveBtn: {
+    position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center',
   },
-  trendingCategoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
-  },
-  trendingCategory: {
-    fontSize: 12,
-  },
-  trendingRatingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  trendingRating: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  trendingReviews: {
-    fontSize: 11,
-  },
-  topRatedCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  topRatedImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-  },
-  topRatedInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  topRatedName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  topRatedCategoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  topRatedCategory: {
-    fontSize: 13,
-  },
-  topRatedRatingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  topRatedRating: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  topRatedReviews: {
-    fontSize: 12,
-  },
+  cardContent: { padding: 10, gap: 3 },
+  cardCategory: { fontSize: 9, fontWeight: '700', letterSpacing: 0.4 },
+  cardName: { fontSize: 14, fontWeight: '600' },
+  cardBottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
+  cardPrice: { fontSize: 15, fontWeight: '800' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  ratingText: { fontSize: 11, fontWeight: '600' },
+  verifiedRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  verifiedText: { fontSize: 10, fontWeight: '600' },
 });
