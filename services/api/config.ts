@@ -12,15 +12,21 @@ export const API_CONFIG = {
   // Base URL for API calls
   // Mock: local/simulated, Real: https://api.yourbackend.com
   //
-  // NOTE: the WAMI Postman collection mixes un-versioned paths (auth, account,
-  // profile, offerings, discovery, products, cart, orders, payments, bookings)
-  // with `v1`-prefixed paths (reviews, messages, notifications, seller, admin,
-  // webhooks). BASE_URL intentionally does NOT include `/v1` — endpoints that
-  // need it carry `/v1` themselves in API_ENDPOINTS below, matching the
-  // collection exactly. See docs/API-AUDIT-01-AUTH.md §2.1 and
-  // docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §2.1 — ask backend to confirm
-  // this is the right split if anything here 404s.
-  BASE_URL: 'https://api.joinwami.com/api', // Production API
+  // NOTE: the WAMI Postman collection's own text documents a mixed scheme
+  // (un-versioned auth/account/profile/discovery/products/etc., `v1`-prefixed
+  // reviews/messages/notifications/seller/admin/webhooks). That was tried
+  // literally — BASE_URL without `/v1`, `/v1` added per-endpoint where the
+  // collection showed it — and disproved by live testing on-device: with
+  // that split, `/v1/seller/analytics/*` and `/v1/notifications/*` resolved
+  // (500 — found, backend error) while `/discovery/feed` 404'd (not found).
+  // /discovery/feed is a pre-existing endpoint that worked before this
+  // endpoint-map rewrite, when BASE_URL included `/v1` for literally
+  // everything. So the real backend puts everything under `/api/v1/` and the
+  // collection's "some routes have no v1" documentation is stale — reverted
+  // to a single consistent `/api/v1` base. See
+  // docs/API-AUDIT-03-WIRING-COMPLETE-AND-REMAINING.md for the full history;
+  // ask backend to confirm this is now uniformly correct.
+  BASE_URL: 'https://api.joinwami.com/api/v1', // Production API
 
   // Enable/Disable mock API mode
   USE_MOCK: false, // Set to false when using real backend
@@ -161,37 +167,38 @@ export const API_ENDPOINTS = {
   },
 
   // Seller wallet / payouts — "Payouts & Commission" + "Analytics & Reporting"
-  // (seller-scoped part) folders.
+  // (seller-scoped part) folders. BASE_URL already supplies /v1 — see its
+  // comment above; do not re-add a literal /v1/ here.
   SELLER: {
-    WALLET: '/v1/seller/wallet',
-    TRANSACTIONS: '/v1/seller/transactions',
-    PAYOUT_REQUESTS: '/v1/seller/payout-requests',
-    SALES_ANALYTICS: '/v1/seller/analytics/sales',
-    TOP_PRODUCTS: '/v1/seller/analytics/top-products',
+    WALLET: '/seller/wallet',
+    TRANSACTIONS: '/seller/transactions',
+    PAYOUT_REQUESTS: '/seller/payout-requests',
+    SALES_ANALYTICS: '/seller/analytics/sales',
+    TOP_PRODUCTS: '/seller/analytics/top-products',
   },
 
   // Reviews & Ratings
   REVIEWS: {
-    LIST: '/v1/reviews',
-    CREATE: '/v1/reviews',
-    USER_RATING: (userId: string | number) => `/v1/reviews/user/${userId}/rating`,
+    LIST: '/reviews',
+    CREATE: '/reviews',
+    USER_RATING: (userId: string | number) => `/reviews/user/${userId}/rating`,
   },
 
-  // Messaging — "Messaging" folder (v1-prefixed, distinct from the
-  // un-versioned CHAT block above which nothing in the collection documents).
+  // Messaging — "Messaging" folder, distinct from the legacy un-versioned
+  // CHAT block below which nothing in the collection documents.
   MESSAGES: {
-    CONVERSATIONS: '/v1/messages/conversations',
-    BY_ID: (id: string | number) => `/v1/messages/conversations/${id}`,
-    MARK_READ: (id: string | number) => `/v1/messages/conversations/${id}/read`,
-    UNREAD_COUNT: '/v1/messages/unread-count',
+    CONVERSATIONS: '/messages/conversations',
+    BY_ID: (id: string | number) => `/messages/conversations/${id}`,
+    MARK_READ: (id: string | number) => `/messages/conversations/${id}/read`,
+    UNREAD_COUNT: '/messages/unread-count',
   },
 
   // Notifications
   NOTIFICATIONS: {
-    LIST: '/v1/notifications',
-    UNREAD_COUNT: '/v1/notifications/unread-count',
-    MARK_READ: (id: string | number) => `/v1/notifications/${id}/read`,
-    MARK_ALL_READ: '/v1/notifications/read-all',
+    LIST: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    MARK_READ: (id: string | number) => `/notifications/${id}/read`,
+    MARK_ALL_READ: '/notifications/read-all',
   },
 
   // Chat & Messaging — legacy un-versioned shape. Nothing in the collection
