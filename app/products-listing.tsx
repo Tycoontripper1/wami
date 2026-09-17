@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
   },
   productImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     height: '60%',
   },
   soldOutOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     alignItems: 'center',

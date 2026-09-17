@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   thumb: { width: '100%', height: '100%' },
   thumbDim: {
-    ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)',
+    ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)',
   },
   checkbox: {
     position: 'absolute', top: 6, right: 6,

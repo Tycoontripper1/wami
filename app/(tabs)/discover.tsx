@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   },
   featuredBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
   soldOutOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',
   },
   soldOutText: { color: '#fff', fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },

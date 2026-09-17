@@ -18,11 +18,26 @@ export function AppSplashScreen({ onReady }: AppSplashScreenProps) {
   const finishedAnim = useRef(false);
   const finishedMin = useRef(false);
 
+  const calledReady = useRef(false);
+
+  // onReady must fire exactly once, no matter what: if it never fires the
+  // app is permanently stuck on this screen. tryFinish is the normal path
+  // (both the min-duration timer and the logo's animation callback
+  // resolved); the timeout below in the other effect is the fallback in
+  // case the animation driver never reports "finished" (observed on web
+  // after the Expo SDK 57 upgrade — the animated values reach their target
+  // but Animated.start()'s completion callback doesn't fire).
+  const finish = useCallback(() => {
+    if (calledReady.current) return;
+    calledReady.current = true;
+    onReady();
+  }, [onReady]);
+
   const tryFinish = useCallback(() => {
     if (finishedAnim.current && finishedMin.current) {
-      onReady();
+      finish();
     }
-  }, [onReady]);
+  }, [finish]);
 
   useEffect(() => {
     const remaining = Math.max(0, MIN_SPLASH_MS - (Date.now() - startedAt.current));
@@ -32,6 +47,11 @@ export function AppSplashScreen({ onReady }: AppSplashScreenProps) {
     }, remaining);
     return () => clearTimeout(timer);
   }, [tryFinish]);
+
+  useEffect(() => {
+    const safety = setTimeout(finish, MIN_SPLASH_MS + 3000);
+    return () => clearTimeout(safety);
+  }, [finish]);
 
   const handleAnimationComplete = useCallback(() => {
     finishedAnim.current = true;
