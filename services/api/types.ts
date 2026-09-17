@@ -50,6 +50,11 @@ export interface RequestConfig {
   params?: Record<string, any>;
   body?: any;
   timeout?: number;
+  // Return the response body untouched instead of unwrapping it to
+  // `data.user ?? data.data ?? data`. Needed by endpoints whose useful fields sit
+  // alongside `user` at the top level — e.g. auth returns `{ user, access_token }`,
+  // and the default unwrap would discard the token.
+  raw?: boolean;
 }
 
 // API Client response

@@ -8,9 +8,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from './api/client';
 import { API_ENDPOINTS } from './api/config';
-import { mockDelay } from './api/mock/mockHelpers';
-
-const PROD_BASE = 'https://api.joinwami.com/api/v1';
 
 const STORAGE_KEYS = {
   USER: '@wami_user',
@@ -18,81 +15,78 @@ const STORAGE_KEYS = {
   DONT_SHOW_SUCCESS: '@wami_dont_show_success',
 };
 
-// Mock user database (in real app, this would be your backend)
-// Pre-populated with test user for easy login
-const mockUsers: { [email: string]: any } = {
-  'oayodeji27@gmail.com': {
-    id: 'test_user_001',
-    email: 'oayodeji27@gmail.com',
-    firstName: 'Ayodeji',
-    lastName: 'Oluwaseun',
-    username: 'ayodeji',
-    password: 'Password@1',
-  },
+/**
+ * Keeps the backend's own error message when it sent one, and falls back to a
+ * screen-appropriate message otherwise — without mislabelling a dropped
+ * connection as (say) a wrong password.
+ */
+const toAuthError = (error: any, fallbackMessage: string): Error => {
+  if (error?.code === 'NETWORK_ERROR') {
+    return new Error('Could not reach the server. Check your connection and try again.');
+  }
+  const message = typeof error?.message === 'string' ? error.message.trim() : '';
+  return new Error(message && message !== 'An error occurred' ? message : fallbackMessage);
+};
+
+/**
+ * Auth endpoints return their payload at the top level (`{ message, user, access_token }`),
+ * so they need `raw: true` — the client's default unwrap prefers `data.user` and would
+ * throw the token away.
+ */
+const authPost = async (endpoint: string, body: any, fallbackMessage: string): Promise<any> => {
+  try {
+    const response = await apiClient.post<any>(endpoint, body, { raw: true });
+    return response.data ?? {};
+  } catch (error: any) {
+    throw toAuthError(error, fallbackMessage);
+  }
+};
+
+/** Normalises the various shapes a user object arrives in into our `User` model. */
+const normalizeUser = (raw: any, fallbacks: Partial<User> = {}): User => ({
+  ...raw,
+  id: String(raw?.id ?? raw?._id ?? ''),
+  email: raw?.email ?? fallbacks.email ?? '',
+  first_name: raw?.first_name ?? raw?.firstName ?? fallbacks.first_name ?? '',
+  last_name: raw?.last_name ?? raw?.lastName ?? fallbacks.last_name ?? '',
+  username: raw?.username ?? fallbacks.username ?? '',
+  profile_image: raw?.profile_image ?? raw?.avatar ?? null,
+});
+
+/** Persists a freshly issued session and arms the API client with the token. */
+const persistSession = async (user: User, token: string): Promise<void> => {
+  await AsyncStorage.multiSet([
+    [STORAGE_KEYS.USER, JSON.stringify(user)],
+    [STORAGE_KEYS.TOKEN, token],
+  ]);
+  apiClient.setAuthToken(token);
 };
 
 export const authService = {
 
-  // Sign Up
-  async signUp(data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    username: string;
-  }): Promise<{ user: User; token: string }> {
-    await mockDelay(); // Simulate network delay
-
-    // Check if user already exists
-    if (mockUsers[data.email.toLowerCase()]) {
-      throw new Error('An account with this email already exists.');
-    }
-
-    // Create new user
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const newUser: User = {
-      id: userId,
-      email: data.email.toLowerCase(),
-      first_name: data.firstName,
-      last_name: data.lastName,
-      username: data.username,
-    };
-
-    // Store user with password in mock database
-    mockUsers[data.email.toLowerCase()] = {
-      ...newUser,
-      password: data.password,
-    };
-
-    // Generate mock token
-    const token = `mock_token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Store in AsyncStorage
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
-    await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token);
-
-    // Set token in API client
-    apiClient.setAuthToken(token);
-
-    return { user: newUser, token };
-  },
-
-  // Verify Email Code (mock)
-  async verifyEmailCode(email: string, code: string): Promise<boolean> {
-    await mockDelay(1000);
-    // In real app, verify with backend
-    // For now, accept any 6-digit code
-    return code.length === 6;
-  },
-
-  // Sign Out
+  /**
+   * Clears the local session. Must be called alongside the Redux `signOut()`
+   * action — dispatching that alone leaves the token in AsyncStorage, and the
+   * next cold start would silently restore the session.
+   *
+   * TODO: also revoke the token server-side once `POST /auth/logout` exists
+   * (see docs/API-AUDIT-01-AUTH.md §3.1).
+   */
   async signOut(): Promise<void> {
     await AsyncStorage.multiRemove([STORAGE_KEYS.USER, STORAGE_KEYS.TOKEN]);
     // Clear token from API client
     apiClient.setAuthToken(null);
   },
 
-  // Restore Session
+  /**
+   * Restore Session
+   *
+   * NOTE: this trusts the cached token without asking the backend whether it is
+   * still valid, so a revoked/expired token lands the user in the app and then
+   * fails on the first request. The global 401 handler registered in
+   * `app/_layout.tsx` catches that and signs them back out. Once `GET /auth/me`
+   * exists we should validate here instead (see docs/API-AUDIT-01-AUTH.md §3.1).
+   */
   async restoreSession(): Promise<{ user: User; token: string } | null> {
     try {
       const userJson = await AsyncStorage.getItem(STORAGE_KEYS.USER);
@@ -127,47 +121,19 @@ export const authService = {
     await AsyncStorage.setItem(STORAGE_KEYS.DONT_SHOW_SUCCESS, value.toString());
   },
 
-  // Update User Profile
-  async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
-    await mockDelay(1000);
-    
-    // In real app, this would use the profileService
-    // For now, keep existing logic
-    const userJson = await AsyncStorage.getItem(STORAGE_KEYS.USER);
-    if (userJson) {
-      const user = JSON.parse(userJson);
-      const updatedUser = { ...user, ...updates };
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-      return updatedUser;
-    }
-    
-    throw new Error('User not found');
-  },
-
-  // Connect Instagram (mock)
-  async connectInstagram(userId: string): Promise<void> {
-    await mockDelay(1500);
-    // In real app, handle Instagram OAuth
-    console.log('Instagram connected for user:', userId);
-  },
-
-  // ─── Real Forgot-Password / Reset-Password Flow ──────────────────────────
+  // ─── Forgot-Password / Reset-Password Flow ────────────────────────────────
 
   /**
    * Step 1 – Send forgot-password OTP to email.
-   * POST /api/v1/auth/forgot-password  { email }
+   * POST /auth/forgot-password  { email }
    * Returns: { token: string }
    */
   async forgotPassword(email: string): Promise<{ token: string; message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/forgot-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Could not send reset code. Please check your email.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.FORGOT_PASSWORD,
+      { email },
+      'Could not send reset code. Please check your email.'
+    );
     const token: string = json.token ?? json.data?.token;
     if (!token) throw new Error('No token returned from server.');
     return { token, message: json.message };
@@ -175,7 +141,7 @@ export const authService = {
 
   /**
    * Step 2 – Reset password using OTP + token.
-   * POST /api/v1/auth/reset-password  { token, otp, password, password_confirmation }
+   * POST /auth/reset-password  { token, otp, password, password_confirmation }
    */
   async resetPassword(
     token: string,
@@ -183,76 +149,49 @@ export const authService = {
     password: string,
     password_confirmation: string
   ): Promise<{ message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/reset-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, otp, password, password_confirmation }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Failed to reset password.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.RESET_PASSWORD,
+      { token, otp, password, password_confirmation },
+      'Failed to reset password.'
+    );
     return { message: json.message };
   },
 
-  // ─── Real Login ───────────────────────────────────────────────────────────
+  // ─── Login ────────────────────────────────────────────────────────────────
 
   /**
-   * POST /api/v1/auth/login  { email, password }
-   * Returns: { user, token }
+   * POST /auth/login  { email, password }
+   * Response shape: { message, user: { id, first_name, ... }, access_token }
    */
   async signIn(email: string, password: string): Promise<{ user: User; token: string; message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Invalid email or password.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.LOGIN,
+      { email, password },
+      'Invalid email or password.'
+    );
 
-    // Real API response shape:
-    // { message, user: { id, first_name, last_name, ... }, access_token }
     const authToken: string = json.access_token ?? json.token ?? json.data?.access_token;
-    const rawUser = json.user ?? json.data?.user ?? json.data ?? json;
+    if (!authToken) throw new Error('No token returned from server.');
 
-    const user: User = {
-      ...rawUser,
-      id: String(rawUser.id ?? rawUser._id ?? ''),
-      email: rawUser.email ?? email,
-      first_name: rawUser.first_name ?? rawUser.firstName ?? '',
-      last_name: rawUser.last_name ?? rawUser.lastName ?? '',
-      username: rawUser.username ?? '',
-      profile_image: rawUser.profile_image ?? rawUser.avatar ?? null,
-    };
-
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, authToken);
-    apiClient.setAuthToken(authToken);
+    const user = normalizeUser(json.user ?? json.data?.user ?? json.data ?? json, { email });
+    await persistSession(user, authToken);
 
     return { user, token: authToken, message: json.message };
   },
 
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // ─── Real Sign-Up Flow (3 steps) ──────────────────────────────────────────
+  // ─── Sign-Up Flow (3 steps) ───────────────────────────────────────────────
 
   /**
    * Step 1 – Send OTP to email.
-   * POST /api/v1/auth/send-code  { email }
+   * POST /auth/send-code  { email }
    * Returns: { token: string }
    */
   async sendSignUpCode(email: string): Promise<{ token: string; message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/send-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Failed to send verification code.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.SEND_CODE,
+      { email },
+      'Failed to send verification code.'
+    );
     // Support both { token } and { data: { token } } shapes
     const token: string = json.token ?? json.data?.token;
     if (!token) throw new Error('No token returned from server.');
@@ -261,27 +200,23 @@ export const authService = {
 
   /**
    * Step 2 – Verify OTP.
-   * POST /api/v1/auth/verify-code  { token, otp }
+   * POST /auth/verify-code  { token, otp }
    * Returns: { token: string }  (server may issue a new token)
    */
   async verifySignUpCode(token: string, otp: string): Promise<{ token: string; message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/verify-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, otp }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Invalid or expired code.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.VERIFY_CODE,
+      { token, otp },
+      'Invalid or expired code.'
+    );
     const newToken: string = json.token ?? json.data?.token ?? token;
     return { token: newToken, message: json.message };
   },
 
   /**
    * Step 3 – Complete registration.
-   * POST /api/v1/auth/complete  { token, first_name, last_name, username, password, password_confirmation }
-   * Returns: { user, token }
+   * POST /auth/complete  { token, first_name, last_name, username, password, password_confirmation }
+   * Response shape: { message, user: { id, first_name, ... }, access_token }
    */
   async completeSignUp(data: {
     token: string;
@@ -291,54 +226,35 @@ export const authService = {
     password: string;
     password_confirmation: string;
   }): Promise<{ user: User; token: string; message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Could not complete sign up.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.COMPLETE_SIGNUP,
+      data,
+      'Could not complete sign up.'
+    );
 
-    // Real API response shape:
-    // { message, user: { id, first_name, last_name, ... }, access_token }
     const authToken: string = json.access_token ?? json.token ?? json.data?.access_token;
-    const rawUser = json.user ?? json.data?.user ?? json.data ?? json;
+    if (!authToken) throw new Error('No token returned from server.');
 
-    const user: User = {
-      ...rawUser,
-      id: String(rawUser.id ?? rawUser._id ?? ''),
-      email: rawUser.email ?? '',
-      first_name: rawUser.first_name ?? rawUser.firstName ?? data.first_name,
-      last_name: rawUser.last_name ?? rawUser.lastName ?? data.last_name,
-      username: rawUser.username ?? data.username,
-      profile_image: rawUser.profile_image ?? rawUser.avatar ?? null,
-    };
-
-    // Persist session
-    await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    await AsyncStorage.setItem(STORAGE_KEYS.TOKEN, authToken);
-    apiClient.setAuthToken(authToken);
+    const user = normalizeUser(json.user ?? json.data?.user ?? json.data ?? json, {
+      first_name: data.first_name,
+      last_name: data.last_name,
+      username: data.username,
+    });
+    await persistSession(user, authToken);
 
     return { user, token: authToken, message: json.message };
   },
 
   /**
    * Resend verification code.
-   * POST /api/v1/auth/resend-code  { email }
-   * Returns: { message: string }
+   * POST /auth/resend-code  { email }
    */
   async resendCode(email: string): Promise<{ message: string }> {
-    const res = await fetch(`${PROD_BASE}/auth/resend-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      throw new Error(json.message || 'Failed to resend verification code.');
-    }
+    const json = await authPost(
+      API_ENDPOINTS.AUTH.RESEND_CODE,
+      { email },
+      'Failed to resend verification code.'
+    );
     return { message: json.message };
   },
 
@@ -396,6 +312,3 @@ export const authService = {
   },
 
 };
-
-
- 

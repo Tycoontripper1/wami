@@ -44,6 +44,15 @@ export async function mockApiHandler<T = any>(
 
 // Route matcher
 function findHandler(method: string, endpoint: string): ((config?: MockRequestConfig) => Promise<any>) | null {
+  // Auth
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.LOGIN) return handleLogin;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.SEND_CODE) return handleSendCode;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.RESEND_CODE) return handleSendCode;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.FORGOT_PASSWORD) return handleSendCode;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.VERIFY_CODE) return handleVerifyCode;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.COMPLETE_SIGNUP) return handleCompleteSignUp;
+  if (method === 'POST' && endpoint === API_ENDPOINTS.AUTH.RESET_PASSWORD) return handleResetPassword;
+
   // Creatives
   if (method === 'GET' && endpoint === API_ENDPOINTS.CREATIVES.LIST) return handleGetCreatives;
   if (method === 'GET' && endpoint === API_ENDPOINTS.CREATIVES.SEARCH) return handleSearchCreatives;
@@ -109,6 +118,95 @@ function findHandler(method: string, endpoint: string): ((config?: MockRequestCo
   if (method === 'POST' && endpoint === API_ENDPOINTS.PROFILE.IMAGE) return handleUploadImage;
 
   return null;
+}
+
+// ============================================
+// AUTH HANDLERS
+// ============================================
+// These mirror the real API's top-level response shape — `{ message, user,
+// access_token }` for login/complete, `{ message, token }` for the OTP steps —
+// because authService reads those fields with `raw: true`.
+
+const MOCK_OTP = '1234';
+
+const mockAuthToken = (): string =>
+  `mock_token_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+async function handleLogin(config?: MockRequestConfig): Promise<any> {
+  const { email, password } = config?.body || {};
+
+  if (!email || !password) {
+    throw createError('BAD_REQUEST', 'Email and password are required', HttpStatusCode.BAD_REQUEST);
+  }
+
+  return {
+    message: 'Login successful',
+    user: { ...(await handleGetProfile()), email },
+    access_token: mockAuthToken(),
+  };
+}
+
+async function handleSendCode(config?: MockRequestConfig): Promise<any> {
+  const { email } = config?.body || {};
+
+  if (!email) {
+    throw createError('BAD_REQUEST', 'Email is required', HttpStatusCode.BAD_REQUEST);
+  }
+
+  console.log(`Mock OTP for ${email} is ${MOCK_OTP}`);
+  return { message: `Verification code sent. Use ${MOCK_OTP} in mock mode.`, token: mockAuthToken() };
+}
+
+async function handleVerifyCode(config?: MockRequestConfig): Promise<any> {
+  const { token, otp } = config?.body || {};
+
+  if (!token) {
+    throw createError('BAD_REQUEST', 'Token is required', HttpStatusCode.BAD_REQUEST);
+  }
+  if (otp !== MOCK_OTP) {
+    throw createError('INVALID_OTP', `Invalid or expired code. Use ${MOCK_OTP} in mock mode.`, HttpStatusCode.UNPROCESSABLE_ENTITY);
+  }
+
+  return { message: 'Verification successful', token: mockAuthToken() };
+}
+
+async function handleCompleteSignUp(config?: MockRequestConfig): Promise<any> {
+  const { token, first_name, last_name, username, password, password_confirmation } = config?.body || {};
+
+  if (!token) {
+    throw createError('BAD_REQUEST', 'Token is required', HttpStatusCode.BAD_REQUEST);
+  }
+  if (password !== password_confirmation) {
+    throw createError('VALIDATION_ERROR', 'Passwords do not match', HttpStatusCode.UNPROCESSABLE_ENTITY);
+  }
+
+  return {
+    message: 'Registration completed successfully',
+    user: {
+      ...(await handleGetProfile()),
+      first_name,
+      last_name,
+      full_name: `${first_name} ${last_name}`,
+      username,
+    },
+    access_token: mockAuthToken(),
+  };
+}
+
+async function handleResetPassword(config?: MockRequestConfig): Promise<any> {
+  const { token, otp, password, password_confirmation } = config?.body || {};
+
+  if (!token) {
+    throw createError('BAD_REQUEST', 'Token is required', HttpStatusCode.BAD_REQUEST);
+  }
+  if (otp !== MOCK_OTP) {
+    throw createError('INVALID_OTP', `Invalid or expired code. Use ${MOCK_OTP} in mock mode.`, HttpStatusCode.UNPROCESSABLE_ENTITY);
+  }
+  if (password !== password_confirmation) {
+    throw createError('VALIDATION_ERROR', 'Passwords do not match', HttpStatusCode.UNPROCESSABLE_ENTITY);
+  }
+
+  return { message: 'Password reset successfully' };
 }
 
 // ============================================

@@ -1,5 +1,6 @@
 import Colors from '@/constants/Colors';
 import { profileService } from '@/services/api/profileService';
+import { authService } from '@/services/authService';
 import { signOut, updateUser } from '@/store/authSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,7 +60,11 @@ export default function ProfileScreen() {
     border: isDark ? '#333' : '#E0E0E0',
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear the persisted session as well — dispatching signOut() on its own
+    // leaves the token in AsyncStorage, and the next cold start would restore
+    // the session and sign the user straight back in.
+    await authService.signOut();
     dispatch(signOut());
     router.replace('/(auth)/sign-in');
   };

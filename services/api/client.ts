@@ -4,10 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG, buildUrl } from './config';
 import { mockApiHandler } from './mock/mockHandlers';
 import { mockDelay } from './mock/mockHelpers';
-import { ApiError, ApiResponse, HttpMethod, RequestConfig } from './types';
+import { ApiError, ApiResponse, HttpMethod, HttpStatusCode, RequestConfig } from './types';
 
 class ApiClient {
   private authToken: string | null = null;
+  private onUnauthorized: (() => void) | null = null;
 
   // Initialize client and load saved token
   async initialize(): Promise<void> {
@@ -31,6 +32,13 @@ class ApiClient {
   // Get authentication token
   getAuthToken(): string | null {
     return this.authToken;
+  }
+
+  // Register a global handler for "our bearer token is no longer valid".
+  // Called once from the app root so a rejected token tears the session down in
+  // one place instead of every screen having to recognise a 401 itself.
+  setUnauthorizedHandler(handler: (() => void) | null): void {
+    this.onUnauthorized = handler;
   }
 
   // Main request method
@@ -101,6 +109,10 @@ class ApiClient {
     const timeout = config?.timeout ?? API_CONFIG.TIMEOUT_MS;
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    // Captured before the request: a 401 only means "session expired" if we
+    // actually sent a token. A 401 from /auth/login is just a bad password.
+    const sentAuthToken = this.authToken !== null;
+
     try {
       const fetchConfig: RequestInit = {
         method,
@@ -120,15 +132,26 @@ class ApiClient {
       const response = await fetch(url, fetchConfig);
 
       if (!response.ok) {
-        throw await this.handleHttpError(response);
+        const httpError = await this.handleHttpError(response);
+
+        if (
+          response.status === HttpStatusCode.UNAUTHORIZED &&
+          sentAuthToken &&
+          !endpoint.startsWith('/auth/')
+        ) {
+          this.setAuthToken(null);
+          this.onUnauthorized?.();
+        }
+
+        throw httpError;
       }
 
-        const data = await response.json();
-      
+      const data = await response.json();
+
       // Transform to ApiResponse format
       return {
         success: true,
-        data: data.user ?? data.data ?? data,
+        data: config?.raw ? data : (data.user ?? data.data ?? data),
         message: data.message,
       };
     } finally {

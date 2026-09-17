@@ -34,17 +34,20 @@ export const API_CONFIG = {
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    SIGN_IN: '/auth/signin',
-    SIGN_UP: '/auth/signup',
-    SIGN_OUT: '/auth/signout',
-    VERIFY_EMAIL: '/auth/verify-email',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
-    REFRESH_TOKEN: '/auth/refresh',
-    // Sign-up flow
+    LOGIN: '/auth/login',
+    // Sign-up flow: SEND_CODE -> VERIFY_CODE -> COMPLETE_SIGNUP
     SEND_CODE: '/auth/send-code',
     VERIFY_CODE: '/auth/verify-code',
+    RESEND_CODE: '/auth/resend-code',
     COMPLETE_SIGNUP: '/auth/complete',
+    // Password reset flow: FORGOT_PASSWORD -> (OTP) -> RESET_PASSWORD
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
+    // Not yet implemented by the backend — see docs/API-AUDIT-01-AUTH.md §3.1.
+    // Do not call these until they exist; they will 404.
+    LOGOUT: '/auth/logout',
+    ME: '/auth/me',
+    REFRESH_TOKEN: '/auth/refresh',
   },
 
   

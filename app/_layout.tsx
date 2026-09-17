@@ -1,14 +1,17 @@
 import { AppSplashScreen } from '@/components/AppSplashScreen';
 import { useColorScheme } from '@/components/useColorScheme';
+import { apiClient } from '@/services/api/client';
+import { authService } from '@/services/authService';
+import { signOut } from '@/store/authSlice';
 import { store } from '@/store/store';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
-import { Provider } from 'react-redux';
+import { Provider, useDispatch } from 'react-redux';
 
 export {
     // Catch any errors thrown by the Layout component.
@@ -54,11 +57,34 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+/**
+ * Registers the app-wide "our token was rejected" handler. If the backend 401s a
+ * request we sent a token with, the session is torn down once here rather than
+ * leaving every screen to recognise an expired session on its own.
+ * Renders nothing; it only needs to live inside the Redux Provider.
+ */
+function ExpiredSessionHandler() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    apiClient.setUnauthorizedHandler(() => {
+      void authService.signOut();
+      dispatch(signOut());
+      router.replace('/(auth)/sign-in');
+    });
+
+    return () => apiClient.setUnauthorizedHandler(null);
+  }, [dispatch]);
+
+  return null;
+}
+
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
     <Provider store={store}>
+      <ExpiredSessionHandler />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />

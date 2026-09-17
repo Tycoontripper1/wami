@@ -1,6 +1,7 @@
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { profileService } from '@/services/api/profileService';
+import { authService } from '@/services/authService';
 import { signOut } from '@/store/authSlice';
 import { AccountActionRequest } from '@/types/accountTypes';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,7 +61,9 @@ export default function AccountActionsScreen() {
         Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
       }
 
-      // Logout and redirect
+      // Logout and redirect — clear the persisted session too, otherwise the
+      // deactivated/deleted account is restored on the next cold start.
+      await authService.signOut();
       dispatch(signOut());
       router.replace('/(auth)/sign-in');
     } catch (error: any) {
