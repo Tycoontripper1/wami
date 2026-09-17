@@ -1,6 +1,7 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookingsCalendar } from '@/services/api/bookingsService';
+import { CREATIVE_ONLY_RESTRICTION_MESSAGE, isCreativeOnlyRestriction } from '@/utils/apiErrors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -37,6 +38,7 @@ export default function BookingCalendarScreen() {
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -49,6 +51,7 @@ export default function BookingCalendarScreen() {
   const load = useCallback(async () => {
     setIsLoading(true);
     setHasError(false);
+    setErrorMessage(null);
     try {
       const from = isoDate(new Date(year, month, 1));
       const to = isoDate(new Date(year, month + 1, 0));
@@ -57,6 +60,7 @@ export default function BookingCalendarScreen() {
     } catch (error) {
       console.error('Failed to load booking calendar:', error);
       setHasError(true);
+      setErrorMessage(isCreativeOnlyRestriction(error) ? CREATIVE_ONLY_RESTRICTION_MESSAGE : null);
     } finally {
       setIsLoading(false);
     }
@@ -159,7 +163,12 @@ export default function BookingCalendarScreen() {
         </View>
 
         {hasError ? (
-          <EmptyState icon="cloud-offline-outline" title="Couldn't load bookings" onRetry={load} />
+          <EmptyState
+            icon={errorMessage ? 'time-outline' : 'cloud-offline-outline'}
+            title={errorMessage ? 'Coming Soon' : "Couldn't load bookings"}
+            message={errorMessage ?? undefined}
+            onRetry={load}
+          />
         ) : (
           <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <Text style={[styles.sectionTitle, { color: tc.text }]}>

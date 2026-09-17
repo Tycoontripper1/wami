@@ -1,6 +1,7 @@
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { createOffering } from '@/services/api/offeringsService';
+import { CREATIVE_ONLY_RESTRICTION_MESSAGE, isCreativeOnlyRestriction } from '@/utils/apiErrors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -56,7 +57,11 @@ export default function AddServiceScreen() {
       ]);
     } catch (error) {
       console.error('Failed to list service:', error);
-      Alert.alert("Couldn't List Service", 'Something went wrong while listing your service. Please try again.');
+      if (isCreativeOnlyRestriction(error)) {
+        Alert.alert("Almost There", CREATIVE_ONLY_RESTRICTION_MESSAGE);
+      } else {
+        Alert.alert("Couldn't List Service", 'Something went wrong while listing your service. Please try again.');
+      }
     } finally {
       setIsSaving(false);
     }
