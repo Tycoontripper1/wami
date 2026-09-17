@@ -1,8 +1,8 @@
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import { ResizeMode, Video } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -15,6 +15,35 @@ import {
   View,
 } from 'react-native';
 import SocialProofBadge from './SocialProofBadge';
+
+// expo-av was removed from the SDK 57 Expo Go native module set entirely
+// (import { Video } from 'expo-av' crashed the app on-device with "Cannot
+// find native module 'ExponentAV'"). expo-video's useVideoPlayer hook needs
+// a stable per-instance player, so each playing card gets its own component
+// rather than sharing one imperative <Video> ref across the stack.
+function CardVideo({ uri, isActive }: { uri: string; isActive: boolean }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+    p.muted = false;
+  });
+
+  useEffect(() => {
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isActive, player]);
+
+  return (
+    <VideoView
+      player={player}
+      style={styles.cardMedia}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -50,7 +79,6 @@ export default function SwipeableCardStack({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const position = useRef(new Animated.ValueXY()).current;
-  const videoRef = useRef<Video>(null);
 
   const rotate = position.x.interpolate({
     inputRange: [-width / 2, 0, width / 2],
@@ -138,15 +166,8 @@ export default function SwipeableCardStack({
     [currentIndex, data, onSwipeLeft, onSwipeRight, position]
   );
 
-  const togglePlayback = async () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        await videoRef.current.pauseAsync();
-      } else {
-        await videoRef.current.playAsync();
-      }
-      setIsPlaying(!isPlaying);
-    }
+  const togglePlayback = () => {
+    setIsPlaying((prev) => !prev);
   };
 
   const renderCard = (item: CreativeData, index: number) => {
@@ -218,15 +239,7 @@ export default function SwipeableCardStack({
         {/* Video or Image */}
         {item.video ? (
           <>
-            <Video
-              ref={isCurrentCard ? videoRef : undefined}
-              source={{ uri: item.video }}
-              style={styles.cardMedia}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={isCurrentCard && isPlaying}
-              isLooping
-              isMuted={false}
-            />
+            <CardVideo uri={item.video} isActive={isCurrentCard && isPlaying} />
             {/* Play/Pause Button - only show on current card */}
             {isCurrentCard && (
               <TouchableOpacity
