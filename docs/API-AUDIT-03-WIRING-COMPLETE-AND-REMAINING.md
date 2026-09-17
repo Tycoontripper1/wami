@@ -12,12 +12,18 @@ with a comment pointing back here) · ❌ still not wired, with the reason why.
 
 ## 1. Foundation
 
-- **`services/api/config.ts`** — `API_CONFIG.BASE_URL` no longer bakes in `/v1`. It's now
-  `https://api.joinwami.com/api`, and every endpoint that needs the `v1` prefix (reviews,
-  messages, notifications, seller, admin, webhooks) carries it in `API_ENDPOINTS` itself,
-  matching the collection exactly. ⚠️ **This is the single highest-risk assumption in the
-  whole pass** — if backend's real split differs, every new call below 404s. Ask backend to
-  confirm per docs/API-AUDIT-01-AUTH.md §2.1 / docs/API-AUDIT-02… §2.1 before shipping.
+- **`services/api/config.ts`** — **UPDATE, resolved by on-device testing:** this originally
+  tried the collection's literal documentation (`BASE_URL` without `/v1`, with `/v1` added
+  per-endpoint only where the collection showed it). Running the real app on a real device
+  disproved that: `GET /discovery/feed` — a pre-existing endpoint that worked *before* this
+  rewrite, back when `BASE_URL` included `/v1` for everything — started 404ing, while the
+  endpoints that got an explicit `/v1/` (seller analytics, notifications) resolved fine
+  (`HTTP 500` — found, backend error, not a routing failure). That means the real backend puts
+  everything under `/api/v1/`, and the collection's "some routes have no v1" documentation is
+  stale. **`BASE_URL` is back to `https://api.joinwami.com/api/v1` for everything**, and the
+  redundant literal `/v1/` was removed from the seller/reviews/messages/notifications paths so
+  they don't double up. This also likely resolves the `GET /bookings/calendar` 404 noted in §4
+  below, since that call was going out un-prefixed under the old scheme — worth re-testing.
 - Added six new service files: `offeringsService.ts`, `ordersService.ts`, `paymentsService.ts`,
   `reviewsService.ts`, `notificationsService.ts`, `sellerService.ts` — one per previously-missing
   collection folder, all exported from `services/api/index.ts`.
