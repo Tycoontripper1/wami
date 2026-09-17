@@ -1,8 +1,9 @@
 import EmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
+import { bulkPublishOfferings } from '@/services/api/offeringsService';
 import { DiscoveryOffering, getMyItems } from '@/services/api/discoveryService';
-import { deleteProduct, updateProduct } from '@/services/api/productsService';
+import { bulkDeleteProducts, bulkUpdateProducts, deleteProduct, updateProduct } from '@/services/api/productsService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -53,6 +54,9 @@ export default function MyProductsScreen() {
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkWorking, setIsBulkWorking] = useState(false);
 
   const loadMyItems = useCallback(async () => {
     setIsLoading(true);
@@ -130,8 +134,73 @@ export default function MyProductsScreen() {
     }
   };
 
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  };
+
+  const handleBulkPublish = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkWorking(true);
+    try {
+      // Best effort: my-products lists generic "offerings" but the single
+      // edit/delete actions above already assume everything is a Product
+      // (see docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §4.4) — bulk
+      // publish mirrors that same assumption via the products bulk-update
+      // endpoint. If a selected item is actually a service (Offering), this
+      // will hit the wrong endpoint until "my items" can tell them apart.
+      await bulkUpdateProducts(selectedIds, { status: 'published' });
+      await bulkPublishOfferings(selectedIds).catch(() => {});
+      Alert.alert('Published', `${selectedIds.length} item(s) published.`);
+      setSelectedIds([]);
+      setSelectMode(false);
+      loadMyItems();
+    } catch (error) {
+      console.error('Bulk publish failed:', error);
+      Alert.alert("Couldn't Publish", 'Something went wrong while publishing the selected items.');
+    } finally {
+      setIsBulkWorking(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    Alert.alert('Delete Selected', `Delete ${selectedIds.length} item(s)? This can't be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setIsBulkWorking(true);
+          try {
+            await bulkDeleteProducts(selectedIds);
+            setItems((prev) => prev.filter((i) => !selectedIds.includes(i.id)));
+            setSelectedIds([]);
+            setSelectMode(false);
+          } catch (error) {
+            console.error('Bulk delete failed:', error);
+            Alert.alert("Couldn't Delete", 'Something went wrong while deleting the selected items.');
+          } finally {
+            setIsBulkWorking(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const renderProductItem = ({ item }: { item: MyItem }) => (
-    <View style={[styles.productCard, { backgroundColor: themeColors.cardBg }]}>
+    <TouchableOpacity
+      activeOpacity={selectMode ? 0.7 : 1}
+      style={[styles.productCard, { backgroundColor: themeColors.cardBg }]}
+      onPress={() => selectMode && toggleSelected(item.id)}
+    >
+      {selectMode && (
+        <Ionicons
+          name={selectedIds.includes(item.id) ? 'checkbox' : 'square-outline'}
+          size={22}
+          color={selectedIds.includes(item.id) ? Colors.light.primary : themeColors.subText}
+          style={{ marginRight: 10 }}
+        />
+      )}
       <Image source={{ uri: item.image }} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={[styles.productName, { color: themeColors.text }]}>{item.name}</Text>
@@ -143,15 +212,17 @@ export default function MyProductsScreen() {
           </View>
         </View>
       </View>
-      <View style={styles.productActions}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => openEdit(item)}>
-          <Ionicons name="create-outline" size={20} color={Colors.light.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleDelete(item)}>
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-        </TouchableOpacity>
-      </View>
-    </View>
+      {!selectMode && (
+        <View style={styles.productActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => openEdit(item)}>
+            <Ionicons name="create-outline" size={20} color={Colors.light.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleDelete(item)}>
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 
   return (
@@ -163,7 +234,17 @@ export default function MyProductsScreen() {
           <Ionicons name="arrow-back" size={24} color={themeColors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: themeColors.text }]}>My Products</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => {
+            setSelectMode((prev) => !prev);
+            setSelectedIds([]);
+          }}
+          style={styles.backButton}
+        >
+          <Text style={{ color: Colors.light.primary, fontWeight: '600', fontSize: 14 }}>
+            {selectMode ? 'Cancel' : 'Select'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {isLoading ? (
@@ -189,6 +270,20 @@ export default function MyProductsScreen() {
             <EmptyState icon="basket-outline" title="No products listed yet" />
           }
         />
+      )}
+
+      {selectMode && selectedIds.length > 0 && (
+        <View style={[styles.bulkBar, { backgroundColor: isDark ? '#1C1C1E' : '#fff', borderTopColor: themeColors.border }]}>
+          <Text style={{ color: themeColors.text, fontWeight: '600' }}>{selectedIds.length} selected</Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity style={styles.bulkActionBtn} onPress={handleBulkPublish} disabled={isBulkWorking}>
+              {isBulkWorking ? <ActivityIndicator color={Colors.light.primary} /> : <Text style={{ color: Colors.light.primary, fontWeight: '700' }}>Publish</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.bulkActionBtn, { backgroundColor: '#FF3B3020' }]} onPress={handleBulkDelete} disabled={isBulkWorking}>
+              <Text style={{ color: '#FF3B30', fontWeight: '700' }}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
       {/* Edit Price/Stock Modal */}
@@ -362,5 +457,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     paddingVertical: 8,
+  },
+  bulkBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+  },
+  bulkActionBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,188,212,0.12)',
   },
 });

@@ -1,7 +1,10 @@
+import EmptyState from '@/components/EmptyState';
+import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
+import { ApiConversation, getConversations } from '@/services/api/chatService';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
     FlatList,
     Image,
@@ -15,49 +18,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Mock conversations data
-const CONVERSATIONS = [
-  {
-    id: '1',
-    name: 'Paul Studio',
-    role: 'Photographer',
-    lastMessage: 'Sure, I can do that shoot next week!',
-    time: '2m ago',
-    unread: 2,
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
-    online: true,
-  },
-  {
-    id: '2',
-    name: 'Sandra Hair',
-    role: 'HairStylist',
-    lastMessage: 'Thanks for the booking confirmation',
-    time: '1h ago',
-    unread: 0,
-    image: require('@/assets/images/onboarding_bg_seller.webp'),
-    online: false,
-  },
-  {
-    id: '3',
-    name: 'Sarah Makeup',
-    role: 'Makeup Artist',
-    lastMessage: 'I\'ll send you the portfolio soon',
-    time: '3h ago',
-    unread: 1,
-    image: require('@/assets/images/onboarding_bg_service.webp'),
-    online: true,
-  },
-  {
-    id: '4',
-    name: 'Mike Events',
-    role: 'Event Planner',
-    lastMessage: 'The venue is confirmed for Saturday',
-    time: 'Yesterday',
-    unread: 0,
-    image: require('@/assets/images/onboarding_bg_creative.webp'),
-    online: false,
-  },
-];
+// The collection's conversation shape is unconfirmed beyond `id` — map
+// defensively, the same way discoveryService's DiscoveryOffering does.
+// See docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §3.7.
+const displayName = (c: ApiConversation) =>
+  c.name || c.recipient?.name || c.recipient_name || `Conversation #${c.id}`;
+const displayAvatar = (c: ApiConversation): string | undefined =>
+  c.avatar || c.recipient?.avatar || c.image;
+const displayLastMessage = (c: ApiConversation) => {
+  const lm: any = c.last_message;
+  return (typeof lm === 'object' ? lm?.body : lm) || c.body || 'No messages yet';
+};
+const displayUnread = (c: ApiConversation) => Number(c.unread_count ?? 0);
 
 export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
@@ -65,6 +37,32 @@ export default function MessagesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = useState<ApiConversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const res = await getConversations({ page: 1 });
+      const data: any = res.data;
+      setConversations(Array.isArray(data) ? data : data?.items ?? []);
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Refresh whenever the tab regains focus, so a conversation just opened
+  // (and its unread count/last message) stays current without a manual pull.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -75,47 +73,61 @@ export default function MessagesScreen() {
     border: isDark ? '#333' : '#E0E0E0',
   };
 
-  const filteredConversations = CONVERSATIONS.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = conversations.filter((c) =>
+    displayName(c).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderConversation = ({ item }: { item: typeof CONVERSATIONS[0] }) => (
-    <TouchableOpacity
-      style={[styles.conversationCard, { borderBottomColor: themeColors.border }]}
-      onPress={() => router.push(`/chat/${item.id}`)}
-    >
-      <View style={styles.avatarContainer}>
-        <Image source={item.image} style={styles.avatar} resizeMode="cover" />
-        {item.online && <View style={styles.onlineIndicator} />}
-      </View>
-      <View style={styles.conversationInfo}>
-        <View style={styles.topRow}>
-          <Text style={[styles.conversationName, { color: themeColors.text }]}>{item.name}</Text>
-          <Text style={[styles.timeText, { color: themeColors.subText }]}>{item.time}</Text>
-        </View>
-        <Text style={[styles.roleText, { color: themeColors.subText }]}>{item.role}</Text>
-        <View style={styles.messageRow}>
-          <Text
-            style={[
-              styles.lastMessage,
-              { color: item.unread > 0 ? themeColors.text : themeColors.subText },
-              item.unread > 0 && styles.unreadMessage,
-            ]}
-            numberOfLines={1}
-          >
-            {item.lastMessage}
-          </Text>
-          {item.unread > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{item.unread}</Text>
+  const renderConversation = ({ item }: { item: ApiConversation }) => {
+    const unread = displayUnread(item);
+    const avatar = displayAvatar(item);
+    return (
+      <TouchableOpacity
+        style={[styles.conversationCard, { borderBottomColor: themeColors.border }]}
+        onPress={() =>
+          router.push({
+            pathname: '/chat/[id]',
+            params: { id: String(item.id), name: displayName(item), avatar: avatar ?? '' },
+          } as any)
+        }
+      >
+        <View style={styles.avatarContainer}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={styles.avatar} resizeMode="cover" />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: themeColors.inputBg }]}>
+              <Ionicons name="person" size={24} color={themeColors.subText} />
             </View>
           )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.conversationInfo}>
+          <View style={styles.topRow}>
+            <Text style={[styles.conversationName, { color: themeColors.text }]} numberOfLines={1}>
+              {displayName(item)}
+            </Text>
+          </View>
+          <View style={styles.messageRow}>
+            <Text
+              style={[
+                styles.lastMessage,
+                { color: unread > 0 ? themeColors.text : themeColors.subText },
+                unread > 0 && styles.unreadMessage,
+              ]}
+              numberOfLines={1}
+            >
+              {displayLastMessage(item)}
+            </Text>
+            {unread > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{unread}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
-  const EmptyState = () => (
+  const EmptyConversations = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="chatbox-outline" size={80} color={themeColors.subText} />
       <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No messages yet</Text>
@@ -139,9 +151,6 @@ export default function MessagesScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: themeColors.text }]}>Messages</Text>
-          <TouchableOpacity>
-            <Ionicons name="create-outline" size={24} color={Colors.light.primary} />
-          </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
@@ -157,17 +166,29 @@ export default function MessagesScreen() {
         </View>
       </View>
 
-      {/* Conversations List */}
-      {filteredConversations.length > 0 ? (
+      {isLoading ? (
+        <View style={{ padding: 16, gap: 14 }}>
+          {[...Array(6)].map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </View>
+      ) : hasError ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Couldn't load messages"
+          message="Something went wrong. Please check your connection and try again."
+          onRetry={load}
+        />
+      ) : filteredConversations.length > 0 ? (
         <FlatList
           data={filteredConversations}
           renderItem={renderConversation}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
       ) : (
-        <EmptyState />
+        <EmptyConversations />
       )}
     </View>
   );
@@ -220,16 +241,9 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
   },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#4CD964',
-    borderWidth: 2,
-    borderColor: '#fff',
+  avatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   conversationInfo: {
     flex: 1,
@@ -245,13 +259,6 @@ const styles = StyleSheet.create({
   conversationName: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  timeText: {
-    fontSize: 12,
-  },
-  roleText: {
-    fontSize: 12,
-    marginBottom: 4,
   },
   messageRow: {
     flexDirection: 'row',

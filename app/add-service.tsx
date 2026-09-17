@@ -1,5 +1,6 @@
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
+import { createOffering } from '@/services/api/offeringsService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -36,18 +37,29 @@ export default function AddServiceScreen() {
     border: isDark ? '#333' : '#e0e0e0',
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!serviceName || !description || !startingPrice) {
       Alert.alert('Missing Information', 'Please fill in all required fields.');
       return;
     }
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      await createOffering({
+        title: serviceName,
+        description,
+        price: Number(startingPrice),
+        currency: 'NGN',
+        type: 'service',
+      });
       Alert.alert('Service Added', 'Your service has been listed successfully.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    }, 1200);
+    } catch (error) {
+      console.error('Failed to list service:', error);
+      Alert.alert("Couldn't List Service", 'Something went wrong while listing your service. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

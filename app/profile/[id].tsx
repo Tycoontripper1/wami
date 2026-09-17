@@ -5,11 +5,12 @@ import RateCard from '@/components/RateCard';
 import Colors from '@/constants/Colors';
 import { getCreativeById } from '@/data/creatives';
 import { useLocation } from '@/hooks/useLocationData';
+import { createReview, getReviews, getUserRating } from '@/services/api/reviewsService';
 import { addFavorite, removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -82,40 +83,52 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'home' | 'shop'>('home');
   const [likedProducts, setLikedProducts] = useState<Record<string, boolean>>({});
   
-  // Interactive reviews state
-  const INITIAL_REVIEWS = [
-    {
-      id: 'rev_1',
-      userName: 'Jessica M.',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-      rating: 5,
-      isVerified: true,
-      text: 'Absolutely incredible work! The attention to detail and professional attitude were top-notch. Will definitely book again.',
-      date: '2 days ago',
-    },
-    {
-      id: 'rev_2',
-      userName: 'Tunde A.',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-      rating: 4,
-      isVerified: true,
-      text: 'Great experience overall. Took a bit of time to respond initially but the final delivery was exceptional.',
-      date: '1 week ago',
-    },
-    {
-      id: 'rev_3',
-      userName: 'Sarah K.',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-      rating: 5,
-      isVerified: false,
-      text: 'Very talented! Understood exactly what I wanted and executed it perfectly.',
-      date: '2 weeks ago',
-    }
-  ];
-  
-  const [reviewsList, setReviewsList] = useState(INITIAL_REVIEWS);
+  // Reviews — real data (GET /v1/reviews). The collection's sample doesn't
+  // show a reviewable_id filter, so this asks for one defensively and falls
+  // back to showing whatever the endpoint returns. See
+  // docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §3.6.
+  type DisplayReview = { id: string; userName: string; avatar: string; rating: number; isVerified: boolean; text: string; date: string };
+  const [reviewsList, setReviewsList] = useState<DisplayReview[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [newReviewText, setNewReviewText] = useState('');
   const [newRating, setNewRating] = useState(5);
+
+  const mapApiReview = (r: any, index: number): DisplayReview => ({
+    id: String(r.id ?? index),
+    userName: r.user?.name ?? r.user_name ?? r.author ?? 'Anonymous',
+    avatar: r.user?.avatar ?? r.avatar ?? '',
+    rating: Number(r.rating ?? 0),
+    isVerified: Boolean(r.is_verified ?? r.verified ?? false),
+    text: r.comment ?? r.text ?? '',
+    date: r.created_at ? new Date(r.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) : '',
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setIsLoadingReviews(true);
+      try {
+        const res = await getReviews({ page: 1, reviewable_id: id, reviewable_type: 'App\\Models\\User' } as any);
+        const data: any = res.data;
+        const raw = Array.isArray(data) ? data : data?.items ?? [];
+        if (!cancelled) setReviewsList(raw.map(mapApiReview));
+      } catch (error) {
+        console.error('Failed to load reviews:', error);
+      } finally {
+        if (!cancelled) setIsLoadingReviews(false);
+      }
+      try {
+        await getUserRating(id as string);
+      } catch (error) {
+        // Non-fatal — reviewStats below falls back to computing its own
+        // average from the fetched reviews list either way.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   // Get location for price formatting
   const { formatPrice, formatPriceRange } = useLocation();
@@ -183,7 +196,16 @@ export default function ProfileScreen() {
   };
 
   const handleMessage = () => {
-    router.push(`/chat/${id}`);
+    // There's no "get or create conversation with user X" endpoint — the
+    // collection's Messaging folder only has "Start Conversation"
+    // (POST /v1/messages/conversations { recipient_id, body }), which needs
+    // a first message. So this opens chat in "new conversation" mode (see
+    // app/chat/[id].tsx) rather than assuming a conversation already exists
+    // for this creative's id.
+    router.push({
+      pathname: '/chat/[id]',
+      params: { id: 'new', recipientId: String(id), name: profile.name, avatar: profile.images?.[0] ?? '' },
+    } as any);
   };
 
   // Toggle favorite status on a product
@@ -194,61 +216,54 @@ export default function ProfileScreen() {
     }));
   };
 
-  // Submits a user review and updates live states
-  const handleAddReview = () => {
-    if (!newReviewText.trim()) return;
-    const newReviewObj = {
-      id: `rev_${Date.now()}`,
-      userName: 'You (Guest User)',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-      rating: newRating,
-      isVerified: false,
-      text: newReviewText,
-      date: 'Just now',
-    };
-    setReviewsList([newReviewObj, ...reviewsList]);
-    setNewReviewText('');
-    setNewRating(5);
+  // Submits a real review (POST /v1/reviews). `reviewable_type` for a
+  // creative/user profile is unconfirmed by the collection (its only sample
+  // uses "App\Models\Product") — ask backend to confirm before trusting
+  // this. See docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §3.6.
+  const handleAddReview = async () => {
+    if (!newReviewText.trim() || isSubmittingReview) return;
+    setIsSubmittingReview(true);
+    try {
+      const res = await createReview({
+        reviewable_type: 'App\\Models\\User',
+        reviewable_id: id as string,
+        rating: newRating,
+        comment: newReviewText.trim(),
+      });
+      setReviewsList([mapApiReview(res.data ?? { rating: newRating, comment: newReviewText }, Date.now()), ...reviewsList]);
+      setNewReviewText('');
+      setNewRating(5);
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
-  // Calculates reviews average rating, counts, and breakdown bars dynamically
+  // Calculates reviews average rating, counts, and breakdown bars from the
+  // real fetched reviews list — no more blended fake baseline.
   const reviewStats = useMemo(() => {
-    const origCount = profile.reviews;
-    const origRating = profile.rating;
-    
-    // User added reviews count
-    const userAddedReviews = reviewsList.slice(0, reviewsList.length - 3);
-    const userReviewsCount = userAddedReviews.length;
-    
-    const totalCount = origCount + userReviewsCount;
-    const totalSum = (origRating * origCount) + userAddedReviews.reduce((sum, r) => sum + r.rating, 0);
-    const average = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : '5.0';
-    
-    // Star breakdown counts
-    let fiveStar = Math.round(totalCount * 0.85);
-    let fourStar = Math.round(totalCount * 0.10);
-    let threeStar = Math.round(totalCount * 0.04);
-    let twoStar = Math.round(totalCount * 0.01);
-    let oneStar = totalCount - (fiveStar + fourStar + threeStar + twoStar);
-    if (oneStar < 0) oneStar = 0;
-    
-    userAddedReviews.forEach(r => {
+    const totalCount = reviewsList.length;
+    const totalSum = reviewsList.reduce((sum, r) => sum + r.rating, 0);
+    const average = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : '0.0';
+
+    let fiveStar = 0, fourStar = 0, threeStar = 0, twoStar = 0, oneStar = 0;
+    reviewsList.forEach(r => {
       if (r.rating === 5) fiveStar++;
       else if (r.rating === 4) fourStar++;
       else if (r.rating === 3) threeStar++;
       else if (r.rating === 2) twoStar++;
       else if (r.rating === 1) oneStar++;
     });
-    
-    const recalculatedTotal = fiveStar + fourStar + threeStar + twoStar + oneStar;
+
     const breakdown = [
-      recalculatedTotal > 0 ? (fiveStar / recalculatedTotal) * 100 : 85,
-      recalculatedTotal > 0 ? (fourStar / recalculatedTotal) * 100 : 10,
-      recalculatedTotal > 0 ? (threeStar / recalculatedTotal) * 100 : 4,
-      recalculatedTotal > 0 ? (twoStar / recalculatedTotal) * 100 : 1,
-      recalculatedTotal > 0 ? (oneStar / recalculatedTotal) * 100 : 0,
+      totalCount > 0 ? (fiveStar / totalCount) * 100 : 0,
+      totalCount > 0 ? (fourStar / totalCount) * 100 : 0,
+      totalCount > 0 ? (threeStar / totalCount) * 100 : 0,
+      totalCount > 0 ? (twoStar / totalCount) * 100 : 0,
+      totalCount > 0 ? (oneStar / totalCount) * 100 : 0,
     ];
-    
+
     return {
       average,
       total: totalCount,
@@ -594,13 +609,23 @@ export default function ProfileScreen() {
                   multiline
                   numberOfLines={3}
                 />
-                <TouchableOpacity style={styles.submitReviewButton} onPress={handleAddReview}>
-                  <Text style={styles.submitReviewButtonText}>Submit Review</Text>
+                <TouchableOpacity
+                  style={[styles.submitReviewButton, isSubmittingReview && { opacity: 0.7 }]}
+                  onPress={handleAddReview}
+                  disabled={isSubmittingReview}
+                >
+                  <Text style={styles.submitReviewButtonText}>{isSubmittingReview ? 'Submitting…' : 'Submit Review'}</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Individual review cards (FE-33) */}
               <View style={styles.reviewsListContainer}>
+                {isLoadingReviews && (
+                  <Text style={{ color: themeColors.subText, textAlign: 'center', marginBottom: 12 }}>Loading reviews…</Text>
+                )}
+                {!isLoadingReviews && reviewsList.length === 0 && (
+                  <Text style={{ color: themeColors.subText, textAlign: 'center', marginBottom: 12 }}>No reviews yet</Text>
+                )}
                 {reviewsList.map((review) => (
                   <View key={review.id} style={[styles.reviewCard, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#F0F0F0' }]}>
                     <View style={styles.reviewHeader}>
@@ -702,6 +727,8 @@ export default function ProfileScreen() {
           name: profile.name,
           role: profile.role,
         }}
+        onViewBooking={(bookingId) => router.push(`/service-tracking/${bookingId}` as any)}
+        onMessage={handleMessage}
       />
 
       {/* Quote Request Modal */}

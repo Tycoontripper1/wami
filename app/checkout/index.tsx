@@ -1,12 +1,16 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
+import { PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
 import { MOCK_PRODUCTS } from '@/data/mockProducts';
+import { placeOrder } from '@/services/api/ordersService';
+import { initializePayment, verifyPayment } from '@/services/api/paymentsService';
 import { addProductOrder } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { PaymentMethodType, ShippingOption, buildOrderTimeline, formatCurrency } from '@/types/payment';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { PaystackProvider, usePaystack } from 'react-native-paystack-webview';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -36,6 +40,14 @@ const PAYMENT_METHODS: { key: PaymentMethodType; label: string; icon: string; de
 ];
 
 export default function CheckoutScreen() {
+  return (
+    <PaystackProvider publicKey={PAYSTACK_PUBLIC_KEY}>
+      <CheckoutContent />
+    </PaystackProvider>
+  );
+}
+
+function CheckoutContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
@@ -61,6 +73,9 @@ export default function CheckoutScreen() {
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
+  const [failureMessage, setFailureMessage] = useState<string | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const { popup } = usePaystack();
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -78,7 +93,22 @@ export default function CheckoutScreen() {
   const isAddressComplete = address.trim().length > 0 && city.trim().length > 0;
   const isContactComplete = phone.trim().length > 0 && email.trim().length > 0;
 
-  const handlePay = () => {
+  // Creates the order the first time this is called for the current
+  // checkout attempt, and reuses it on any retry so we don't spam duplicate
+  // orders. POST /orders has no documented item list, so it implicitly
+  // orders whatever product this screen was opened for.
+  const placeOrderIfNeeded = async (): Promise<string> => {
+    if (pendingOrderId) return pendingOrderId;
+    const orderRes = await placeOrder({
+      shipping_address: { line1: address, city, country },
+    });
+    const orderId = String((orderRes.data as any)?.id ?? '');
+    if (!orderId) throw new Error('Order was created but returned no id.');
+    setPendingOrderId(orderId);
+    return orderId;
+  };
+
+  const handlePay = async () => {
     if (!isAddressComplete) {
       Alert.alert('Missing Info', 'Please add a shipping address.');
       return;
@@ -88,37 +118,104 @@ export default function CheckoutScreen() {
       return;
     }
 
-    if (paymentMethod === 'wallet') {
-      if (walletBalance < total) {
-        Alert.alert('Insufficient Balance', `Your wallet balance (₦${walletBalance.toLocaleString()}) is less than the total (₦${total.toLocaleString()}). Please top up or choose another payment method.`);
-        return;
-      }
-      processOrder();
-    } else if (paymentMethod === 'bank_transfer') {
-      setShowPaymentSheet(true);
-    } else {
-      // Card — simulate Paystack flow
-      processOrder();
-    }
-  };
-
-  const processOrder = () => {
-    setIsProcessing(true);
-    setPaymentFailed(false);
-
-    // Simulate an occasional card decline so the payment-failed state is reachable
-    if (paymentMethod === 'card' && Math.random() < 0.3) {
-      setTimeout(() => {
-        setIsProcessing(false);
-        setPaymentFailed(true);
-      }, 1500);
+    if (paymentMethod === 'wallet' && walletBalance < total) {
+      Alert.alert('Insufficient Balance', `Your wallet balance (₦${walletBalance.toLocaleString()}) is less than the total (₦${total.toLocaleString()}). Please top up or choose another payment method.`);
       return;
     }
 
-    const orderId = `ORD${Date.now()}`;
-    const trackingNumber = `LGS-${Math.random().toString(36).substring(2, 8).toUpperCase()}${Math.floor(Math.random() * 1000)}`;
+    if (paymentMethod === 'bank_transfer') {
+      setIsProcessing(true);
+      setPaymentFailed(false);
+      setFailureMessage(null);
+      try {
+        const orderId = await placeOrderIfNeeded();
+        await initializePayment({ order_id: orderId, gateway: 'bank_transfer' });
+        setIsProcessing(false);
+        setShowPaymentSheet(true);
+      } catch (error: any) {
+        setIsProcessing(false);
+        setPaymentFailed(true);
+        setFailureMessage(error?.message ?? "We couldn't start this order. Please try again.");
+      }
+      return;
+    }
 
-    const newOrder = {
+    processOrder();
+  };
+
+  // Drives payment for card/wallet. Bank transfer is handled separately by
+  // handlePay + confirmBankTransfer, since it needs to show account details
+  // and wait for the user before verifying anything.
+  const processOrder = async () => {
+    setIsProcessing(true);
+    setPaymentFailed(false);
+    setFailureMessage(null);
+
+    try {
+      const orderId = await placeOrderIfNeeded();
+
+      if (paymentMethod === 'card') {
+        await initializePayment({ order_id: orderId, gateway: 'paystack' });
+        if (!PAYSTACK_PUBLIC_KEY) {
+          throw new Error('Card payments are not configured yet — the Paystack public key is missing. Please choose Bank Transfer or Wallet for now.');
+        }
+        popup.checkout({
+          email,
+          amount: total * 100, // kobo
+          onSuccess: async (data) => {
+            try {
+              await verifyPayment({ order_id: orderId, gateway: 'paystack', reference: (data as any)?.reference ?? (data as any)?.transactionRef ?? orderId });
+              finalizeLocalOrder(orderId);
+            } catch (verifyError: any) {
+              setIsProcessing(false);
+              setPaymentFailed(true);
+              setFailureMessage(verifyError?.message ?? 'We could not verify your payment. Please contact support before retrying.');
+            }
+          },
+          onCancel: () => {
+            setIsProcessing(false);
+          },
+        });
+        return;
+      }
+
+      // Wallet — no dedicated "pay from wallet" endpoint exists in the
+      // collection at all (only the seller-side wallet is documented). Best
+      // effort: reuse initialize/verify with gateway: 'wallet' and surface
+      // whatever the backend says. See docs/API-AUDIT-02… §2.3/§3.9.
+      await initializePayment({ order_id: orderId, gateway: 'wallet' });
+      await verifyPayment({ order_id: orderId, gateway: 'wallet', reference: orderId });
+      finalizeLocalOrder(orderId);
+    } catch (error: any) {
+      setIsProcessing(false);
+      setPaymentFailed(true);
+      setFailureMessage(error?.message ?? "We couldn't process your payment. Please check your details or try a different payment method.");
+    }
+  };
+
+  // Confirmed a bank transfer — verify against the backend for real instead
+  // of assuming success.
+  const confirmBankTransfer = async () => {
+    if (!pendingOrderId) return;
+    setShowPaymentSheet(false);
+    setIsProcessing(true);
+    try {
+      await verifyPayment({ order_id: pendingOrderId, gateway: 'bank_transfer', reference: pendingOrderId });
+      finalizeLocalOrder(pendingOrderId);
+    } catch (error: any) {
+      setIsProcessing(false);
+      setPaymentFailed(true);
+      setFailureMessage(error?.message ?? "We couldn't confirm your transfer yet. If you've already sent the money, please try again in a moment.");
+    }
+  };
+
+  // Mirrors the confirmed order into local Redux so order-tracking /
+  // order-history keep working today — the backend is now the source of
+  // truth (see placeOrder above); this local copy is just for the screens
+  // that still read from Redux (see docs/API-AUDIT-02… §3.2).
+  const finalizeLocalOrder = (orderId: string) => {
+    const trackingNumber = `LGS-${orderId.slice(-6).toUpperCase()}`;
+    dispatch(addProductOrder({
       id: orderId,
       customerId: String(user?.id ?? 'guest'),
       productId: product.id,
@@ -141,14 +238,9 @@ export default function CheckoutScreen() {
       timeline: buildOrderTimeline('packed'),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    };
-
-    dispatch(addProductOrder(newOrder));
-
-    setTimeout(() => {
-      setIsProcessing(false);
-      router.replace(`/checkout/success?orderId=${orderId}&trackingNumber=${trackingNumber}`);
-    }, 2000);
+    }));
+    setIsProcessing(false);
+    router.replace(`/checkout/success?orderId=${orderId}&trackingNumber=${trackingNumber}`);
   };
 
   if (paymentFailed) {
@@ -158,8 +250,8 @@ export default function CheckoutScreen() {
         <EmptyState
           icon="close-circle-outline"
           title="Payment Failed"
-          message="We couldn't process your card payment. Please check your card details or try a different payment method."
-          onRetry={processOrder}
+          message={failureMessage ?? "We couldn't process your payment. Please check your details or try a different payment method."}
+          onRetry={paymentMethod === 'bank_transfer' && pendingOrderId ? confirmBankTransfer : processOrder}
           retryLabel="Try Again"
         />
         <TouchableOpacity style={styles.goBackBtn} onPress={() => setPaymentFailed(false)}>
@@ -435,7 +527,7 @@ export default function CheckoutScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={() => { setShowPaymentSheet(false); processOrder(); }}>
+            <TouchableOpacity style={styles.saveBtn} onPress={confirmBankTransfer}>
               <Text style={styles.saveBtnText}>I've Transferred — Confirm Order</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowPaymentSheet(false)} style={styles.cancelBtn}>

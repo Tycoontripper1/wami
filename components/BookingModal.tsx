@@ -133,7 +133,7 @@ export default function BookingModal({ visible, onClose, creative, onViewBooking
 
       const ref = String(apiBooking.data?.id ?? `WB-${Date.now().toString().slice(-8)}`);
       const booking: Booking = {
-        id: `booking_${Date.now()}`,
+        id: ref,
         creativeId: creative.id,
         creativeName: creative.name,
         creativeRole: creative.role,

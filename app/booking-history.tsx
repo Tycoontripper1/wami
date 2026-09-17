@@ -1,10 +1,11 @@
 import Colors from '@/constants/Colors';
+import { ApiBooking, getBookings } from '@/services/api/bookingsService';
 import { RootState } from '@/store/store';
-import { formatCurrency } from '@/types/payment';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     FlatList,
     StatusBar,
     StyleSheet,
@@ -16,16 +17,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 
-const STATUS_CONFIG = {
-  negotiating: { label: 'Negotiating', color: '#FF9500', icon: 'chatbubbles' },
-  awaiting_payment: { label: 'Awaiting Payment', color: '#FF9500', icon: 'time' },
-  paid: { label: 'Paid - In Escrow', color: Colors.light.primary, icon: 'shield-checkmark' },
-  in_progress: { label: 'In Progress', color: Colors.light.primary, icon: 'construct' },
-  completed: { label: 'Completed', color: '#4CD964', icon: 'checkmark-circle' },
-  disputed: { label: 'Disputed', color: '#FF3B30', icon: 'warning' },
-  cancelled: { label: 'Cancelled', color: '#8E8E93', icon: 'close-circle' },
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   pending: { label: 'Pending', color: '#FF9500', icon: 'time' },
   confirmed: { label: 'Confirmed', color: Colors.light.primary, icon: 'checkmark-circle' },
+  in_progress: { label: 'In Progress', color: Colors.light.primary, icon: 'construct' },
+  dispatched: { label: 'In Progress', color: Colors.light.primary, icon: 'construct' },
+  completed: { label: 'Completed', color: '#4CD964', icon: 'checkmark-circle' },
+  cancelled: { label: 'Cancelled', color: '#8E8E93', icon: 'close-circle' },
 };
 
 export default function BookingHistoryScreen() {
@@ -34,30 +32,49 @@ export default function BookingHistoryScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  // Get bookings from both slices
-  const appointmentBookings = useSelector((state: RootState) => state.bookings.items);
-  const paymentBookings = useSelector((state: RootState) => state.payment.bookings);
+  // Local optimistic cache from the booking flow (components/BookingModal.tsx)
+  // — used as an instant fallback if the real fetch below fails or is slow.
+  const localBookings = useSelector((state: RootState) => state.bookings.items);
 
-  // Merge both types of bookings
-  const allBookings = [
-    ...appointmentBookings.map((b) => ({
-      id: b.id,
-      creativeName: b.creativeName,
-      service: `Appointment on ${b.date} at ${b.time}`,
-      status: b.status,
-      createdAt: b.createdAt,
-      creativeRole: b.creativeRole,
-    })),
-    ...paymentBookings.map((b) => ({
-      id: b.id,
-      creativeName: b.creativeName,
-      service: b.service,
-      status: b.status,
-      createdAt: b.createdAt,
-      agreedPrice: b.agreedPrice,
-      currency: b.currency,
-    })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const [apiBookings, setApiBookings] = useState<ApiBooking[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    try {
+      const res = await getBookings({ page: 1 });
+      const data: any = res.data;
+      setApiBookings(Array.isArray(data) ? data : data?.items ?? []);
+    } catch (error) {
+      console.error('Failed to load bookings:', error);
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Real data when we have it; otherwise fall back to whatever was created
+  // locally this session so the screen isn't empty while offline.
+  const bookings = apiBookings ?? localBookings.map((b) => ({
+    id: b.id,
+    offering_id: b.creativeId,
+    project_title: b.service ?? `Booking with ${b.creativeName}`,
+    project_details: b.notes ?? '',
+    start_date: b.date,
+    end_date: b.date,
+    total_amount: 0,
+    currency: 'NGN',
+    status: b.status,
+    created_at: b.createdAt,
+  } as ApiBooking));
+
+  const localNameById = new Map(localBookings.map((b) => [b.id, b.creativeName]));
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -67,54 +84,33 @@ export default function BookingHistoryScreen() {
     border: isDark ? '#333' : '#E0E0E0',
   };
 
-  const renderBooking = ({ item }: { item: typeof allBookings[0] }) => {
-    const status = STATUS_CONFIG[item.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
-
-    const handleRebook = () => {
-      // Navigate to profile with booking intent
-      router.push(`/profile/${item.id || '1'}` as any);
-    };
-
-    const handlePress = () => {
-      if (item.status === 'paid' || item.status === 'in_progress' || item.status === 'completed') {
-        router.push(`/service-tracking/${item.id}` as any);
-      } else {
-        // Just stay or show chat
-      }
-    };
+  const renderBooking = ({ item }: { item: ApiBooking }) => {
+    const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+    const creativeName = localNameById.get(String(item.id)) ?? 'Booking';
 
     return (
-      <View style={[styles.bookingCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}>
-        <TouchableOpacity
-          style={styles.bookingContent}
-          onPress={handlePress}
-        >
-          <View style={[styles.creativeImage, styles.avatarPlaceholder]}>
-            <Ionicons name="person" size={24} color={themeColors.subText} />
+      <TouchableOpacity
+        style={[styles.bookingCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}
+        onPress={() => router.push(`/service-tracking/${item.id}` as any)}
+      >
+        <View style={[styles.creativeImage, styles.avatarPlaceholder]}>
+          <Ionicons name="person" size={24} color={themeColors.subText} />
+        </View>
+        <View style={styles.bookingInfo}>
+          <Text style={[styles.creativeName, { color: themeColors.text }]}>{creativeName}</Text>
+          <Text style={[styles.service, { color: themeColors.subText }]} numberOfLines={1}>{item.project_title}</Text>
+          {item.total_amount > 0 && (
+            <Text style={[styles.price, { color: themeColors.text }]}>
+              ₦{Number(item.total_amount).toLocaleString()} {item.currency}
+            </Text>
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
+            <Ionicons name={status.icon as any} size={14} color={status.color} />
+            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
           </View>
-          <View style={styles.bookingInfo}>
-            <Text style={[styles.creativeName, { color: themeColors.text }]}>{item.creativeName}</Text>
-            <Text style={[styles.service, { color: themeColors.subText }]}>{item.service}</Text>
-            {'agreedPrice' in item && item.agreedPrice && (
-              <Text style={[styles.price, { color: themeColors.text }]}>
-                {formatCurrency(item.agreedPrice, item.currency || 'NGN')}
-              </Text>
-            )}
-            <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
-              <Ionicons name={status.icon as any} size={14} color={status.color} />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={themeColors.subText} style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
-        {/* Rebook Button */}
-        {(item.status === 'completed' || item.status === 'cancelled') && (
-          <TouchableOpacity style={styles.rebookButton} onPress={handleRebook}>
-            <Ionicons name="refresh" size={16} color={Colors.light.primary} />
-            <Text style={styles.rebookText}>Book Again</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={themeColors.subText} style={{ marginLeft: 8 }} />
+      </TouchableOpacity>
     );
   };
 
@@ -141,12 +137,23 @@ export default function BookingHistoryScreen() {
         <View style={{ width: 32 }} />
       </View>
 
-      {/* Bookings List */}
-      {allBookings.length > 0 ? (
+      {isLoading && bookings.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={Colors.light.primary} />
+        </View>
+      ) : loadError && bookings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cloud-offline-outline" size={80} color={themeColors.subText} />
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>Couldn't load bookings</Text>
+          <TouchableOpacity onPress={load} style={{ marginTop: 16 }}>
+            <Text style={{ color: Colors.light.primary, fontWeight: '600' }}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      ) : bookings.length > 0 ? (
         <FlatList
-          data={allBookings}
+          data={bookings}
           renderItem={renderBooking}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -244,26 +251,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  bookingContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  rebookButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 188, 212, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 4,
-    marginTop: 12,
-    alignSelf: 'flex-end',
-  },
-  rebookText: {
-    color: Colors.light.primary,
-    fontSize: 13,
-    fontWeight: '600',
   },
 });
