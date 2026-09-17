@@ -103,6 +103,9 @@ function RootLayoutNav() {
           <Stack.Screen name="service-tracking/[bookingId]" options={{ headerShown: false }} />
           <Stack.Screen name="orders" options={{ headerShown: false }} />
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
+          <Stack.Screen name="seller-analytics" options={{ headerShown: false }} />
+          <Stack.Screen name="booking-calendar" options={{ headerShown: false }} />
+          <Stack.Screen name="booking-reschedule/[bookingId]" options={{ headerShown: false }} />
           <Stack.Screen name="my-products" options={{ headerShown: false }} />
           <Stack.Screen name="products-listing" options={{ headerShown: false }} />
           <Stack.Screen name="product-detail/[id]" options={{ headerShown: false }} />

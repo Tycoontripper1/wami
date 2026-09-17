@@ -134,7 +134,9 @@ export default function BookingHistoryScreen() {
           <Ionicons name="arrow-back" size={24} color={themeColors.text} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: themeColors.text }]}>Booking History</Text>
-        <View style={{ width: 32 }} />
+        <TouchableOpacity onPress={() => router.push('/booking-calendar' as any)} style={styles.backButton}>
+          <Ionicons name="calendar-outline" size={22} color={themeColors.text} />
+        </TouchableOpacity>
       </View>
 
       {isLoading && bookings.length === 0 ? (

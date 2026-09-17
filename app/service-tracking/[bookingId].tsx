@@ -241,6 +241,16 @@ export default function ServiceTrackingScreen() {
           </View>
         )}
 
+        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+          <TouchableOpacity
+            style={[styles.rescheduleBtn, { borderColor: tc.border }]}
+            onPress={() => router.push(`/booking-reschedule/${booking.id}` as any)}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.light.primary} />
+            <Text style={[styles.rescheduleBtnText, { color: Colors.light.primary }]}>Reschedule Booking</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={{ height: insets.bottom + 20 }} />
       </ScrollView>
     </View>
@@ -283,6 +293,11 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1, alignItems: 'flex-start',
   },
   infoText: { fontSize: 14, flex: 1, lineHeight: 20 },
+  rescheduleBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, borderWidth: 1.5, borderRadius: 30, paddingVertical: 14,
+  },
+  rescheduleBtnText: { fontSize: 15, fontWeight: '700' },
   emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24, textAlign: 'center' },
   backBtnCentered: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,

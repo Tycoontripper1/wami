@@ -94,9 +94,20 @@ fetches `GET /bookings` with the local Redux cache from `BookingModal` as an off
 **The invented 70/30 escrow split is gone from the UI entirely** — it never had a backend
 endpoint (see Part 2 §2.6), so showing it was actively misleading.
 
-**❌ Still not built:** a reschedule/calendar UI. `bookingsService.rescheduleBooking()` /
-`getBookingsCalendar()` exist now, but no screen calls them — Part 2 flagged this as net-new
-work, and it still is.
+**✅ Built (follow-up pass):** `app/booking-calendar.tsx` — a month-grid calendar wired to
+`GET /bookings/calendar`, marking days with bookings and listing them on tap — reachable from a
+calendar icon on Booking History. `app/booking-reschedule/[bookingId].tsx` — a date/time picker
+(same visual pattern as `BookingModal`'s date strip) that calls
+`POST /bookings/:id/reschedule`, reachable from a "Reschedule Booking" button on Service
+Tracking for pending/confirmed bookings.
+
+**Live-tested against the real backend:** `GET /bookings/calendar` (no `v1` prefix, the path
+this doc assumed throughout) returned **HTTP 404** — unlike the seller analytics endpoints
+above, which returned 500 (exists, errors) rather than 404 (doesn't exist at this path). The
+collection also documents this same endpoint duplicated under `v1/bookings/calendar` in the
+"Booking Scheduling" folder — **ask backend which prefix is actually live**; the code currently
+calls the non-`v1` path since that's where the collection's own "Bookings" folder puts
+list/create. The screen's error state renders correctly rather than crashing either way.
 
 **❌ Quote counter-offers still local-only.** `app/quote-received/[id].tsx`'s "Send Counter
 Offer" button still doesn't call any endpoint. `quotesService.createQuote()` needs a `booking_id`
@@ -202,12 +213,25 @@ best-effort also tries `POST /offerings/bulk/publish`) and **Delete**
 §4.4): "my items" can be a product *or* a service, but bulk actions assume Product — a selected
 service would hit the wrong endpoint until "my items" can tell the two apart server-side.
 
-## 10. Analytics & Reporting — ❌ not built
+## 10. Analytics & Reporting — ✅ built (follow-up pass)
 
-`sellerService.getSalesAnalytics()` / `getTopProducts()` exist and are ready to call, but **no
-screen uses them**. `app/creative-dashboard.tsx` — despite its name — is an availability/pricing
-settings screen, unrelated to sales analytics, and was left alone. A real analytics screen
-(charts, revenue, top products) is net-new UI work, not a wiring fix, and wasn't attempted here.
+Built `app/seller-analytics.tsx`: a 7D/30D/90D range toggle, KPI cards (total sales, orders,
+average order value), a real SVG line/area sales-trend chart
+(`components/analytics/SalesChart.tsx` — smooth curve, gradient fill, tappable points), and a
+ranked Top Products list (`components/analytics/TopProductsList.tsx`), all wired to
+`sellerService.getSalesAnalytics()` / `getTopProducts()`. Reachable from a new icon on the
+Wallet tab's header. Also replaced the Wallet tab's old hardcoded fake SVG path "Spending
+Overview" graph with a real chart computed from the already-loaded real transactions (net cash
+flow per day), and replaced its fake "Top Categories" (hardcoded Shopping/Food/Transport
+numbers) with real category totals derived from those same real transactions.
+
+**Live-tested against the real backend** (unauthenticated, via `expo start --web`):
+`GET /v1/seller/analytics/sales` and `/v1/seller/analytics/top-products` both returned **HTTP
+500**, not 404 — meaning these routes exist at the guessed `/v1/seller/...` prefix and are
+reachable, but error out (most likely because the request has no valid seller session in this
+test, but possibly a genuine backend bug). The screen's error state (message + Try Again) renders
+correctly rather than crashing. **Ask backend** to confirm what's causing the 500 with a real
+seller token attached.
 
 ## 11. Webhooks & Moderation — intentionally untouched
 

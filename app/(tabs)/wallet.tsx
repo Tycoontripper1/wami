@@ -1,10 +1,11 @@
+import SalesChart, { SalesChartPoint } from '@/components/analytics/SalesChart';
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
 import { getSellerTransactions, getSellerWallet, SellerTransaction } from '@/services/api/sellerService';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,7 +21,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Circle, Defs, Path, Stop, Svg, LinearGradient as SvgGradient } from 'react-native-svg';
 
 // Maps the seller-wallet transaction shape (unconfirmed field names — the
 // collection has no example response for GET /v1/seller/transactions) onto
@@ -120,6 +120,39 @@ export default function WalletScreen() {
   const totalIncome = transactions.filter(t => t.type === 'credit').reduce((sum, t) => sum + t.amount, 0);
   const totalExpenses = transactions.filter(t => t.type === 'debit').reduce((sum, t) => sum + t.amount, 0);
 
+  // Real net cash flow per day, derived from the real transactions already
+  // loaded above — no separate analytics call needed for this small preview
+  // (the full breakdown lives at /seller-analytics).
+  const dailyNetSeries = useMemo<SalesChartPoint[]>(() => {
+    const byDay = new Map<string, number>();
+    transactions.forEach((t) => {
+      const d = new Date(t.date);
+      const key = isNaN(d.getTime()) ? t.date : d.toISOString().split('T')[0];
+      const signed = t.type === 'credit' ? t.amount : -t.amount;
+      byDay.set(key, (byDay.get(key) ?? 0) + signed);
+    });
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-7)
+      .map(([key, value]) => {
+        const d = new Date(key);
+        return {
+          label: isNaN(d.getTime()) ? key : d.toLocaleDateString('en-NG', { weekday: 'short' }),
+          value,
+        };
+      });
+  }, [transactions]);
+
+  const categoryBreakdown = useMemo(() => {
+    const byCategory = new Map<string, number>();
+    transactions.filter(t => t.type === 'debit').forEach((t) => {
+      byCategory.set(t.category, (byCategory.get(t.category) ?? 0) + t.amount);
+    });
+    return Array.from(byCategory.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+  }, [transactions]);
+
   const presetAmounts = isNigeria ? [1000, 5000, 10000, 20000, 50000, 100000] : [10, 25, 50, 100, 250, 500];
 
   // Handlers
@@ -165,9 +198,14 @@ export default function WalletScreen() {
             <Text style={[styles.greeting, { color: themeColors.subText }]}>Welcome back 👋</Text>
             <Text style={[styles.headerTitle, { color: themeColors.text }]}>My Wallet</Text>
           </View>
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/notifications' as any)}>
-            <Ionicons name="notifications-outline" size={22} color={themeColors.text} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/seller-analytics' as any)}>
+              <Ionicons name="stats-chart-outline" size={20} color={themeColors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/notifications' as any)}>
+              <Ionicons name="notifications-outline" size={22} color={themeColors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Balance Card */}
@@ -496,41 +534,18 @@ export default function WalletScreen() {
               ) : (
                 <View style={{ paddingBottom: 40 }}>
                   <View style={styles.graphCard}>
-                    <Text style={[styles.graphTitle, { color: themeColors.text }]}>Spending Overview</Text>
-                    <View style={{ height: 180, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 10 }}>
-                      <Svg height="180" width={width - 80}>
-                         <Defs>
-                          <SvgGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                            <Stop offset="0" stopColor={Colors.light.primary} stopOpacity="0.3" />
-                            <Stop offset="1" stopColor={Colors.light.primary} stopOpacity="0" />
-                          </SvgGradient>
-                        </Defs>
-                        {/* Simple Mock Line Graph Path */}
-                        <Path
-                          d="M0,150 C40,120 80,160 120,80 C160,20 200,80 240,60 C280,40 320,100 360,90"
-                          fill="none"
-                          stroke={Colors.light.primary}
-                          strokeWidth="3"
-                        />
-                        <Path
-                         d="M0,150 C40,120 80,160 120,80 C160,20 200,80 240,60 C280,40 320,100 360,90 L360,180 L0,180 Z"
-                         fill="url(#grad)"
-                        />
-                         {/* Data Points */}
-                        <Circle cx="0" cy="150" r="4" fill={Colors.light.primary} />
-                        <Circle cx="120" cy="80" r="4" fill={Colors.light.primary} />
-                        <Circle cx="240" cy="60" r="4" fill={Colors.light.primary} />
-                        <Circle cx="360" cy="90" r="4" fill={Colors.light.primary} />
-                      </Svg>
-                    </View>
-                    <View style={styles.graphLabels}>
-                       <Text style={[styles.graphLabelText, { color: themeColors.subText }]}>Mon</Text>
-                       <Text style={[styles.graphLabelText, { color: themeColors.subText }]}>Tue</Text>
-                       <Text style={[styles.graphLabelText, { color: themeColors.subText }]}>Wed</Text>
-                       <Text style={[styles.graphLabelText, { color: themeColors.subText }]}>Thu</Text>
-                       <Text style={[styles.graphLabelText, { color: themeColors.subText }]}>Fri</Text>
-                    </View>
+                    <Text style={[styles.graphTitle, { color: themeColors.text }]}>Net Cash Flow</Text>
+                    <SalesChart data={dailyNetSeries} formatValue={(v) => `${v >= 0 ? '+' : ''}${formatPrice(v)}`} />
                   </View>
+
+                  <TouchableOpacity
+                    style={[styles.viewFullAnalyticsBtn, { backgroundColor: themeColors.cardBg }]}
+                    onPress={() => { setShowHistoryModal(false); router.push('/seller-analytics' as any); }}
+                  >
+                    <Ionicons name="stats-chart" size={18} color={Colors.light.primary} />
+                    <Text style={[styles.viewFullAnalyticsText, { color: Colors.light.primary }]}>View Full Sales Analytics</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Colors.light.primary} />
+                  </TouchableOpacity>
 
                   <View style={styles.statsRow}>
                      <View style={[styles.insightCard, { backgroundColor: themeColors.cardBg }]}>
@@ -555,27 +570,21 @@ export default function WalletScreen() {
 
                    <View style={[styles.breakdownCard, { backgroundColor: themeColors.cardBg }]}>
                       <Text style={[styles.breakdownTitle, { color: themeColors.text }]}>Top Categories</Text>
-                      <View style={styles.categoryItem}>
-                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <View style={[styles.catIcon, { backgroundColor: '#E3F2FD' }]}><Ionicons name="cart" size={18} color="#2196F3" /></View>
-                            <Text style={[styles.catName, { color: themeColors.text }]}>Shopping</Text>
-                         </View>
-                         <Text style={[styles.catAmount, { color: themeColors.text }]}>- {formatPrice(35000)}</Text>
-                      </View>
-                      <View style={styles.categoryItem}>
-                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <View style={[styles.catIcon, { backgroundColor: '#FFF3E0' }]}><Ionicons name="restaurant" size={18} color="#FF9800" /></View>
-                            <Text style={[styles.catName, { color: themeColors.text }]}>Food</Text>
-                         </View>
-                         <Text style={[styles.catAmount, { color: themeColors.text }]}>- {formatPrice(12500)}</Text>
-                      </View>
-                      <View style={styles.categoryItem}>
-                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <View style={[styles.catIcon, { backgroundColor: '#F3E5F5' }]}><Ionicons name="car" size={18} color="#9C27B0" /></View>
-                            <Text style={[styles.catName, { color: themeColors.text }]}>Transport</Text>
-                         </View>
-                         <Text style={[styles.catAmount, { color: themeColors.text }]}>- {formatPrice(8200)}</Text>
-                      </View>
+                      {categoryBreakdown.length === 0 ? (
+                        <Text style={{ color: themeColors.subText, fontSize: 13 }}>No spending yet</Text>
+                      ) : (
+                        categoryBreakdown.map(([category, amount]) => (
+                          <View key={category} style={styles.categoryItem}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                              <View style={[styles.catIcon, { backgroundColor: Colors.light.primary + '20' }]}>
+                                <Ionicons name="pricetag" size={18} color={Colors.light.primary} />
+                              </View>
+                              <Text style={[styles.catName, { color: themeColors.text, textTransform: 'capitalize' }]}>{category}</Text>
+                            </View>
+                            <Text style={[styles.catAmount, { color: themeColors.text }]}>- {formatPrice(amount)}</Text>
+                          </View>
+                        ))
+                      )}
                    </View>
                 </View>
               )}
@@ -709,10 +718,10 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent', marginHorizontal: 4, borderRadius: 12 },
   tabBtnActive: { },
   tabText: { fontSize: 15, fontWeight: '600' },
-  graphCard: { marginBottom: 20, padding: 10 },
-  graphTitle: { fontSize: 16, fontWeight: '700', marginBottom: 20, paddingHorizontal: 10 },
-  graphLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingHorizontal: 10 },
-  graphLabelText: { fontSize: 12 },
+  graphCard: { marginBottom: 16, padding: 10 },
+  graphTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, paddingHorizontal: 6 },
+  viewFullAnalyticsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 16, marginBottom: 20 },
+  viewFullAnalyticsText: { fontSize: 14, fontWeight: '700' },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   breakdownCard: { padding: 20, borderRadius: 24 },
   breakdownTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20 },
