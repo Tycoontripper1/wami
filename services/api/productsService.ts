@@ -83,3 +83,18 @@ export const updateProduct = async (
 export const deleteProduct = async (id: string): Promise<ApiResponse<null>> => {
   return apiClient.delete(API_ENDPOINTS.PRODUCTS.DELETE(id));
 };
+
+// POST /products/bulk/update  { ids, ...fields }
+export const bulkUpdateProducts = async (
+  ids: (string | number)[],
+  fields: Partial<CreateProductPayload>
+): Promise<ApiResponse<null>> => {
+  return apiClient.post(API_ENDPOINTS.PRODUCTS.BULK_UPDATE, { ids, ...fields });
+};
+
+// POST /products/bulk/delete  { ids }
+export const bulkDeleteProducts = async (
+  ids: (string | number)[]
+): Promise<ApiResponse<null>> => {
+  return apiClient.post(API_ENDPOINTS.PRODUCTS.BULK_DELETE, { ids });
+};

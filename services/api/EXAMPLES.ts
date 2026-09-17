@@ -211,11 +211,12 @@ export async function exampleTransferFunds() {
 export async function exampleGetConversations() {
   try {
     const response = await chatService.getConversations();
+    const conversations = Array.isArray(response.data) ? response.data : response.data.items;
 
     if (response.success) {
-      console.log(`${response.data.length} conversations`);
-      response.data.forEach(conv => {
-        console.log(`${conv.creativeName} - ${conv.unreadCount} unread`);
+      console.log(`${conversations.length} conversations`);
+      conversations.forEach((conv: any) => {
+        console.log(`conversation ${conv.id} - ${conv.unread_count ?? 0} unread`);
       });
     }
   } catch (error: any) {
@@ -225,12 +226,14 @@ export async function exampleGetConversations() {
 
 export async function exampleGetMessages() {
   try {
+    // NOTE: GET /v1/messages/conversations/:id isn't in the Postman
+    // collection — see chatService.getMessages' own doc comment.
     const response = await chatService.getMessages('conv_001');
 
     if (response.success) {
       console.log(`${response.data.length} messages`);
       response.data.forEach(msg => {
-        console.log(`[${msg.senderId}]: ${msg.text}`);
+        console.log(`[${msg.sender_id}]: ${msg.body}`);
       });
     }
   } catch (error: any) {
@@ -240,22 +243,20 @@ export async function exampleGetMessages() {
 
 export async function exampleSendMessage() {
   try {
-    // Send text message
-    const textResponse = await chatService.sendMessage('conv_001', {
-      text: 'Hi! Are you available for a wedding on March 15th?',
-      type: 'text',
-    });
+    const textResponse = await chatService.sendMessage(
+      'conv_001',
+      'Hi! Are you available for a wedding on March 15th?'
+    );
 
-    // Send price proposal
-    const priceResponse = await chatService.sendMessage('conv_001', {
-      text: 'I can do it for ₦150,000',
-      type: 'price_proposal',
-      priceProposal: {
-        amount: 150000,
-        currency: 'NGN',
-        service: 'Wedding Photography Package',
-      },
-    });
+    // The collection's messaging endpoints only take a plain `{ body }` —
+    // there is no server-side "price proposal" message type. If a
+    // structured price offer needs to be sent, it has to be encoded into
+    // the text body itself (or handled purely client-side) until backend
+    // adds first-class support.
+    const priceResponse = await chatService.sendMessage(
+      'conv_001',
+      'I can do it for ₦150,000 for the Wedding Photography Package'
+    );
 
     if (textResponse.success) {
       console.log('Message sent:', textResponse.data.id);

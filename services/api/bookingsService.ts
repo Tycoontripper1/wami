@@ -105,3 +105,24 @@ export const releaseMilestone = async (
 ): Promise<ApiResponse<ApiMilestone>> => {
   return apiClient.post(API_ENDPOINTS.BOOKINGS.RELEASE_MILESTONE(bookingId, milestoneId));
 };
+
+export interface RescheduleBookingPayload {
+  start_date: string;
+  end_date: string;
+}
+
+// POST /bookings/:id/reschedule  { start_date, end_date }
+export const rescheduleBooking = async (
+  id: string | number,
+  payload: RescheduleBookingPayload
+): Promise<ApiResponse<ApiBooking>> => {
+  return apiClient.post(API_ENDPOINTS.BOOKINGS.RESCHEDULE(id), payload);
+};
+
+// GET /bookings/calendar?from=&to=
+export const getBookingsCalendar = async (params: {
+  from: string;
+  to: string;
+}): Promise<ApiResponse<ApiBooking[]>> => {
+  return apiClient.get(API_ENDPOINTS.BOOKINGS.CALENDAR, { params });
+};
