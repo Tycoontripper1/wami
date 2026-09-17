@@ -1,7 +1,6 @@
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
 import { RootState } from '@/store/store';
-import { addTransaction } from '@/store/walletSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -19,14 +18,13 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 const PRESET_AMOUNTS = [10, 25, 50, 100, 250, 500];
 
 export default function AddFundsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -66,38 +64,16 @@ export default function AddFundsScreen() {
       return;
     }
 
-    setIsProcessing(true);
-
-    try {
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Add transaction
-      dispatch(
-        addTransaction({
-          id: `txn_${Date.now()}`,
-          title: 'Add Funds',
-          amount: parseFloat(amount),
-          currency: primaryCurrency,
-          type: 'credit',
-          category: 'topup',
-          status: 'success',
-          date: new Date().toISOString(),
-          paymentMethod: selectedMethod,
-        })
-      );
-
-      Alert.alert('Success!', 'Funds added successfully', [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add funds. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
+    // There is no wallet top-up / deposit endpoint anywhere in the WAMI
+    // Postman collection (only the seller-side wallet, transactions, and
+    // payout-requests are documented — see docs/API-AUDIT-02… §2.3/§3.9).
+    // Crediting the local balance here would make this look like it worked
+    // when nothing was actually charged or recorded server-side, so this is
+    // left honestly unavailable until backend confirms a real contract.
+    Alert.alert(
+      'Not Available Yet',
+      "Adding funds isn't supported by the backend yet. Please check back soon."
+    );
   };
 
   return (

@@ -1,9 +1,13 @@
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
+import { getSellerTransactions, getSellerWallet, SellerTransaction } from '@/services/api/sellerService';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Modal,
   ScrollView,
@@ -17,6 +21,19 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle, Defs, Path, Stop, Svg, LinearGradient as SvgGradient } from 'react-native-svg';
+
+// Maps the seller-wallet transaction shape (unconfirmed field names — the
+// collection has no example response for GET /v1/seller/transactions) onto
+// the display shape this screen already renders.
+const mapSellerTransaction = (t: SellerTransaction, index: number): Transaction => ({
+  id: String(t.id ?? index),
+  title: t.description ?? t.title ?? t.type ?? 'Transaction',
+  amount: Number(t.amount ?? 0),
+  type: (t.type === 'debit' || t.amount < 0) ? 'debit' : 'credit',
+  category: t.category ?? t.type ?? 'other',
+  date: t.created_at ?? t.date ?? '',
+  status: (t.status as Transaction['status']) ?? 'success',
+});
 
 const { width } = Dimensions.get('window');
 
@@ -32,18 +49,19 @@ interface Transaction {
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { formatPrice, region, currencySymbol } = useLocation();
 
   // State
   const [showBalance, setShowBalance] = useState(true);
-  const [balance, setBalance] = useState(125000);
+  const [balance, setBalance] = useState(0);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('All');
-  
+
   // Modals
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyTab, setHistoryTab] = useState<'transactions' | 'analytics'>('transactions');
@@ -52,22 +70,36 @@ export default function WalletScreen() {
   
   // Form states
   const [fundAmount, setFundAmount] = useState('');
-  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [transferRecipient, setTransferRecipient] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
-  const [selectedBank, setSelectedBank] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const isNigeria = region?.code === 'NG' || region?.name === 'Nigeria';
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: '1', title: 'Wallet Top Up', amount: 50000, type: 'credit', category: 'topup', date: 'Today, 10:30 AM', status: 'success' },
-    { id: '2', title: 'Booking - Paul Studio', amount: 15000, type: 'debit', category: 'booking', date: 'Yesterday', status: 'success' },
-    { id: '3', title: 'Refund - Cancelled', amount: 8000, type: 'credit', category: 'refund', date: '2 days ago', status: 'success' },
-    { id: '4', title: 'Withdrawal to GTBank', amount: 20000, type: 'debit', category: 'withdrawal', date: '3 days ago', status: 'pending' },
-    { id: '5', title: 'Booking - Sarah Makeup', amount: 25000, type: 'debit', category: 'booking', date: '5 days ago', status: 'success' },
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const loadWallet = useCallback(async () => {
+    setIsLoadingWallet(true);
+    try {
+      const [walletRes, txnsRes] = await Promise.all([
+        getSellerWallet(),
+        getSellerTransactions({ page: 1 }),
+      ]);
+      setBalance(Number((walletRes.data as any)?.balance ?? 0));
+      const txnData: any = txnsRes.data;
+      const items: SellerTransaction[] = Array.isArray(txnData) ? txnData : txnData?.items ?? [];
+      setTransactions(items.map(mapSellerTransaction));
+    } catch (error) {
+      console.error('Failed to load seller wallet:', error);
+    } finally {
+      setIsLoadingWallet(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadWallet();
+  }, [loadWallet]);
 
   const themeColors = {
     background: isDark ? '#0A0A0A' : '#F5F7FA',
@@ -91,71 +123,32 @@ export default function WalletScreen() {
   const presetAmounts = isNigeria ? [1000, 5000, 10000, 20000, 50000, 100000] : [10, 25, 50, 100, 250, 500];
 
   // Handlers
+  //
+  // Neither "add funds" (wallet top-up) nor a peer-to-peer "transfer" has any
+  // matching endpoint anywhere in the WAMI Postman collection — only the
+  // seller wallet balance/transactions and payout-requests are documented
+  // (see docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §2.3/§3.9). Faking a
+  // credit/debit here would make the screen lie about money that never
+  // actually moved, so both are left honestly unavailable until backend
+  // confirms a real contract, instead of manufacturing a fake transaction.
   const handleAddFunds = () => {
-    if (!fundAmount || !selectedPaymentMethod) return;
-    const amount = parseFloat(fundAmount);
-    const newTxn: Transaction = {
-      id: `txn_${Date.now()}`,
-      title: selectedPaymentMethod === 'bank' ? 'Bank Transfer' : 'Card Payment',
-      amount,
-      type: 'credit',
-      category: 'topup',
-      date: 'Just now',
-      status: 'success',
-    };
-    setTransactions([newTxn, ...transactions]);
-    setBalance(prev => prev + amount);
     setShowAddFundsModal(false);
     setFundAmount('');
     setSelectedPaymentMethod(null);
-  };
-
-  const handleWithdraw = () => {
-    if (!withdrawAmount || !selectedBank) return;
-    const amount = parseFloat(withdrawAmount);
-    if (amount > balance) return;
-    const newTxn: Transaction = {
-      id: `txn_${Date.now()}`,
-      title: `Withdrawal to ${selectedBank}`,
-      amount,
-      type: 'debit',
-      category: 'withdrawal',
-      date: 'Just now',
-      status: 'pending',
-    };
-    setTransactions([newTxn, ...transactions]);
-    setBalance(prev => prev - amount);
-    setShowWithdrawModal(false);
-    setWithdrawAmount('');
-    setSelectedBank(null);
+    Alert.alert('Not Available Yet', "Adding funds isn't supported by the backend yet. Please check back soon.");
   };
 
   const handleTransfer = () => {
-    if (!transferAmount || !transferRecipient) return;
-    const amount = parseFloat(transferAmount);
-    if (amount > balance) return;
-    const newTxn: Transaction = {
-      id: `txn_${Date.now()}`,
-      title: `Transfer to ${transferRecipient}`,
-      amount,
-      type: 'debit',
-      category: 'transfer',
-      date: 'Just now',
-      status: 'success',
-    };
-    setTransactions([newTxn, ...transactions]);
-    setBalance(prev => prev - amount);
     setShowTransferModal(false);
     setTransferAmount('');
     setTransferRecipient('');
+    Alert.alert('Not Available Yet', "Wallet-to-wallet transfers aren't supported by the backend yet. Please check back soon.");
   };
 
   const openTxnDetail = (txn: Transaction) => {
     setSelectedTxn(txn);
     setShowTxnDetailModal(true);
   };
-
-  const banks = ['GTBank', 'Access Bank', 'First Bank', 'UBA', 'Zenith Bank', 'Kuda'];
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -172,9 +165,8 @@ export default function WalletScreen() {
             <Text style={[styles.greeting, { color: themeColors.subText }]}>Welcome back 👋</Text>
             <Text style={[styles.headerTitle, { color: themeColors.text }]}>My Wallet</Text>
           </View>
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]}>
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/notifications' as any)}>
             <Ionicons name="notifications-outline" size={22} color={themeColors.text} />
-            <View style={styles.notifDot} />
           </TouchableOpacity>
         </View>
 
@@ -211,7 +203,7 @@ export default function WalletScreen() {
                   <Text style={styles.quickActionText}>Add Money</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowWithdrawModal(true)}>
+                <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/wallet/withdraw')}>
                   <View style={styles.quickActionIcon}><Ionicons name="arrow-up" size={22} color="#00BCD4" /></View>
                   <Text style={styles.quickActionText}>Withdraw</Text>
                 </TouchableOpacity>
@@ -250,6 +242,10 @@ export default function WalletScreen() {
 
         {/* Transactions */}
         <View style={styles.transactionsList}>
+          {isLoadingWallet && <ActivityIndicator color={Colors.light.primary} style={{ marginVertical: 20 }} />}
+          {!isLoadingWallet && filteredTransactions.length === 0 && (
+            <Text style={[styles.emptyText, { color: themeColors.subText, textAlign: 'center', marginTop: 20 }]}>No transactions yet</Text>
+          )}
           {filteredTransactions.slice(0, 5).map((txn) => (
             <TouchableOpacity key={txn.id} style={[styles.txnItem, { backgroundColor: themeColors.cardBg }]} onPress={() => openTxnDetail(txn)}>
               <View style={[styles.txnIconBg, { backgroundColor: txn.type === 'credit' ? '#E8F5E9' : '#FFEBEE' }]}>
@@ -341,46 +337,6 @@ export default function WalletScreen() {
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
             <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: fundAmount && selectedPaymentMethod ? Colors.light.primary : themeColors.border }]} onPress={handleAddFunds} disabled={!fundAmount || !selectedPaymentMethod}>
               <Text style={styles.confirmBtnText}>{selectedPaymentMethod === 'bank' ? "I've Sent the Money" : 'Add Funds'}</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* WITHDRAW MODAL */}
-      <Modal visible={showWithdrawModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowWithdrawModal(false)}>
-        <View style={[styles.modalContainer, { backgroundColor: themeColors.background }]}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => setShowWithdrawModal(false)}><Ionicons name="close" size={28} color={themeColors.text} /></TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>Withdraw</Text>
-            <View style={{ width: 28 }} />
-          </View>
-          <ScrollView style={styles.modalContent}>
-            <View style={[styles.balancePreview, { backgroundColor: themeColors.cardBg }]}>
-              <Text style={[styles.balancePreviewLabel, { color: themeColors.subText }]}>Available Balance</Text>
-              <Text style={[styles.balancePreviewAmount, { color: themeColors.text }]}>{formatPrice(balance)}</Text>
-            </View>
-            <View style={styles.amountSection}>
-              <Text style={[styles.amountLabel, { color: themeColors.subText }]}>Amount to Withdraw</Text>
-              <View style={[styles.amountInputBox, { backgroundColor: themeColors.cardBg }]}>
-                <Text style={[styles.currencyPrefix, { color: themeColors.text }]}>{currencySymbol}</Text>
-                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={withdrawAmount} onChangeText={setWithdrawAmount} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
-              </View>
-            </View>
-            <View style={styles.paymentSection}>
-              <Text style={[styles.paymentLabel, { color: themeColors.subText }]}>Select Bank</Text>
-              {banks.map((bank) => (
-                <TouchableOpacity key={bank} style={[styles.paymentOption, { backgroundColor: themeColors.cardBg }]} onPress={() => setSelectedBank(bank)}>
-                  <View style={[styles.paymentIconBg, { backgroundColor: '#E8F5E9' }]}><Ionicons name="business" size={24} color="#4CAF50" /></View>
-                  <View style={styles.paymentInfo}><Text style={[styles.paymentTitle, { color: themeColors.text }]}>{bank}</Text><Text style={[styles.paymentDesc, { color: themeColors.subText }]}>****1234</Text></View>
-                  {selectedBank === bank && <Ionicons name="checkmark-circle" size={24} color={Colors.light.primary} />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: withdrawAmount && selectedBank && parseFloat(withdrawAmount) <= balance ? Colors.light.primary : themeColors.border }]} onPress={handleWithdraw} disabled={!withdrawAmount || !selectedBank || parseFloat(withdrawAmount) > balance}>
-              <Text style={styles.confirmBtnText}>Withdraw Funds</Text>
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
           </View>

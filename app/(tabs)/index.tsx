@@ -6,6 +6,7 @@ import { useLocation } from '@/hooks/useLocationData';
 import { addFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
 import { DiscoveryOffering, getDiscoveryFeed, getNearYou, saveOffering, swipeOffering } from '@/services/api/discoveryService';
+import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -57,6 +58,7 @@ export default function DiscoverScreen() {
   const [feedError, setFeedError] = useState(false);
   const [nearYouError, setNearYouError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -100,6 +102,12 @@ export default function DiscoverScreen() {
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
+
+  useEffect(() => {
+    getUnreadNotificationCount()
+      .then((res) => setUnreadNotifications(res.data?.count ?? 0))
+      .catch((error) => console.error('Failed to load unread notification count:', error));
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'Near You' && nearYouOfferings === null) {
@@ -171,9 +179,9 @@ export default function DiscoverScreen() {
             >
               <Ionicons name="basket" size={24} color={themeColors.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.notificationButton}>
+            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/notifications' as any)}>
               <Ionicons name="notifications" size={24} color={themeColors.text} />
-              <View style={styles.notificationBadge} />
+              {unreadNotifications > 0 && <View style={styles.notificationBadge} />}
             </TouchableOpacity>
           </View>
         </View>
