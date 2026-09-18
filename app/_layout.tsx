@@ -1,6 +1,7 @@
 import { AppSplashScreen } from '@/components/AppSplashScreen';
 import { useColorScheme } from '@/components/useColorScheme';
 import { apiClient } from '@/services/api/client';
+import { profileService } from '@/services/api/profileService';
 import { authService } from '@/services/authService';
 import { signOut } from '@/store/authSlice';
 import { store } from '@/store/store';
@@ -8,9 +9,19 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import 'react-native-reanimated';
 import { Provider, useDispatch } from 'react-redux';
+
+// How often to proactively check whether the stored token is still valid.
+// There's no GET /auth/me or POST /auth/refresh yet (see
+// docs/API-AUDIT-01-AUTH.md §3.1), so there's no way to know the real token
+// TTL or ask "is this still good?" cheaply — this just piggybacks on
+// whatever authenticated GET is lightest (profile) and lets the existing
+// 401 handler below do the actual sign-out. 5 minutes is a guess, not a
+// confirmed value; tighten or loosen once backend confirms token lifetime.
+const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 export {
     // Catch any errors thrown by the Layout component.
@@ -57,22 +68,48 @@ export default function RootLayout() {
 }
 
 /**
- * Registers the app-wide "our token was rejected" handler. If the backend 401s a
- * request we sent a token with, the session is torn down once here rather than
- * leaving every screen to recognise an expired session on its own.
- * Renders nothing; it only needs to live inside the Redux Provider.
+ * Registers the app-wide "our token was rejected" handler, and a periodic
+ * check that catches an expired/revoked token even if the user hasn't
+ * triggered any other API call in a while. Renders nothing; it only needs
+ * to live inside the Redux Provider.
  */
 function ExpiredSessionHandler() {
   const dispatch = useDispatch();
+  const isSigningOut = useRef(false);
 
   useEffect(() => {
-    apiClient.setUnauthorizedHandler(() => {
-      void authService.signOut();
+    const expireSession = () => {
+      if (isSigningOut.current) return; // avoid double sign-out races
+      isSigningOut.current = true;
+      void authService.signOut(); // clears the cached user/token from AsyncStorage
       dispatch(signOut());
       router.replace('/(auth)/sign-in');
+    };
+
+    // Reactive: the backend rejected a request we sent a token with.
+    apiClient.setUnauthorizedHandler(expireSession);
+
+    // Proactive: periodically (and whenever the app returns to the
+    // foreground) ping a lightweight authenticated endpoint purely to
+    // validate the token. A 401 here is caught by the handler above; any
+    // other failure (network blip, unrelated 500) is ignored so we don't
+    // sign the user out for a reason that has nothing to do with their
+    // session.
+    const checkSession = () => {
+      if (!apiClient.getAuthToken() || isSigningOut.current) return;
+      profileService.getProfile().catch(() => {});
+    };
+
+    const interval = setInterval(checkSession, SESSION_CHECK_INTERVAL_MS);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkSession();
     });
 
-    return () => apiClient.setUnauthorizedHandler(null);
+    return () => {
+      apiClient.setUnauthorizedHandler(null);
+      clearInterval(interval);
+      appStateSub.remove();
+    };
   }, [dispatch]);
 
   return null;
