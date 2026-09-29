@@ -123,11 +123,20 @@ export const API_ENDPOINTS = {
   // Payments — "Payments" folder. The collection only documents
   // {order_id, gateway} for INITIALIZE, but the real backend requires two
   // more fields (confirmed live 2026-09-29 via its own 422 validation
-  // errors): payment_method, success_url, cancel_url. Also confirmed live:
-  // the backend's own Paystack secret key is currently invalid ("Invalid
-  // key" from Paystack's API), so both INITIALIZE and VERIFY fail — this is
-  // a backend config issue, not a client contract issue. VERIFY's shape
+  // errors): payment_method, success_url, cancel_url. VERIFY's shape
   // ({order_id, gateway, reference}) is already correct as documented.
+  //
+  // INITIALIZE is currently blocked end-to-end, confirmed live 2026-09-29 by
+  // driving the real checkout UI (bank transfer): success_url/cancel_url use
+  // the app's "wami://" scheme (see constants/Payments.ts), which the
+  // backend's Laravel `url` validation rule rejects outright (422, before it
+  // ever reaches Paystack) — only http(s) passes that rule. This is a hard
+  // blocker for every payment method (card/bank_transfer/wallet all share
+  // this call) until backend confirms what these fields should actually be.
+  // Separately, an earlier probe found the backend's own Paystack secret key
+  // invalid too ("Invalid key" from Paystack's API on a request that got
+  // past validation) — that may still apply once the URL issue is fixed, but
+  // hasn't been re-confirmed since the URL validation now fails first.
   PAYMENTS: {
     INITIALIZE: '/payments/initialize',
     VERIFY: '/payments/verify',
