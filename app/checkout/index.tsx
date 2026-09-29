@@ -1,8 +1,8 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
-import { PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
+import { PAYMENT_CANCEL_URL, PAYMENT_SUCCESS_URL, PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
 import { MOCK_PRODUCTS } from '@/data/mockProducts';
-import { placeOrder } from '@/services/api/ordersService';
+import { addCartItem, placeOrder } from '@/services/api/ordersService';
 import { initializePayment, verifyPayment } from '@/services/api/paymentsService';
 import { addProductOrder } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
@@ -95,10 +95,12 @@ function CheckoutContent() {
 
   // Creates the order the first time this is called for the current
   // checkout attempt, and reuses it on any retry so we don't spam duplicate
-  // orders. POST /orders has no documented item list, so it implicitly
-  // orders whatever product this screen was opened for.
+  // orders. POST /orders 400s with "Cart is empty." unless something was
+  // added to the cart first — confirmed live 2026-09-29 — so this adds the
+  // single product this screen was opened for before placing the order.
   const placeOrderIfNeeded = async (): Promise<string> => {
     if (pendingOrderId) return pendingOrderId;
+    await addCartItem({ product_id: product.id, quantity: 1 });
     const orderRes = await placeOrder({
       shipping_address: { line1: address, city, country },
     });
@@ -129,7 +131,13 @@ function CheckoutContent() {
       setFailureMessage(null);
       try {
         const orderId = await placeOrderIfNeeded();
-        await initializePayment({ order_id: orderId, gateway: 'bank_transfer' });
+        await initializePayment({
+          order_id: orderId,
+          gateway: 'paystack',
+          payment_method: 'bank_transfer',
+          success_url: PAYMENT_SUCCESS_URL,
+          cancel_url: PAYMENT_CANCEL_URL,
+        });
         setIsProcessing(false);
         setShowPaymentSheet(true);
       } catch (error: any) {
@@ -155,7 +163,13 @@ function CheckoutContent() {
       const orderId = await placeOrderIfNeeded();
 
       if (paymentMethod === 'card') {
-        await initializePayment({ order_id: orderId, gateway: 'paystack' });
+        await initializePayment({
+          order_id: orderId,
+          gateway: 'paystack',
+          payment_method: 'card',
+          success_url: PAYMENT_SUCCESS_URL,
+          cancel_url: PAYMENT_CANCEL_URL,
+        });
         if (!PAYSTACK_PUBLIC_KEY) {
           throw new Error('Card payments are not configured yet — the Paystack public key is missing. Please choose Bank Transfer or Wallet for now.');
         }
@@ -181,10 +195,16 @@ function CheckoutContent() {
 
       // Wallet — no dedicated "pay from wallet" endpoint exists in the
       // collection at all (only the seller-side wallet is documented). Best
-      // effort: reuse initialize/verify with gateway: 'wallet' and surface
-      // whatever the backend says. See docs/API-AUDIT-02… §2.3/§3.9.
-      await initializePayment({ order_id: orderId, gateway: 'wallet' });
-      await verifyPayment({ order_id: orderId, gateway: 'wallet', reference: orderId });
+      // effort: reuse initialize/verify with payment_method: 'wallet' and
+      // surface whatever the backend says. See docs/API-AUDIT-02… §2.3/§3.9.
+      await initializePayment({
+        order_id: orderId,
+        gateway: 'paystack',
+        payment_method: 'wallet',
+        success_url: PAYMENT_SUCCESS_URL,
+        cancel_url: PAYMENT_CANCEL_URL,
+      });
+      await verifyPayment({ order_id: orderId, gateway: 'paystack', reference: orderId });
       finalizeLocalOrder(orderId);
     } catch (error: any) {
       setIsProcessing(false);
@@ -200,7 +220,7 @@ function CheckoutContent() {
     setShowPaymentSheet(false);
     setIsProcessing(true);
     try {
-      await verifyPayment({ order_id: pendingOrderId, gateway: 'bank_transfer', reference: pendingOrderId });
+      await verifyPayment({ order_id: pendingOrderId, gateway: 'paystack', reference: pendingOrderId });
       finalizeLocalOrder(pendingOrderId);
     } catch (error: any) {
       setIsProcessing(false);

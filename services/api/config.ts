@@ -109,18 +109,25 @@ export const API_ENDPOINTS = {
     BULK_DELETE: '/offerings/bulk/delete',
   },
 
-  // Cart & Orders — "Marketplace - Cart & Orders" folder
+  // Cart & Orders — "Marketplace - Cart & Orders" folder. ADD_ITEM isn't in
+  // the collection at all, but is real and required: POST /orders 400s with
+  // "Cart is empty." if nothing was added first. Confirmed live 2026-09-29.
   CART: {
     GET: '/cart',
+    ADD_ITEM: '/cart/items',
   },
   ORDERS: {
     CREATE: '/orders',
   },
 
-  // Payments — "Payments" folder. order_id + gateway ("paystack") in, a
-  // reference to confirm with VERIFY out. See docs/API-AUDIT-02… §3.3 — the
-  // exact initialize response shape (authorization_url vs reference only) is
-  // unconfirmed; ask backend before relying on a specific field name.
+  // Payments — "Payments" folder. The collection only documents
+  // {order_id, gateway} for INITIALIZE, but the real backend requires two
+  // more fields (confirmed live 2026-09-29 via its own 422 validation
+  // errors): payment_method, success_url, cancel_url. Also confirmed live:
+  // the backend's own Paystack secret key is currently invalid ("Invalid
+  // key" from Paystack's API), so both INITIALIZE and VERIFY fail — this is
+  // a backend config issue, not a client contract issue. VERIFY's shape
+  // ({order_id, gateway, reference}) is already correct as documented.
   PAYMENTS: {
     INITIALIZE: '/payments/initialize',
     VERIFY: '/payments/verify',
