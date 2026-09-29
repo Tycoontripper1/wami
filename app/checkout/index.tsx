@@ -1,17 +1,18 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { PAYMENT_CANCEL_URL, PAYMENT_SUCCESS_URL, PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
-import { MOCK_PRODUCTS } from '@/data/mockProducts';
 import { addCartItem, placeOrder } from '@/services/api/ordersService';
 import { initializePayment, verifyPayment } from '@/services/api/paymentsService';
+import { getProductById } from '@/services/api/productsService';
 import { addProductOrder } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { PaymentMethodType, ShippingOption, buildOrderTimeline, formatCurrency } from '@/types/payment';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { PaystackProvider, usePaystack } from 'react-native-paystack-webview';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Modal,
@@ -27,6 +28,31 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+
+interface CheckoutProduct {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  image: string;
+  sellerName?: string;
+}
+
+// The real backend's product fields (title, thumbnail_url/media_url) differ
+// from the local mock shape (name, images[]) — normalize both here. Mirrors
+// app/product-detail/[id].tsx's mapApiProductToDetail.
+const mapApiProductToCheckout = (p: any): CheckoutProduct => ({
+  id: String(p.id),
+  name: p.title || p.name || 'Untitled',
+  // /products/:id returns price as a string ("50000.00", a Laravel decimal
+  // cast) while /products (list) returns it as a number — coerce either way,
+  // confirmed live 2026-09-29 (a raw string here broke `total` into string
+  // concatenation, e.g. "50000.00" + 1500 + 2000 -> "50000.0015002000").
+  price: Number(p.price) || 0,
+  category: p.category || '',
+  image: p.image || p.images?.[0] || p.thumbnail_url || p.media_url || '',
+  sellerName: p.sellerName || p.seller?.name,
+});
 
 const SHIPPING_OPTIONS = {
   pickup: { label: 'Pick-up', duration: '3-5 days', fee: 0 },
@@ -58,7 +84,28 @@ function CheckoutContent() {
   const user = useSelector((state: RootState) => state.auth.user);
   const walletBalance = useSelector((state: RootState) => state.wallet?.balances?.NGN ?? 0);
 
-  const product = MOCK_PRODUCTS.find(p => p.id === productId) || MOCK_PRODUCTS[0];
+  const [product, setProduct] = useState<CheckoutProduct | null>(null);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(true);
+  const [productError, setProductError] = useState(false);
+
+  const loadProduct = useCallback(async () => {
+    setIsLoadingProduct(true);
+    setProductError(false);
+    try {
+      const res = await getProductById(productId);
+      setProduct(mapApiProductToCheckout(res.data));
+    } catch (error) {
+      console.error('Failed to load product for checkout:', error);
+      setProduct(null);
+      setProductError(true);
+    } finally {
+      setIsLoadingProduct(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    loadProduct();
+  }, [loadProduct]);
 
   // Form state
   const [shippingOption, setShippingOption] = useState<ShippingOption>('express');
@@ -87,8 +134,8 @@ function CheckoutContent() {
   };
 
   const deliveryFee = SHIPPING_OPTIONS[shippingOption].fee;
-  const serviceFee = Math.round(product.price * 0.03);
-  const total = product.price + serviceFee + deliveryFee;
+  const serviceFee = Math.round((product?.price ?? 0) * 0.03);
+  const total = (product?.price ?? 0) + serviceFee + deliveryFee;
 
   const isAddressComplete = address.trim().length > 0 && city.trim().length > 0;
   const isContactComplete = phone.trim().length > 0 && email.trim().length > 0;
@@ -100,6 +147,7 @@ function CheckoutContent() {
   // single product this screen was opened for before placing the order.
   const placeOrderIfNeeded = async (): Promise<string> => {
     if (pendingOrderId) return pendingOrderId;
+    if (!product) throw new Error('Product failed to load.');
     await addCartItem({ product_id: product.id, quantity: 1 });
     const orderRes = await placeOrder({
       shipping_address: { line1: address, city, country },
@@ -234,14 +282,15 @@ function CheckoutContent() {
   // truth (see placeOrder above); this local copy is just for the screens
   // that still read from Redux (see docs/API-AUDIT-02… §3.2).
   const finalizeLocalOrder = (orderId: string) => {
+    if (!product) return;
     const trackingNumber = `LGS-${orderId.slice(-6).toUpperCase()}`;
     dispatch(addProductOrder({
       id: orderId,
       customerId: String(user?.id ?? 'guest'),
       productId: product.id,
       productName: product.name,
-      productImage: product.images[0],
-      sellerName: product.sellerName,
+      productImage: product.image,
+      sellerName: product.sellerName || 'Creative Seller',
       price: product.price,
       serviceFee,
       deliveryFee,
@@ -262,6 +311,30 @@ function CheckoutContent() {
     setIsProcessing(false);
     router.replace(`/checkout/success?orderId=${orderId}&trackingNumber=${trackingNumber}`);
   };
+
+  if (isLoadingProduct) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
+
+  if (productError || !product) {
+    return (
+      <View style={[styles.container, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Couldn't Load Product"
+          message="We couldn't load this item. Please check your connection and try again."
+          onRetry={loadProduct}
+          retryLabel="Try Again"
+        />
+      </View>
+    );
+  }
 
   if (paymentFailed) {
     return (
@@ -562,6 +635,7 @@ function CheckoutContent() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centerContent: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1,

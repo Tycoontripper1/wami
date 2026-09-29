@@ -41,7 +41,9 @@ interface ProductDetail {
 const mapApiProductToDetail = (p: any): ProductDetail => ({
   id: String(p.id),
   name: p.title || p.name || 'Untitled',
-  price: p.price ?? 0,
+  // /products/:id returns price as a string ("50000.00"); coerce it.
+  // Confirmed live 2026-09-29.
+  price: Number(p.price) || 0,
   category: p.category || '',
   image: p.image || p.images?.[0] || '',
   images: p.images,
