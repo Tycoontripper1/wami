@@ -36,12 +36,28 @@ interface ShopProduct {
   inStock: boolean;
 }
 
+// The real backend's list endpoints return a Laravel paginator
+// ({current_page, data: [...], ...}), not the client's idealized
+// {items: [...], pagination: {...}} shape — check both.
+const extractList = (raw: any): any[] =>
+  Array.isArray(raw) ? raw : raw?.items ?? raw?.data ?? [];
+
+// The real /products endpoint has returned the same id twice within one page
+// (confirmed live 2026-09-29, e.g. limit=8 -> [1,6,5,4,3,2,1]) — de-dupe
+// defensively so a backend pagination glitch doesn't render a repeated card.
+const dedupeById = <T extends { id: string }>(items: T[]): T[] => {
+  const seen = new Set<string>();
+  return items.filter(item => (seen.has(item.id) ? false : (seen.add(item.id), true)));
+};
+
 const mapProduct = (p: any): ShopProduct => ({
   id: String(p.id),
   name: p.name || p.title || 'Untitled',
-  price: p.price ?? 0,
+  // /products/:id returns price as a string ("50000.00"); /products (list)
+  // returns a number — coerce either way. Confirmed live 2026-09-29.
+  price: Number(p.price) || 0,
   category: p.category || '',
-  image: p.images?.[0] || p.image || '',
+  image: p.images?.[0] || p.image || p.thumbnail_url || p.media_url || '',
   rating: p.rating,
   reviews: p.reviews,
   featured: p.featured,
@@ -164,14 +180,28 @@ export default function DiscoverScreen() {
     setIsLoading(true);
     setHasError(false);
     try {
-      const [featuredRes, productsRes] = await Promise.all([
+      // Fetched independently: /products/featured 404s on the real backend
+      // (not implemented server-side, confirmed live 2026-09-29) and must not
+      // take down the main product grid, which loads fine on its own.
+      const [featuredRes, productsRes] = await Promise.allSettled([
         getFeaturedProducts(),
         getProducts({ limit: 8 }),
       ]);
-      const featuredData: any = featuredRes.data;
-      const productsData: any = productsRes.data;
-      setFeatured((Array.isArray(featuredData) ? featuredData : featuredData?.items ?? []).map(mapProduct));
-      setProducts((Array.isArray(productsData) ? productsData : productsData?.items ?? []).map(mapProduct));
+
+      if (productsRes.status === 'rejected') {
+        throw productsRes.reason;
+      }
+
+      const productsData: any = productsRes.value.data;
+      setProducts(dedupeById(extractList(productsData).map(mapProduct)));
+
+      if (featuredRes.status === 'fulfilled') {
+        const featuredData: any = featuredRes.value.data;
+        setFeatured(dedupeById(extractList(featuredData).map(mapProduct)));
+      } else {
+        console.warn('Failed to load featured products:', featuredRes.reason);
+        setFeatured([]);
+      }
     } catch (error) {
       console.error('Failed to load shop:', error);
       setFeatured([]);
