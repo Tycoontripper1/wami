@@ -42,6 +42,14 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
   const [splashReady, setSplashReady] = useState(false);
+  // apiClient.initialize() reads the saved token from AsyncStorage but
+  // nothing used to await it — if a screen's own effects (e.g. the Home
+  // tab's discovery feed / notification count) fired before this resolved,
+  // they'd go out with no Authorization header, get a 401, and since no
+  // token was actually sent the global 401 handler correctly declines to
+  // treat it as "session expired" — so nothing signs the user out, and the
+  // screen is just left broken. Gating render on this closes that race.
+  const [apiClientReady, setApiClientReady] = useState(false);
 
   const handleSplashReady = useCallback(() => {
     setSplashReady(true);
@@ -60,7 +68,11 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded || !splashReady) {
+  useEffect(() => {
+    apiClient.initialize().finally(() => setApiClientReady(true));
+  }, []);
+
+  if (!loaded || !splashReady || !apiClientReady) {
     return <AppSplashScreen onReady={handleSplashReady} />;
   }
 
