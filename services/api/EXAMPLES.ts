@@ -72,6 +72,7 @@ export async function exampleCreateBooking() {
   try {
     const response = await bookingsService.createBooking({
       offering_id: 'ng-1',
+      creative_id: 'ng-1',
       project_title: 'Wedding Photography Package',
       project_details: 'Full day coverage with engagement shoot',
       start_date: '2026-03-15',

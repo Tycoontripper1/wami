@@ -46,6 +46,10 @@ export interface ApiBooking {
 
 export interface CreateBookingPayload {
   offering_id: string | number;
+  // Required by the real backend (422 "The creative id field is required."
+  // without it, confirmed live 2026-10-03) but absent from the collection's
+  // sample body entirely.
+  creative_id: string | number;
   project_title: string;
   project_details: string;
   start_date: string;

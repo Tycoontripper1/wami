@@ -104,8 +104,11 @@ export default function QuoteRequestModal({
     try {
       // A quote is created against a booking, so we open a (negotiating)
       // booking first, then attach the buyer's proposed quote to it.
+      // Same confirmed-broken offering_id/creative_id issue as
+      // BookingModal.tsx's handleConfirmBooking — see its comment.
       const bookingRes = await createBooking({
         offering_id: creative.id,
+        creative_id: creative.id,
         project_title: selectedService,
         project_details: description,
         start_date: preferredDate || today,

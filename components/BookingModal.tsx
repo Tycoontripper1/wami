@@ -121,8 +121,21 @@ export default function BookingModal({ visible, onClose, creative, onViewBooking
   const handleConfirmBooking = async () => {
     setIsSubmitting(true);
     try {
+      // CONFIRMED BROKEN as wired, live-tested 2026-10-03: creative_id is
+      // required (now sent) and this still sends `creative.id` as
+      // offering_id, which is wrong — offering_id must be a real offering's
+      // id, not the creative's user id. There's no confirmed way to fetch a
+      // given creative's offering id here: GET /offerings only returns the
+      // logged-in user's own offerings (filters by user_id/creative_id/
+      // seller_id were all tried live and ignored), and this component only
+      // ever receives {id, name, role, image} for the creative, never an
+      // offering. Every real booking attempt will 422 or fail until backend
+      // either confirms a public "get this creative's offerings" endpoint,
+      // or the booking flow is redesigned around picking a specific
+      // offering rather than "book this person."
       const apiBooking = await createBooking({
         offering_id: creative.id,
+        creative_id: creative.id,
         project_title: `${projectType} with ${creative.name}`,
         project_details: description.trim(),
         start_date: selectedDate!,
