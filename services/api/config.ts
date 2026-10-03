@@ -149,7 +149,10 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string | number) => `/bookings/${id}`,
     UPDATE: (id: string) => `/bookings/${id}`,
     COMPLETE: (id: string) => `/bookings/${id}/complete`,
-    CANCEL: (id: string) => `/bookings/${id}/cancel`,
+    // No CANCEL — /bookings/:id/cancel 404s live (confirmed 2026-10-03) and
+    // nothing in the codebase called it anyway (only a same-named, unrelated
+    // local Redux action in store/bookingsSlice.ts). Do not re-add without
+    // confirming the real cancel contract with backend.
     STATUS: (id: string | number) => `/bookings/${id}/status`,
     MILESTONES: (id: string | number) => `/bookings/${id}/milestones`,
     RELEASE_MILESTONE: (bookingId: string | number, milestoneId: string | number) =>
