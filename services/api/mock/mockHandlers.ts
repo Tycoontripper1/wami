@@ -8,7 +8,7 @@ import { ApiError, ApiResponse, HttpStatusCode } from '../types';
 import { MOCK_CREATIVES, getCreativeById, getFeaturedCreatives, getNearbyCreatives, searchCreatives } from '@/data/creatives';
 import { MOCK_BOOKINGS, createMockBooking, getBookingById, getBookingsByUser } from '@/data/mockBookings';
 import { MOCK_MESSAGES, createMockMessage, getConversationsByUser, getMessagesByConversation } from '@/data/mockMessages';
-import { MOCK_PRODUCTS, getFeaturedProducts, getProductById, searchProducts } from '@/data/mockProducts';
+import { MOCK_PRODUCTS, getProductById, searchProducts } from '@/data/mockProducts';
 import { MOCK_TRANSACTIONS, MOCK_WALLET_BALANCE, createMockTransaction, getTransactionsByUser } from '@/data/mockTransactions';
 import { paginate, sortArray } from './mockHelpers';
 
@@ -100,7 +100,6 @@ function findHandler(method: string, endpoint: string): ((config?: MockRequestCo
 
   // Products
   if (method === 'GET' && endpoint === API_ENDPOINTS.PRODUCTS.LIST) return handleGetProducts;
-  if (method === 'GET' && endpoint === API_ENDPOINTS.PRODUCTS.FEATURED) return handleGetFeaturedProducts;
   if (method === 'GET' && endpoint.startsWith('/products/') && !endpoint.includes('/category')) {
     return (config) => handleGetProductById(endpoint.split('/').pop()!);
   }
@@ -544,10 +543,6 @@ async function handleGetProducts(config?: MockRequestConfig): Promise<any> {
   }
   
   return paginate(products, page, limit);
-}
-
-async function handleGetFeaturedProducts(config?: MockRequestConfig): Promise<any> {
-  return getFeaturedProducts();
 }
 
 async function handleGetProductById(id: string): Promise<any> {

@@ -22,11 +22,6 @@ export const getProducts = async (
   return apiClient.get(API_ENDPOINTS.PRODUCTS.LIST, { params });
 };
 
-// Get featured products
-export const getFeaturedProducts = async (): Promise<ApiResponse<Product[]>> => {
-  return apiClient.get(API_ENDPOINTS.PRODUCTS.FEATURED);
-};
-
 // Get product by ID
 export const getProductById = async (
   id: string

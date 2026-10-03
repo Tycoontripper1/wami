@@ -234,7 +234,11 @@ export const API_ENDPOINTS = {
   PRODUCTS: {
     LIST: '/products',
     CREATE: '/products',
-    FEATURED: '/products/featured',
+    // No /products/featured (or any "featured" flag) exists anywhere in the
+    // real WAMI Postman collection — confirmed against the collection itself
+    // 2026-10-03, and it 404s live. Do not re-add; see discover.tsx's
+    // loadShop, which derives a "Featured" shelf from the real product list
+    // instead.
     BY_ID: (id: string) => `/products/${id}`,
     UPDATE: (id: string) => `/products/${id}`,
     DELETE: (id: string) => `/products/${id}`,

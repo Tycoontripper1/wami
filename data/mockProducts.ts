@@ -179,10 +179,6 @@ export const getProductsByCategory = (category: ProductCategory): Product[] => {
   return MOCK_PRODUCTS.filter(p => p.category === category);
 };
 
-export const getFeaturedProducts = (): Product[] => {
-  return MOCK_PRODUCTS.filter(p => p.featured);
-};
-
 export const searchProducts = (query: string): Product[] => {
   const lowerQuery = query.toLowerCase();
   return MOCK_PRODUCTS.filter(

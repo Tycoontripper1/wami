@@ -1,7 +1,7 @@
 import EmptyState from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
-import { getFeaturedProducts, getProducts } from '@/services/api/productsService';
+import { getProducts } from '@/services/api/productsService';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -180,28 +180,16 @@ export default function DiscoverScreen() {
     setIsLoading(true);
     setHasError(false);
     try {
-      // Fetched independently: /products/featured 404s on the real backend
-      // (not implemented server-side, confirmed live 2026-09-29) and must not
-      // take down the main product grid, which loads fine on its own.
-      const [featuredRes, productsRes] = await Promise.allSettled([
-        getFeaturedProducts(),
-        getProducts({ limit: 8 }),
-      ]);
-
-      if (productsRes.status === 'rejected') {
-        throw productsRes.reason;
-      }
-
-      const productsData: any = productsRes.value.data;
-      setProducts(dedupeById(extractList(productsData).map(mapProduct)));
-
-      if (featuredRes.status === 'fulfilled') {
-        const featuredData: any = featuredRes.value.data;
-        setFeatured(dedupeById(extractList(featuredData).map(mapProduct)));
-      } else {
-        console.warn('Failed to load featured products:', featuredRes.reason);
-        setFeatured([]);
-      }
+      // There is no /products/featured (or any "featured" flag) anywhere in
+      // the real API — confirmed against the WAMI Postman collection
+      // 2026-10-03, and it 404s live. The "Featured Products" shelf is
+      // derived from the front of the real product list instead of a
+      // separate call that can never succeed.
+      const productsRes = await getProducts({ limit: 8 });
+      const productsData: any = productsRes.data;
+      const items = dedupeById(extractList(productsData).map(mapProduct));
+      setProducts(items);
+      setFeatured(items.slice(0, 6));
     } catch (error) {
       console.error('Failed to load shop:', error);
       setFeatured([]);

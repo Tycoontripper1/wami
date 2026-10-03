@@ -295,21 +295,6 @@ export async function exampleGetProducts() {
   }
 }
 
-export async function exampleGetFeaturedProducts() {
-  try {
-    const response = await productsService.getFeaturedProducts();
-
-    if (response.success) {
-      console.log(`${response.data.length} featured products`);
-      response.data.forEach(product => {
-        console.log(`${product.name} - ${product.currency} ${product.price}`);
-      });
-    }
-  } catch (error: any) {
-    console.error('Error:', error.message);
-  }
-}
-
 // ============================================
 // PROFILE EXAMPLES
 // ============================================
