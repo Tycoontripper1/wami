@@ -69,11 +69,29 @@ export default function BookingRescheduleScreen() {
       .finally(() => setIsLoading(false));
   }, [bookingId]);
 
+  // The backend requires "Y-m-d H:i:s" — confirmed live 2026-10-03 (a
+  // date-only string 422s with "must match the format Y-m-d H:i:s"). The
+  // collection's own sample ("2026-08-01") is incomplete. Combines the
+  // picked date with the picked time slot (e.g. "10:00 AM"), defaulting to
+  // noon if no time slot was picked since the field doesn't allow a bare date.
+  const toApiDateTime = (date: string, time: string | null): string => {
+    if (!time) return `${date} 12:00:00`;
+    const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return `${date} 12:00:00`;
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const isPM = match[3].toUpperCase() === 'PM';
+    if (isPM && hours !== 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+    return `${date} ${String(hours).padStart(2, '0')}:${minutes}:00`;
+  };
+
   const handleConfirm = async () => {
     if (!bookingId || !selectedDate) return;
     setIsSubmitting(true);
     try {
-      await rescheduleBooking(bookingId, { start_date: selectedDate, end_date: selectedDate });
+      const apiDateTime = toApiDateTime(selectedDate, selectedTime);
+      await rescheduleBooking(bookingId, { start_date: apiDateTime, end_date: apiDateTime });
       Alert.alert('Booking Rescheduled', `Your booking has been moved to ${selectedDate}${selectedTime ? ` at ${selectedTime}` : ''}.`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
