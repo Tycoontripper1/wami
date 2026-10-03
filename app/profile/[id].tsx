@@ -83,10 +83,21 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState<'home' | 'shop'>('home');
   const [likedProducts, setLikedProducts] = useState<Record<string, boolean>>({});
   
-  // Reviews — real data (GET /v1/reviews). The collection's sample doesn't
-  // show a reviewable_id filter, so this asks for one defensively and falls
-  // back to showing whatever the endpoint returns. See
-  // docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §3.6.
+  // Reviews — real data (GET /v1/reviews), but CONFIRMED BROKEN as wired,
+  // live-tested 2026-10-03: reviewable_type 'App\Models\User' is rejected
+  // outright by the backend ("The selected reviewable type is invalid.").
+  // The only valid types found by probing are 'App\Models\Product' (gated by
+  // "purchased"), 'App\Models\Offering' (gated by "booked"), and
+  // 'App\Models\Booking'. Reviewing a creative is really reviewing one of
+  // their offerings, but there's no confirmed way to get the *right*
+  // offering id here: GET /offerings only returns the logged-in user's own
+  // offerings (user_id/creative_id/seller_id filters tried live, all
+  // ignored), and this screen's `id` doesn't reliably map to a real offering
+  // anyway since the profile content above is still MOCK_PROFILE /
+  // getCreativeById (local mock data), not fetched from the real backend.
+  // Swapping the type alone would just trade one 422 for another — fixing
+  // this needs that mock-data gap solved first, or a confirmed
+  // "offerings by creative id" endpoint from backend.
   type DisplayReview = { id: string; userName: string; avatar: string; rating: number; isVerified: boolean; text: string; date: string };
   const [reviewsList, setReviewsList] = useState<DisplayReview[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
