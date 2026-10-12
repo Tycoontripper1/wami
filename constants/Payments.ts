@@ -7,6 +7,15 @@
 // message to the user until this is set — see app/checkout/index.tsx.
 export const PAYSTACK_PUBLIC_KEY = '';
 
+// Master switch for taking payment. Off because every real payment is
+// currently blocked backend-side (POST /payments/initialize rejects the
+// success_url/cancel_url scheme — see below — and the backend's Paystack
+// secret key was invalid when last probed). While off, checkout does NOT
+// create a cart item or an order (that would leave unpayable orders in
+// production) and shows "payments coming soon" instead. Flip to true only
+// after a full card/bank-transfer payment has succeeded end to end.
+export const PAYMENTS_ENABLED = false;
+
 // POST /payments/initialize requires success_url/cancel_url — undocumented
 // in the collection, discovered live 2026-09-29 via the backend's own 422
 // validation. This reads as a hosted-checkout-page redirect pattern (the

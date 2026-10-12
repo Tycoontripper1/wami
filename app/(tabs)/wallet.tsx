@@ -362,19 +362,18 @@ export default function WalletScreen() {
                 </TouchableOpacity>
               )}
             </View>
-            {isNigeria && selectedPaymentMethod === 'bank' && (
-              <View style={[styles.bankDetails, { backgroundColor: themeColors.cardBg }]}>
-                <Text style={[styles.bankDetailsTitle, { color: themeColors.text }]}>Transfer to:</Text>
-                <View style={styles.bankRow}><Text style={[styles.bankLabel, { color: themeColors.subText }]}>Bank:</Text><Text style={[styles.bankValue, { color: themeColors.text }]}>Wema Bank</Text></View>
-                <View style={styles.bankRow}><Text style={[styles.bankLabel, { color: themeColors.subText }]}>Account:</Text><Text style={[styles.bankValue, { color: themeColors.text }]}>0123456789</Text></View>
-                <View style={styles.bankRow}><Text style={[styles.bankLabel, { color: themeColors.subText }]}>Name:</Text><Text style={[styles.bankValue, { color: themeColors.text }]}>Wami/Your Name</Text></View>
-                <Text style={[styles.bankNote, { color: Colors.light.primary }]}>ⓘ Auto-credited when received</Text>
-              </View>
-            )}
+            {/* No wallet top-up endpoint exists in the API, so there is no real
+                account to show here — the previous hardcoded "Wema Bank /
+                0123456789" was a fake destination for real money. */}
+            <View style={[styles.bankDetails, { backgroundColor: themeColors.cardBg }]}>
+              <Text style={[styles.bankNote, { color: Colors.light.primary }]}>
+                ⓘ Adding funds isn't available yet. Please don't send any money to fund your wallet.
+              </Text>
+            </View>
           </ScrollView>
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
             <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: fundAmount && selectedPaymentMethod ? Colors.light.primary : themeColors.border }]} onPress={handleAddFunds} disabled={!fundAmount || !selectedPaymentMethod}>
-              <Text style={styles.confirmBtnText}>{selectedPaymentMethod === 'bank' ? "I've Sent the Money" : 'Add Funds'}</Text>
+              <Text style={styles.confirmBtnText}>Add Funds</Text>
               <Ionicons name="arrow-forward" size={20} color="#fff" />
             </TouchableOpacity>
           </View>

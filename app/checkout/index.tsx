@@ -1,6 +1,6 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
-import { PAYMENT_CANCEL_URL, PAYMENT_SUCCESS_URL, PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
+import { PAYMENT_CANCEL_URL, PAYMENT_SUCCESS_URL, PAYMENTS_ENABLED, PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
 import { addCartItem, placeOrder } from '@/services/api/ordersService';
 import { initializePayment, verifyPayment } from '@/services/api/paymentsService';
 import { getProductById } from '@/services/api/productsService';
@@ -122,6 +122,7 @@ function CheckoutContent() {
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [failureMessage, setFailureMessage] = useState<string | null>(null);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<{ bank?: string; accountNumber?: string; accountName?: string } | null>(null);
   const { popup } = usePaystack();
 
   const tc = {
@@ -159,6 +160,13 @@ function CheckoutContent() {
   };
 
   const handlePay = async () => {
+    // Guard before ANY network call: placeOrderIfNeeded() creates a cart
+    // item and a real order, which can't be paid while payments are off.
+    if (!PAYMENTS_ENABLED) {
+      Alert.alert('Payments Coming Soon', "We're finishing setting up payments. You'll be able to complete your purchase very soon.");
+      return;
+    }
+
     if (!isAddressComplete) {
       Alert.alert('Missing Info', 'Please add a shipping address.');
       return;
@@ -179,12 +187,23 @@ function CheckoutContent() {
       setFailureMessage(null);
       try {
         const orderId = await placeOrderIfNeeded();
-        await initializePayment({
+        const initRes = await initializePayment({
           order_id: orderId,
           gateway: 'paystack',
           payment_method: 'bank_transfer',
           success_url: PAYMENT_SUCCESS_URL,
           cancel_url: PAYMENT_CANCEL_URL,
+        });
+        // The transfer destination must come from the backend — never a
+        // hardcoded account. The response shape is unconfirmed (no request
+        // has ever succeeded), so read the likely fields defensively; the
+        // sheet only renders rows for fields actually present.
+        const d: any = initRes.data ?? {};
+        const acct = d.bank_account ?? d.bank ?? d.account ?? d;
+        setBankDetails({
+          bank: acct?.bank_name ?? acct?.bank,
+          accountNumber: acct?.account_number ?? acct?.accountNumber,
+          accountName: acct?.account_name ?? acct?.accountName,
         });
         setIsProcessing(false);
         setShowPaymentSheet(true);
@@ -369,6 +388,15 @@ function CheckoutContent() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
+        {!PAYMENTS_ENABLED && (
+          <View style={[styles.comingSoonBanner, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
+            <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
+            <Text style={[styles.comingSoonText, { color: tc.text }]}>
+              Payments are coming soon. You can review your order here, but you can't complete a purchase yet.
+            </Text>
+          </View>
+        )}
+
         {/* Shipping Address */}
         <TouchableOpacity
           style={[styles.sectionRow, { backgroundColor: tc.card, borderColor: tc.border }]}
@@ -510,11 +538,13 @@ function CheckoutContent() {
           <Text style={[styles.footerTotalValue, { color: tc.text }]}>₦{total.toLocaleString()}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.payBtn, isProcessing && { opacity: 0.7 }]}
+          style={[styles.payBtn, (isProcessing || !PAYMENTS_ENABLED) && { opacity: 0.5 }]}
           onPress={handlePay}
-          disabled={isProcessing}
+          disabled={isProcessing || !PAYMENTS_ENABLED}
         >
-          <Text style={styles.payBtnText}>{isProcessing ? 'Processing...' : 'Pay'}</Text>
+          <Text style={styles.payBtnText}>
+            {!PAYMENTS_ENABLED ? 'Coming soon' : isProcessing ? 'Processing...' : 'Pay'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -601,18 +631,29 @@ function CheckoutContent() {
             <Text style={[styles.sheetSub, { color: tc.sub }]}>Transfer exactly the amount below to complete your order</Text>
 
             <View style={[styles.bankCard, { backgroundColor: tc.input }]}>
-              <View style={styles.bankRow}>
-                <Text style={[styles.bankLabel, { color: tc.sub }]}>Bank</Text>
-                <Text style={[styles.bankValue, { color: tc.text }]}>Wami Payments — GT Bank</Text>
-              </View>
-              <View style={styles.bankRow}>
-                <Text style={[styles.bankLabel, { color: tc.sub }]}>Account Number</Text>
-                <Text style={[styles.bankValue, { color: tc.text }]}>0123456789</Text>
-              </View>
-              <View style={styles.bankRow}>
-                <Text style={[styles.bankLabel, { color: tc.sub }]}>Account Name</Text>
-                <Text style={[styles.bankValue, { color: tc.text }]}>Wami Technologies Ltd</Text>
-              </View>
+              {!!bankDetails?.bank && (
+                <View style={styles.bankRow}>
+                  <Text style={[styles.bankLabel, { color: tc.sub }]}>Bank</Text>
+                  <Text style={[styles.bankValue, { color: tc.text }]}>{bankDetails.bank}</Text>
+                </View>
+              )}
+              {!!bankDetails?.accountNumber && (
+                <View style={styles.bankRow}>
+                  <Text style={[styles.bankLabel, { color: tc.sub }]}>Account Number</Text>
+                  <Text style={[styles.bankValue, { color: tc.text }]}>{bankDetails.accountNumber}</Text>
+                </View>
+              )}
+              {!!bankDetails?.accountName && (
+                <View style={styles.bankRow}>
+                  <Text style={[styles.bankLabel, { color: tc.sub }]}>Account Name</Text>
+                  <Text style={[styles.bankValue, { color: tc.text }]}>{bankDetails.accountName}</Text>
+                </View>
+              )}
+              {!bankDetails?.accountNumber && (
+                <Text style={[styles.bankLabel, { color: tc.sub }]}>
+                  Bank details aren't available yet. Please don't transfer any money until they appear here.
+                </Text>
+              )}
               <View style={[styles.divider, { backgroundColor: tc.border, marginVertical: 12 }]} />
               <View style={styles.bankRow}>
                 <Text style={[styles.bankLabel, { color: tc.sub }]}>Amount to Transfer</Text>
@@ -620,7 +661,11 @@ function CheckoutContent() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={confirmBankTransfer}>
+            <TouchableOpacity
+              style={[styles.saveBtn, !bankDetails?.accountNumber && { opacity: 0.5 }]}
+              onPress={confirmBankTransfer}
+              disabled={!bankDetails?.accountNumber}
+            >
               <Text style={styles.saveBtnText}>I've Transferred — Confirm Order</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setShowPaymentSheet(false)} style={styles.cancelBtn}>
@@ -636,6 +681,11 @@ function CheckoutContent() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
+  comingSoonBanner: {
+    flexDirection: 'row', gap: 12, padding: 16,
+    borderRadius: 16, borderWidth: 1, alignItems: 'flex-start',
+  },
+  comingSoonText: { fontSize: 14, flex: 1, lineHeight: 20 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1,
