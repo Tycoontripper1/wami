@@ -61,6 +61,12 @@ export interface CreativeData {
   image?: ImageSourcePropType;
   video?: string;
   tags?: string[];
+  // The offering's real owner — discovery/feed and discovery/search embed
+  // this as `creator: {id, name, username}`. Needed so the profile screen
+  // can actually book/review the right creative instead of the offering.
+  creatorId?: string;
+  creatorName?: string;
+  creatorUsername?: string;
 }
 
 interface SwipeableCardStackProps {

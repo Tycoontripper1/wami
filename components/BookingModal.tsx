@@ -20,6 +20,10 @@ import { useDispatch } from 'react-redux';
 interface BookingModalProps {
   visible: boolean;
   onClose: () => void;
+  // The real offering being booked (POST /bookings' offering_id) — distinct
+  // from the creative who owns it (its creative_id). Conflating these two
+  // was confirmed live 2026-10-03 to make every booking fail.
+  offeringId: string;
   creative: {
     id: string;
     name: string;
@@ -61,7 +65,7 @@ const PAYMENT_METHODS = [
   { key: 'bank_transfer', label: 'Bank Transfer', icon: 'swap-horizontal' as const },
 ];
 
-export default function BookingModal({ visible, onClose, creative, onViewBooking, onMessage }: BookingModalProps) {
+export default function BookingModal({ visible, onClose, offeringId, creative, onViewBooking, onMessage }: BookingModalProps) {
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -89,7 +93,7 @@ export default function BookingModal({ visible, onClose, creative, onViewBooking
 
   const themeColors = {
     background: isDark ? '#1a1a1a' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     cardBg: isDark ? '#2a2a2a' : '#f5f5f5',
     border: isDark ? '#333' : '#e0e0e0',
@@ -121,20 +125,8 @@ export default function BookingModal({ visible, onClose, creative, onViewBooking
   const handleConfirmBooking = async () => {
     setIsSubmitting(true);
     try {
-      // CONFIRMED BROKEN as wired, live-tested 2026-10-03: creative_id is
-      // required (now sent) and this still sends `creative.id` as
-      // offering_id, which is wrong — offering_id must be a real offering's
-      // id, not the creative's user id. There's no confirmed way to fetch a
-      // given creative's offering id here: GET /offerings only returns the
-      // logged-in user's own offerings (filters by user_id/creative_id/
-      // seller_id were all tried live and ignored), and this component only
-      // ever receives {id, name, role, image} for the creative, never an
-      // offering. Every real booking attempt will 422 or fail until backend
-      // either confirms a public "get this creative's offerings" endpoint,
-      // or the booking flow is redesigned around picking a specific
-      // offering rather than "book this person."
       const apiBooking = await createBooking({
-        offering_id: creative.id,
+        offering_id: offeringId,
         creative_id: creative.id,
         project_title: `${projectType} with ${creative.name}`,
         project_details: description.trim(),

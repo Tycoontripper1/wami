@@ -21,6 +21,10 @@ import {
 interface QuoteRequestModalProps {
   visible: boolean;
   onClose: () => void;
+  // The real offering this quote is for — distinct from the creative who
+  // owns it. See BookingModal's matching prop for why these can't be
+  // conflated.
+  offeringId: string;
   creative: {
     id: string;
     name: string;
@@ -55,6 +59,7 @@ const SERVICE_OPTIONS = [
 export default function QuoteRequestModal({
   visible,
   onClose,
+  offeringId,
   creative,
   onSubmit,
 }: QuoteRequestModalProps) {
@@ -85,7 +90,7 @@ export default function QuoteRequestModal({
 
   const themeColors = {
     background: isDark ? '#1a1a1a' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     cardBg: isDark ? '#2a2a2a' : '#f5f5f5',
     border: isDark ? '#333' : '#e0e0e0',
@@ -104,10 +109,8 @@ export default function QuoteRequestModal({
     try {
       // A quote is created against a booking, so we open a (negotiating)
       // booking first, then attach the buyer's proposed quote to it.
-      // Same confirmed-broken offering_id/creative_id issue as
-      // BookingModal.tsx's handleConfirmBooking — see its comment.
       const bookingRes = await createBooking({
-        offering_id: creative.id,
+        offering_id: offeringId,
         creative_id: creative.id,
         project_title: selectedService,
         project_details: description,

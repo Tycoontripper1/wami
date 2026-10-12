@@ -28,6 +28,9 @@ interface FavoriteItem {
   rating: number;
   reviews: number;
   image?: { uri: string };
+  creatorId?: string;
+  creatorName?: string;
+  creatorUsername?: string;
 }
 
 export default function FavouritesScreen() {
@@ -57,6 +60,9 @@ export default function FavouritesScreen() {
           rating: item.rating ?? 0,
           reviews: item.reviews ?? item.reviews_count ?? 0,
           image: item.image ? { uri: item.image } : item.images?.[0] ? { uri: item.images[0] } : undefined,
+          creatorId: item.creator?.id !== undefined ? String(item.creator.id) : undefined,
+          creatorName: item.creator?.name,
+          creatorUsername: item.creator?.username,
         }))
       );
     } catch (error) {
@@ -74,7 +80,7 @@ export default function FavouritesScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
     cardBg: isDark ? '#1A1A1A' : '#fff',
     border: isDark ? '#333' : '#E0E0E0',
@@ -89,7 +95,15 @@ export default function FavouritesScreen() {
   const renderSavedItem = ({ item }: { item: typeof favorites[0] }) => (
     <TouchableOpacity
       style={[styles.savedCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}
-      onPress={() => router.push(`/profile/${item.id}`)}
+      onPress={() => router.push({
+        pathname: '/profile/[id]',
+        params: {
+          id: item.id,
+          creatorId: item.creatorId ?? '',
+          creatorName: item.creatorName ?? '',
+          creatorUsername: item.creatorUsername ?? '',
+        },
+      } as any)}
     >
       {item.image ? (
         <Image source={item.image} style={styles.savedImage} resizeMode="cover" />

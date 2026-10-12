@@ -31,6 +31,20 @@ export const getOfferings = async (params?: {
   return apiClient.get(API_ENDPOINTS.OFFERINGS.LIST, { params });
 };
 
+// GET /offerings/:id — real but undocumented; see config.ts's comment. No
+// creator/owner field in the response — the creative viewing a given
+// offering has to be carried through from wherever it was discovered
+// (discovery/feed and discovery/search both embed a `creator` object).
+// Uses `raw: true` and unwraps `.offering` manually — the response is
+// `{success, offering: {...}}`, and apiClient's default unwrap only knows
+// about `.user` / `.data`, not this endpoint's own `.offering` key.
+export const getOfferingById = async (
+  id: string | number
+): Promise<ApiResponse<ApiOffering>> => {
+  const res = await apiClient.get<any>(API_ENDPOINTS.OFFERINGS.BY_ID(id), { raw: true });
+  return { ...res, data: res.data.offering };
+};
+
 // POST /offerings  { title, description, price, currency, type }
 export const createOffering = async (
   payload: CreateOfferingPayload

@@ -5,10 +5,11 @@ import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
 import { ApiResponse, PaginatedResponse } from './types';
 
-// The collection's sample body only shows "App\Models\Product" — the value
-// for reviewing a creative/offering is unconfirmed. Ask backend to confirm
-// before assuming this string.
-export type ReviewableType = 'App\\Models\\Product' | string;
+// Confirmed live 2026-10-03 by probing POST /v1/reviews directly: valid
+// values are 'App\Models\Product' (gated server-side by "you must have
+// purchased it"), 'App\Models\Offering' (gated by "you must have booked
+// it"), and 'App\Models\Booking'. 'App\Models\User' is rejected outright.
+export type ReviewableType = 'App\\Models\\Product' | 'App\\Models\\Offering' | 'App\\Models\\Booking';
 
 export interface ApiReview {
   id: string | number;
@@ -27,14 +28,22 @@ export interface CreateReviewPayload {
   comment: string;
 }
 
+// GET /v1/reviews/user/:userId/rating response confirmed live 2026-10-03:
+// {"user_id": 2, "average_rating": 0} — not {average, count} as previously
+// guessed.
 export interface UserRating {
-  average: number;
-  count: number;
+  user_id: string | number;
+  average_rating: number;
   [key: string]: any;
 }
 
-// GET /v1/reviews?page=
-export const getReviews = async (params?: {
+// GET /v1/reviews?reviewable_type=&reviewable_id=&page= — the type/id
+// filter is required server-side (422 "The reviewable type field is
+// required" without it, confirmed live 2026-10-03); the collection's sample
+// omits it.
+export const getReviews = async (params: {
+  reviewable_type: ReviewableType;
+  reviewable_id: string | number;
   page?: number;
 }): Promise<ApiResponse<PaginatedResponse<ApiReview> | ApiReview[]>> => {
   return apiClient.get(API_ENDPOINTS.REVIEWS.LIST, { params });

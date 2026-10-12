@@ -105,6 +105,10 @@ export const API_ENDPOINTS = {
   OFFERINGS: {
     LIST: '/offerings',
     CREATE: '/offerings',
+    // Not in the collection, but real — confirmed live 2026-10-03
+    // (GET /offerings/6 -> 200 with the real offering). No creator/owner id
+    // in the response though, so this alone can't tell you who to book.
+    BY_ID: (id: string | number) => `/offerings/${id}`,
     BULK_PUBLISH: '/offerings/bulk/publish',
     BULK_DELETE: '/offerings/bulk/delete',
   },
@@ -149,10 +153,9 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string | number) => `/bookings/${id}`,
     UPDATE: (id: string) => `/bookings/${id}`,
     COMPLETE: (id: string) => `/bookings/${id}/complete`,
-    // No CANCEL — /bookings/:id/cancel 404s live (confirmed 2026-10-03) and
-    // nothing in the codebase called it anyway (only a same-named, unrelated
-    // local Redux action in store/bookingsSlice.ts). Do not re-add without
-    // confirming the real cancel contract with backend.
+    // No CANCEL route — /bookings/:id/cancel 404s live (confirmed
+    // 2026-10-03). Cancelling is PUT STATUS(id) with {status: 'cancelled'}
+    // (backend-confirmed 2026-10-12) — see bookingsService.cancelBooking.
     STATUS: (id: string | number) => `/bookings/${id}/status`,
     MILESTONES: (id: string | number) => `/bookings/${id}/milestones`,
     RELEASE_MILESTONE: (bookingId: string | number, milestoneId: string | number) =>

@@ -34,6 +34,9 @@ const mapOfferingToCreativeData = (offering: DiscoveryOffering): CreativeData =>
     : require('../../assets/images/onboarding_bg_creative.webp'),
   video: offering.video,
   tags: offering.tags?.slice(0, 3),
+  creatorId: offering.creator?.id !== undefined ? String(offering.creator.id) : undefined,
+  creatorName: offering.creator?.name,
+  creatorUsername: offering.creator?.username,
 });
 
 const extractItems = (data: any): DiscoveryOffering[] => {
@@ -62,7 +65,7 @@ export default function DiscoverScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
     headerBg: isDark ? '#000' : '#fff',
     cardBg: isDark ? '#1A1A1A' : '#F5F5F5',
@@ -137,8 +140,17 @@ export default function DiscoverScreen() {
 
   const handleSwipeRight = (item: CreativeData) => {
     swipeOffering(item.id, 'like').catch((error) => console.error('Swipe (like) failed:', error));
-    // Navigate to profile
-    router.push(`/profile/${item.id}`);
+    // Navigate to profile — carries the creator's real id/name through
+    // since there's no endpoint to look it up again from just the offering.
+    router.push({
+      pathname: '/profile/[id]',
+      params: {
+        id: item.id,
+        creatorId: item.creatorId ?? '',
+        creatorName: item.creatorName ?? '',
+        creatorUsername: item.creatorUsername ?? '',
+      },
+    } as any);
   };
 
   const handleSave = (item: CreativeData) => {

@@ -1,75 +1,72 @@
-import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import BookingModal from '@/components/BookingModal';
+import EmptyState from '@/components/EmptyState';
 import QuoteRequestModal from '@/components/QuoteRequestModal';
-import RateCard from '@/components/RateCard';
 import Colors from '@/constants/Colors';
-import { getCreativeById } from '@/data/creatives';
-import { useLocation } from '@/hooks/useLocationData';
-import { createReview, getReviews, getUserRating } from '@/services/api/reviewsService';
+import { saveOffering, unsaveOffering } from '@/services/api/discoveryService';
+import { ApiOffering, getOfferingById } from '@/services/api/offeringsService';
+import { createReview, getReviews, ReviewableType } from '@/services/api/reviewsService';
 import { addFavorite, removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View, TextInput } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MOCK_PRODUCTS } from '@/data/mockProducts';
 
-const { width } = Dimensions.get('window');
+// Reviews on this screen are scoped to the specific offering being viewed —
+// confirmed live 2026-10-03 that 'App\Models\Offering' is the only valid
+// reviewable_type for this kind of thing ('App\Models\User' is rejected
+// outright). See reviewsService.ts for the full finding.
+const REVIEWABLE_TYPE: ReviewableType = 'App\\Models\\Offering';
 
-// Mock data (normally fetched by ID)
-const MOCK_PROFILE = {
-  id: '1',
-  name: 'Sandra Hair Studio',
-  role: 'HairStylist',
-  location: 'Manchester',
-  distance: '2.5 km away',
-  rating: 4.9,
-  reviews: 120,
-  about: 'Specializing in contemporary cuts and color. We bring out your best look with our premium services and experienced stylists.',
-  tags: ['Hair', 'Color', 'Styling'],
-  images: [
-    'https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1562322140-8baeececf3df?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1521590832169-d7fcbe313d1f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-  ],
+type DisplayReview = {
+  id: string;
+  userName: string;
+  avatar: string;
+  rating: number;
+  isVerified: boolean;
+  text: string;
+  date: string;
 };
 
-const MOCK_SERVICES_BY_CATEGORY: Record<string, { id: string; name: string; duration: string; priceUSD: number }[]> = {
-  photographer: [
-    { id: 's1', name: 'Standard Portrait Session', duration: '1 Hour', priceUSD: 30 },
-    { id: 's2', name: 'Event Coverage (Half Day)', duration: '4 Hours', priceUSD: 100 },
-    { id: 's3', name: 'Wedding Photography (Basic)', duration: '6 Hours', priceUSD: 250 },
-    { id: 's4', name: 'Commercial Brand Shoot', duration: '3 Hours', priceUSD: 150 },
-  ],
-  hairstylist: [
-    { id: 's1', name: 'Knotless Box Braids', duration: '3 Hours', priceUSD: 25 },
-    { id: 's2', name: 'Silk Press & Treatment', duration: '1.5 Hours', priceUSD: 15 },
-    { id: 's3', name: 'Wig Installation & Style', duration: '2 Hours', priceUSD: 30 },
-    { id: 's4', name: 'Custom Hair Coloring', duration: '2.5 Hours', priceUSD: 40 },
-  ],
-  makeup_artist: [
-    { id: 's1', name: 'Bridal Glam Makeup', duration: '2 Hours', priceUSD: 50 },
-    { id: 's2', name: 'Soft Glam Session', duration: '1 Hour', priceUSD: 20 },
-    { id: 's3', name: 'Editorial/Photoshoot Glam', duration: '1.5 Hours', priceUSD: 35 },
-    { id: 's4', name: 'One-on-One Masterclass', duration: '3 Hours', priceUSD: 60 },
-  ],
-  caterer: [
-    { id: 's1', name: 'Private Dinner (2-4 guests)', duration: '3 Hours', priceUSD: 80 },
-    { id: 's2', name: 'Buffet Catering (per head)', duration: '4 Hours', priceUSD: 5 },
-    { id: 's3', name: 'Cocktail Party Platter (20 pax)', duration: '2 Hours', priceUSD: 60 },
-  ],
-  default: [
-    { id: 's1', name: 'Consultation Session', duration: '1 Hour', priceUSD: 15 },
-    { id: 's2', name: 'Standard Service Package', duration: '2 Hours', priceUSD: 35 },
-    { id: 's3', name: 'Premium Service Package', duration: '4 Hours', priceUSD: 70 },
-  ]
-};
+const mapApiReview = (r: any, index: number): DisplayReview => ({
+  id: String(r.id ?? index),
+  userName: r.user?.name ?? r.user_name ?? r.author ?? 'Anonymous',
+  avatar: r.user?.avatar ?? r.avatar ?? '',
+  rating: Number(r.rating ?? 0),
+  isVerified: Boolean(r.is_verified ?? r.verified ?? false),
+  text: r.comment ?? r.text ?? '',
+  date: r.created_at ? new Date(r.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) : '',
+});
 
 export default function ProfileScreen() {
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams<{
+    id: string;
+    creatorId?: string;
+    creatorName?: string;
+    creatorUsername?: string;
+  }>();
+  const id = params.id;
+  // The creative who owns this offering — carried through navigation from
+  // wherever it was discovered (discovery/feed, discovery/search both embed
+  // a `creator` object), since there's no endpoint to look this up again
+  // from just the offering id. A deep link without these params can still
+  // view the offering, but can't book/message/review — guarded below.
+  const creatorId = params.creatorId || undefined;
+  const creatorName = params.creatorName || undefined;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
@@ -78,49 +75,45 @@ export default function ProfileScreen() {
 
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
-  
-  // Custom states for refined creative profile tabs and features
-  const [activeTab, setActiveTab] = useState<'home' | 'shop'>('home');
-  const [likedProducts, setLikedProducts] = useState<Record<string, boolean>>({});
-  
-  // Reviews — real data (GET /v1/reviews), but CONFIRMED BROKEN as wired,
-  // live-tested 2026-10-03: reviewable_type 'App\Models\User' is rejected
-  // outright by the backend ("The selected reviewable type is invalid.").
-  // The only valid types found by probing are 'App\Models\Product' (gated by
-  // "purchased"), 'App\Models\Offering' (gated by "booked"), and
-  // 'App\Models\Booking'. Reviewing a creative is really reviewing one of
-  // their offerings, but there's no confirmed way to get the *right*
-  // offering id here: GET /offerings only returns the logged-in user's own
-  // offerings (user_id/creative_id/seller_id filters tried live, all
-  // ignored), and this screen's `id` doesn't reliably map to a real offering
-  // anyway since the profile content above is still MOCK_PROFILE /
-  // getCreativeById (local mock data), not fetched from the real backend.
-  // Swapping the type alone would just trade one 422 for another — fixing
-  // this needs that mock-data gap solved first, or a confirmed
-  // "offerings by creative id" endpoint from backend.
-  type DisplayReview = { id: string; userName: string; avatar: string; rating: number; isVerified: boolean; text: string; date: string };
+
+  // The offering itself — real data (GET /offerings/:id), replacing what
+  // used to be MOCK_PROFILE / getCreativeById (local mock data).
+  const [offering, setOffering] = useState<ApiOffering | null>(null);
+  const [isLoadingOffering, setIsLoadingOffering] = useState(true);
+  const [offeringError, setOfferingError] = useState(false);
+
+  const loadOffering = useCallback(async () => {
+    setIsLoadingOffering(true);
+    setOfferingError(false);
+    try {
+      const res = await getOfferingById(id);
+      setOffering(res.data);
+    } catch (error) {
+      console.error('Failed to load offering:', error);
+      setOffering(null);
+      setOfferingError(true);
+    } finally {
+      setIsLoadingOffering(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadOffering();
+  }, [loadOffering]);
+
   const [reviewsList, setReviewsList] = useState<DisplayReview[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewSubmitError, setReviewSubmitError] = useState<string | null>(null);
   const [newReviewText, setNewReviewText] = useState('');
   const [newRating, setNewRating] = useState(5);
-
-  const mapApiReview = (r: any, index: number): DisplayReview => ({
-    id: String(r.id ?? index),
-    userName: r.user?.name ?? r.user_name ?? r.author ?? 'Anonymous',
-    avatar: r.user?.avatar ?? r.avatar ?? '',
-    rating: Number(r.rating ?? 0),
-    isVerified: Boolean(r.is_verified ?? r.verified ?? false),
-    text: r.comment ?? r.text ?? '',
-    date: r.created_at ? new Date(r.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) : '',
-  });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setIsLoadingReviews(true);
       try {
-        const res = await getReviews({ page: 1, reviewable_id: id, reviewable_type: 'App\\Models\\User' } as any);
+        const res = await getReviews({ page: 1, reviewable_id: id, reviewable_type: REVIEWABLE_TYPE });
         const data: any = res.data;
         const raw = Array.isArray(data) ? data : data?.items ?? [];
         if (!cancelled) setReviewsList(raw.map(mapApiReview));
@@ -129,130 +122,101 @@ export default function ProfileScreen() {
       } finally {
         if (!cancelled) setIsLoadingReviews(false);
       }
-      try {
-        await getUserRating(id as string);
-      } catch (error) {
-        // Non-fatal — reviewStats below falls back to computing its own
-        // average from the fetched reviews list either way.
-      }
     })();
     return () => {
       cancelled = true;
     };
   }, [id]);
 
-  // Get location for price formatting
-  const { formatPrice, formatPriceRange } = useLocation();
-
-  // Check if this creative is in favorites
   const favorites = useSelector((state: RootState) => state.favorites.items);
   const isFavorite = favorites.some((fav) => fav.id === id);
 
-  // Fetch creative from mock data
-  const creative = useMemo(() => getCreativeById(id as string), [id]);
-  
-  // Fallback to mock profile if not found
-  const profile = creative ? {
-    id: creative.id,
-    name: creative.name,
-    role: creative.role,
-    location: creative.location.city,
-    distance: '2.5 km away',
-    rating: creative.rating,
-    reviews: creative.reviews,
-    about: creative.about,
-    tags: creative.tags,
-    images: creative.images,
-    priceRange: creative.priceRange,
-  } : MOCK_PROFILE;
-
-  // Format prices based on user location
-  const priceDisplay = useMemo(() => {
-    if (creative) {
-      return {
-        min: formatPrice(creative.priceRange.minUSD),
-        max: formatPrice(creative.priceRange.maxUSD),
-        range: formatPriceRange(creative.priceRange.minUSD, creative.priceRange.maxUSD),
-      };
-    }
-    return {
-      min: formatPrice(25),
-      max: formatPrice(100),
-      range: formatPriceRange(25, 100),
-    };
-  }, [creative, formatPrice, formatPriceRange]);
-
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     cardBg: isDark ? '#1a1a1a' : '#fff',
+    imagePlaceholder: isDark ? '#1a1a1a' : '#f0f0f0',
   };
 
   const handleFavoriteToggle = () => {
-    const creativeData = {
-      id: profile.id,
-      name: profile.name,
-      role: profile.role,
-      location: profile.location,
-      rating: profile.rating,
-      reviews: profile.reviews,
-    };
-
     if (isFavorite) {
-      dispatch(removeFavorite(profile.id));
+      dispatch(removeFavorite(String(id)));
+      unsaveOffering(id).catch((error) => console.error('Failed to unsave offering:', error));
     } else {
-      dispatch(addFavorite(creativeData as any));
+      dispatch(addFavorite({
+        id: String(id),
+        name: creatorName || offering?.title || 'Untitled',
+        role: offering?.category || '',
+        location: '',
+        rating: 0,
+        reviews: 0,
+        creatorId,
+        creatorName,
+      } as any));
+      saveOffering(id).catch((error) => console.error('Failed to save offering:', error));
     }
   };
 
+  // There's no "get or create conversation with user X" endpoint — the
+  // collection's Messaging folder only has "Start Conversation"
+  // (POST /v1/messages/conversations { recipient_id, body }), which needs a
+  // first message. So this opens chat in "new conversation" mode (see
+  // app/chat/[id].tsx) rather than assuming a conversation already exists.
   const handleMessage = () => {
-    // There's no "get or create conversation with user X" endpoint — the
-    // collection's Messaging folder only has "Start Conversation"
-    // (POST /v1/messages/conversations { recipient_id, body }), which needs
-    // a first message. So this opens chat in "new conversation" mode (see
-    // app/chat/[id].tsx) rather than assuming a conversation already exists
-    // for this creative's id.
+    if (!creatorId) {
+      Alert.alert("Can't Message", "We don't have this creative's info — try opening their profile from the feed again.");
+      return;
+    }
     router.push({
       pathname: '/chat/[id]',
-      params: { id: 'new', recipientId: String(id), name: profile.name, avatar: profile.images?.[0] ?? '' },
+      params: { id: 'new', recipientId: creatorId, name: creatorName ?? '', avatar: '' },
     } as any);
   };
 
-  // Toggle favorite status on a product
-  const toggleLikeProduct = (productId: string) => {
-    setLikedProducts(prev => ({
-      ...prev,
-      [productId]: !prev[productId]
-    }));
+  const handleOpenBooking = () => {
+    if (!creatorId) {
+      Alert.alert("Can't Book", "We don't have this creative's info — try opening their profile from the feed again.");
+      return;
+    }
+    setShowBookingModal(true);
   };
 
-  // Submits a real review (POST /v1/reviews). `reviewable_type` for a
-  // creative/user profile is unconfirmed by the collection (its only sample
-  // uses "App\Models\Product") — ask backend to confirm before trusting
-  // this. See docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §3.6.
+  const handleOpenQuote = () => {
+    if (!creatorId) {
+      Alert.alert("Can't Request a Quote", "We don't have this creative's info — try opening their profile from the feed again.");
+      return;
+    }
+    setShowQuoteModal(true);
+  };
+
+  // POST /v1/reviews — gated server-side by "you must have booked this
+  // offering" (confirmed live 2026-10-03), so this will commonly fail for a
+  // real reason, not a bug — surfaced below rather than swallowed.
   const handleAddReview = async () => {
     if (!newReviewText.trim() || isSubmittingReview) return;
     setIsSubmittingReview(true);
+    setReviewSubmitError(null);
     try {
       const res = await createReview({
-        reviewable_type: 'App\\Models\\User',
-        reviewable_id: id as string,
+        reviewable_type: REVIEWABLE_TYPE,
+        reviewable_id: id,
         rating: newRating,
         comment: newReviewText.trim(),
       });
       setReviewsList([mapApiReview(res.data ?? { rating: newRating, comment: newReviewText }, Date.now()), ...reviewsList]);
       setNewReviewText('');
       setNewRating(5);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit review:', error);
+      setReviewSubmitError(error?.message ?? "Couldn't submit your review. Please try again.");
     } finally {
       setIsSubmittingReview(false);
     }
   };
 
-  // Calculates reviews average rating, counts, and breakdown bars from the
-  // real fetched reviews list — no more blended fake baseline.
+  // Rating average/breakdown computed from this offering's own real
+  // reviews — no fabricated baseline blended in.
   const reviewStats = useMemo(() => {
     const totalCount = reviewsList.length;
     const totalSum = reviewsList.reduce((sum, r) => sum + r.rating, 0);
@@ -275,128 +239,41 @@ export default function ProfileScreen() {
       totalCount > 0 ? (oneStar / totalCount) * 100 : 0,
     ];
 
-    return {
-      average,
-      total: totalCount,
-      breakdown
-    };
-  }, [reviewsList, profile.rating, profile.reviews]);
+    return { average, total: totalCount, breakdown };
+  }, [reviewsList]);
 
-  // Dynamic services list per category
-  const services = useMemo(() => {
-    const category = (creative?.category || 'default') as string;
-    return MOCK_SERVICES_BY_CATEGORY[category] || MOCK_SERVICES_BY_CATEGORY.default;
-  }, [creative]);
+  const offeringImage = offering?.thumbnail_url || offering?.media_url || offering?.image || offering?.images?.[0];
+  // /products/:id and /offerings/:id both return price as a string
+  // ("50000.00", a Laravel decimal cast) — coerce it. Confirmed live
+  // 2026-10-03 (see app/checkout/index.tsx's matching fix).
+  const price = offering ? Number(offering.price) || 0 : 0;
 
-  // Dynamic 2x2 portfolio images
-  const portfolioImages = useMemo(() => {
-    const imgs = [...profile.images];
-    const fallbackImgs = [
-      'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800',
-      'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800',
-      'https://images.unsplash.com/photo-1521590832169-d7fcbe313d1f?w=800',
-      'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800',
-    ];
-    while (imgs.length < 4) {
-      imgs.push(fallbackImgs[imgs.length % fallbackImgs.length]);
-    }
-    return imgs.slice(0, 4);
-  }, [profile.images]);
+  if (isLoadingOffering) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
 
-  // Dynamic products list for the seller
-  const sellerProducts = useMemo(() => {
-    const directProducts = MOCK_PRODUCTS.filter(p => p.sellerId === profile.id);
-    if (directProducts.length < 4) {
-      const fallbackProducts = [
-        {
-          id: `${profile.id}_p1`,
-          name: `${profile.role} Premium Pack`,
-          category: 'digital',
-          price: 12000,
-          currency: 'NGN',
-          description: 'Premium items from our workspace, curated for your creative needs.',
-          images: ['https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800'],
-          sellerId: profile.id,
-          sellerName: profile.name,
-          sellerImage: '',
-          rating: 4.8,
-          reviews: 20,
-          stock: 10,
-          featured: true,
-          tags: ['Premium', 'Best Seller'],
-          createdAt: '2026-02-01',
-          condition: 'New'
-        },
-        {
-          id: `${profile.id}_p2`,
-          name: `Signature ${profile.role} Kit`,
-          category: 'beauty',
-          price: 25000,
-          currency: 'NGN',
-          description: 'Essential kit for styled outputs, highly requested by clients.',
-          images: ['https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=800'],
-          sellerId: profile.id,
-          sellerName: profile.name,
-          sellerImage: '',
-          rating: 4.9,
-          reviews: 15,
-          stock: 5,
-          featured: true,
-          tags: ['Kit', 'Signature'],
-          createdAt: '2026-02-05',
-          condition: 'New'
-        },
-        {
-          id: `${profile.id}_p3`,
-          name: `${profile.role} Workshop Guide`,
-          category: 'digital',
-          price: 8000,
-          currency: 'NGN',
-          description: 'A complete masterclass booklet with professional tips and workflows.',
-          images: ['https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800'],
-          sellerId: profile.id,
-          sellerName: profile.name,
-          sellerImage: '',
-          rating: 4.7,
-          reviews: 8,
-          stock: 100,
-          featured: false,
-          tags: ['Guide', 'Digital'],
-          createdAt: '2026-02-10',
-          condition: 'Digital File'
-        },
-        {
-          id: `${profile.id}_p4`,
-          name: `Exclusive Custom Design`,
-          category: 'fashion',
-          price: 45000,
-          currency: 'NGN',
-          description: 'Customized order made to your exact measurements and requirements.',
-          images: ['https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800'],
-          sellerId: profile.id,
-          sellerName: profile.name,
-          sellerImage: '',
-          rating: 5.0,
-          reviews: 12,
-          stock: 2,
-          featured: true,
-          tags: ['Custom', 'Luxury'],
-          createdAt: '2026-02-12',
-          condition: 'Like New'
-        }
-      ];
-      
-      const combined = [...directProducts];
-      for (const fallback of fallbackProducts) {
-        if (combined.length >= 4) break;
-        if (!combined.some(p => p.name === fallback.name)) {
-          combined.push(fallback as any);
-        }
-      }
-      return combined;
-    }
-    return directProducts;
-  }, [profile.id, creative]);
+  if (offeringError || !offering) {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <TouchableOpacity style={styles.backBtnFloating} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.text} />
+        </TouchableOpacity>
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Couldn't Load Profile"
+          message="We couldn't load this listing. Please check your connection and try again."
+          onRetry={loadOffering}
+          retryLabel="Try Again"
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -404,9 +281,14 @@ export default function ProfileScreen() {
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Header Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: profile.images[0] }} style={styles.headerImage} />
+          {offeringImage ? (
+            <Image source={{ uri: offeringImage }} style={styles.headerImage} />
+          ) : (
+            <View style={[styles.headerImage, styles.headerImagePlaceholder, { backgroundColor: themeColors.imagePlaceholder }]}>
+              <Ionicons name="image-outline" size={48} color={themeColors.subText} />
+            </View>
+          )}
 
-          {/* Header Actions */}
           <View style={[styles.headerActions, { paddingTop: insets.top + 10 }]}>
             <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -415,9 +297,6 @@ export default function ProfileScreen() {
               <TouchableOpacity style={styles.iconButton} onPress={handleFavoriteToggle}>
                 <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? '#FF3B30' : '#fff'} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="share-social-outline" size={24} color="#fff" />
-              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -425,15 +304,21 @@ export default function ProfileScreen() {
         {/* Content */}
         <View style={[styles.contentContainer, { backgroundColor: themeColors.background }]}>
           <View style={styles.headerInfo}>
-            <View>
-              <Text style={[styles.name, { color: themeColors.text }]}>{profile.name}</Text>
-              <View style={styles.subInfo}>
-                <Ionicons name="location-outline" size={16} color={themeColors.subText} />
-                <Text style={[styles.infoText, { color: themeColors.subText }]}>{profile.location}</Text>
-                <View style={styles.dot} />
-                <Ionicons name="pricetag-outline" size={16} color={themeColors.subText} />
-                <Text style={[styles.infoText, { color: themeColors.subText }]}>{profile.role}</Text>
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.name, { color: themeColors.text }]}>{offering.title}</Text>
+              {!!creatorName && (
+                <View style={styles.subInfo}>
+                  <Ionicons name="person-outline" size={16} color={themeColors.subText} />
+                  <Text style={[styles.infoText, { color: themeColors.subText }]}>{creatorName}</Text>
+                  {!!offering.category && (
+                    <>
+                      <View style={styles.dot} />
+                      <Ionicons name="pricetag-outline" size={16} color={themeColors.subText} />
+                      <Text style={[styles.infoText, { color: themeColors.subText }]}>{offering.category}</Text>
+                    </>
+                  )}
+                </View>
+              )}
             </View>
             <View style={[styles.ratingBox, { backgroundColor: isDark ? '#2a2a2a' : '#F5F5F5' }]}>
               <Ionicons name="star" size={16} color="#FFD700" />
@@ -444,282 +329,162 @@ export default function ProfileScreen() {
 
           <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#F0F0F0' }]} />
 
-          {/* Tab Selector (FE-26) */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'home' && styles.activeTabButton]}
-              onPress={() => setActiveTab('home')}
-            >
-              <Text style={[styles.tabText, { color: activeTab === 'home' ? '#00BCD4' : themeColors.subText }]}>Home</Text>
-              {activeTab === 'home' && <View style={styles.tabIndicator} />}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'shop' && styles.activeTabButton]}
-              onPress={() => setActiveTab('shop')}
-            >
-              <Text style={[styles.tabText, { color: activeTab === 'shop' ? '#00BCD4' : themeColors.subText }]}>Shop</Text>
-              {activeTab === 'shop' && <View style={styles.tabIndicator} />}
+          {!!offering.description && (
+            <>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>About</Text>
+              <Text style={[styles.bodyText, { color: themeColors.subText }]}>{offering.description}</Text>
+            </>
+          )}
+
+          {!!offering.tags?.length && (
+            <View style={styles.tagsContainer}>
+              {offering.tags.map((tag: string, index: number) => (
+                <View key={index} style={[styles.tag, { backgroundColor: isDark ? 'rgba(0,188,212,0.2)' : '#F0F9FA' }]}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Price Card */}
+          <View style={[styles.priceCard, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
+            <View style={styles.priceHeader}>
+              <View style={styles.priceInfo}>
+                <Ionicons name="cash-outline" size={20} color={Colors.light.primary} />
+                <Text style={[styles.priceLabel, { color: themeColors.subText }]}>Price</Text>
+              </View>
+              <Text style={[styles.priceAmount, { color: themeColors.text }]}>
+                {offering.currency === 'NGN' ? '₦' : `${offering.currency} `}{price.toLocaleString()}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.quoteButton} onPress={handleOpenQuote}>
+              <Text style={styles.quoteButtonText}>Get Quote</Text>
             </TouchableOpacity>
           </View>
 
-          {activeTab === 'home' ? (
-            <View>
-              {/* Bio block & Social Icons Row (FE-27) */}
-              <Text style={[styles.sectionTitle, { color: themeColors.text, marginTop: 20 }]}>About</Text>
-              <Text style={[styles.bodyText, { color: themeColors.subText }]}>{profile.about}</Text>
+          {/* Reviews section */}
+          <Text style={[styles.sectionTitle, { color: themeColors.text, marginTop: 8 }]}>Reviews</Text>
 
-              {/* Social Icons Row */}
-              <View style={styles.socialIconsRow}>
-                <TouchableOpacity style={[styles.socialButton, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-                  <Ionicons name="logo-instagram" size={20} color="#00BCD4" />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.socialButton, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-                  <Ionicons name="globe-outline" size={20} color="#00BCD4" />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.socialButton, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]} onPress={handleFavoriteToggle}>
-                  <Ionicons name={isFavorite ? "bookmark" : "bookmark-outline"} size={20} color="#00BCD4" />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.socialButton, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-                  <Ionicons name="share-social-outline" size={20} color="#00BCD4" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Tags Container */}
-              <View style={styles.tagsContainer}>
-                {profile.tags.map((tag, index) => (
-                  <View key={index} style={[styles.tag, { backgroundColor: isDark ? 'rgba(0,188,212,0.2)' : '#F0F9FA' }]}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
+          <View style={[styles.reviewsSummaryContainer, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#E0E0E0' }]}>
+            <View style={styles.ratingSummaryLeft}>
+              <Text style={[styles.ratingBigNumber, { color: themeColors.text }]}>{reviewStats.average}</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Ionicons
+                    key={star}
+                    name={star <= Math.round(Number(reviewStats.average)) ? 'star' : 'star-outline'}
+                    size={14}
+                    color="#FFD700"
+                  />
                 ))}
               </View>
-
-              {/* Price Card */}
-              <View style={[styles.priceCard, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
-                <View style={styles.priceHeader}>
-                  <View style={styles.priceInfo}>
-                    <Ionicons name="cash-outline" size={20} color={Colors.light.primary} />
-                    <Text style={[styles.priceLabel, { color: themeColors.subText }]}>Starting from</Text>
-                  </View>
-                  <View style={styles.priceValues}>
-                    <Text style={[styles.priceAmount, { color: themeColors.text }]}>{priceDisplay.min}</Text>
-                    <Text style={[styles.priceRange, { color: themeColors.subText }]}> - {priceDisplay.max}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity style={styles.quoteButton} onPress={() => setShowQuoteModal(true)}>
-                  <Text style={styles.quoteButtonText}>Get Quote</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Rate Card — 3 service tiers (FE-35) */}
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Rate Card</Text>
-              <RateCard
-                basePrice={creative ? Math.round(creative.priceRange.minUSD * 1550) : 50000}
-                onSelectTier={() => setShowBookingModal(true)}
-              />
-
-              {/* Services Horizontal Scroll (FE-29) */}
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Services & Packages</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.servicesScroll}>
-                {services.map((service) => (
-                  <View key={service.id} style={[styles.serviceCard, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#E0E0E0' }]}>
-                    <Text style={[styles.serviceName, { color: themeColors.text }]} numberOfLines={1}>{service.name}</Text>
-                    <View style={styles.serviceMeta}>
-                      <Ionicons name="time-outline" size={14} color={themeColors.subText} />
-                      <Text style={[styles.serviceDuration, { color: themeColors.subText }]}>{service.duration}</Text>
-                    </View>
-                    <View style={styles.serviceFooter}>
-                      <Text style={[styles.servicePrice, { color: themeColors.text }]}>{formatPrice(service.priceUSD)}</Text>
-                      <TouchableOpacity style={styles.serviceBookButton} onPress={() => setShowBookingModal(true)}>
-                        <Text style={styles.serviceBookButtonText}>Book</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-
-              {/* 2x2 Portfolio Grid (FE-28) */}
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Portfolio</Text>
-              <View style={styles.portfolioGrid}>
-                {portfolioImages.map((img, index) => (
-                  <View key={index} style={styles.portfolioItem}>
-                    <Image source={{ uri: img }} style={styles.portfolioImage} />
-                    <View style={styles.instagramBadge}>
-                      <Ionicons name="logo-instagram" size={12} color="#fff" />
-                      <Text style={styles.instagramBadgeText}>Imported</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-
-              {/* Availability Calendar */}
-              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Availability</Text>
-              <AvailabilityCalendar
-                onSelectSlot={(date, time) => {
-                  setShowBookingModal(true);
-                }}
-                onBookNextAvailable={() => setShowBookingModal(true)}
-              />
-
-              {/* Reviews section (FE-32) */}
-              <Text style={[styles.sectionTitle, { color: themeColors.text, marginTop: 28 }]}>Reviews</Text>
-              
-              {/* Rating Summary & Star Breakdown */}
-              <View style={[styles.reviewsSummaryContainer, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#E0E0E0' }]}>
-                <View style={styles.ratingSummaryLeft}>
-                  <Text style={[styles.ratingBigNumber, { color: themeColors.text }]}>{reviewStats.average}</Text>
-                  <View style={styles.starsRow}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Ionicons
-                        key={star}
-                        name={star <= Math.round(Number(reviewStats.average)) ? 'star' : 'star-outline'}
-                        size={14}
-                        color="#FFD700"
-                      />
-                    ))}
-                  </View>
-                  <Text style={[styles.ratingTotalText, { color: themeColors.subText }]}>{reviewStats.total} reviews</Text>
-                </View>
-                <View style={[styles.dividerVertical, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
-                <View style={styles.ratingBreakdownRight}>
-                  {reviewStats.breakdown.map((pct, idx) => {
-                    const starsCount = 5 - idx;
-                    return (
-                      <View key={idx} style={styles.breakdownRow}>
-                        <Text style={[styles.breakdownStarText, { color: themeColors.subText }]}>{starsCount}★</Text>
-                        <View style={[styles.breakdownProgressTrack, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]}>
-                          <View style={[styles.breakdownProgressFill, { width: `${pct}%` }]} />
-                        </View>
-                        <Text style={[styles.breakdownPctText, { color: themeColors.subText }]}>{Math.round(pct)}%</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Add a review input */}
-              <View style={[styles.addReviewContainer, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#E0E0E0' }]}>
-                <Text style={[styles.addReviewTitle, { color: themeColors.text }]}>Add a review</Text>
-                <View style={styles.starPickerRow}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity key={star} onPress={() => setNewRating(star)}>
-                      <Ionicons
-                        name={star <= newRating ? 'star' : 'star-outline'}
-                        size={28}
-                        color="#FFD700"
-                        style={styles.pickerStar}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TextInput
-                  style={[styles.reviewInput, { color: themeColors.text, borderColor: isDark ? '#444' : '#E0E0E0', backgroundColor: isDark ? '#222' : '#FAFAFA' }]}
-                  placeholder="Write your review here..."
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  value={newReviewText}
-                  onChangeText={setNewReviewText}
-                  multiline
-                  numberOfLines={3}
-                />
-                <TouchableOpacity
-                  style={[styles.submitReviewButton, isSubmittingReview && { opacity: 0.7 }]}
-                  onPress={handleAddReview}
-                  disabled={isSubmittingReview}
-                >
-                  <Text style={styles.submitReviewButtonText}>{isSubmittingReview ? 'Submitting…' : 'Submit Review'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Individual review cards (FE-33) */}
-              <View style={styles.reviewsListContainer}>
-                {isLoadingReviews && (
-                  <Text style={{ color: themeColors.subText, textAlign: 'center', marginBottom: 12 }}>Loading reviews…</Text>
-                )}
-                {!isLoadingReviews && reviewsList.length === 0 && (
-                  <Text style={{ color: themeColors.subText, textAlign: 'center', marginBottom: 12 }}>No reviews yet</Text>
-                )}
-                {reviewsList.map((review) => (
-                  <View key={review.id} style={[styles.reviewCard, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#F0F0F0' }]}>
-                    <View style={styles.reviewHeader}>
-                      <Image source={{ uri: review.avatar }} style={styles.reviewAvatar} />
-                      <View style={styles.reviewUserMeta}>
-                        <View style={styles.reviewUserTopRow}>
-                          <Text style={[styles.reviewUserName, { color: themeColors.text }]}>{review.userName}</Text>
-                          {review.isVerified && (
-                            <View style={styles.verifiedBadge}>
-                              <Ionicons name="checkmark-circle" size={10} color="#00BCD4" />
-                              <Text style={styles.verifiedBadgeText}>Verified Booking</Text>
-                            </View>
-                          )}
-                        </View>
-                        <View style={styles.reviewStarsRow}>
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Ionicons
-                              key={star}
-                              name={star <= review.rating ? 'star' : 'star-outline'}
-                              size={12}
-                              color="#FFD700"
-                            />
-                          ))}
-                          <Text style={[styles.reviewDate, { color: themeColors.subText }]}>{review.date}</Text>
-                        </View>
-                      </View>
-                    </View>
-                    <Text style={[styles.reviewBodyText, { color: themeColors.text }]}>{review.text}</Text>
-                  </View>
-                ))}
-              </View>
+              <Text style={[styles.ratingTotalText, { color: themeColors.subText }]}>{reviewStats.total} reviews</Text>
             </View>
-          ) : (
-            <View style={{ marginTop: 16 }}>
-              {/* Shop Tab Content (FE-30) */}
-              <View style={styles.shopHeader}>
-                <Text style={[styles.itemCountText, { color: themeColors.subText }]}>{sellerProducts.length} items available</Text>
-              </View>
-
-              {/* 2-Column Product Grid */}
-              <View style={styles.productsGrid}>
-                {sellerProducts.map((product) => {
-                  const isLiked = likedProducts[product.id] || false;
-                  return (
-                    <View key={product.id} style={[styles.productCard, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#E0E0E0' }]}>
-                      <View style={styles.productImageContainer}>
-                        <Image source={{ uri: product.images[0] }} style={styles.productImage} />
-                        
-                        {/* Condition badge (FE-31) */}
-                        <View style={styles.conditionBadge}>
-                          <Text style={styles.conditionBadgeText}>{(product as any).condition || 'New'}</Text>
-                        </View>
-                        
-                        {/* Heart icon */}
-                        <TouchableOpacity 
-                          style={styles.heartButton} 
-                          onPress={() => toggleLikeProduct(product.id)}
-                        >
-                          <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={16} color={isLiked ? '#FF3B30' : '#333'} />
-                        </TouchableOpacity>
-                        
-                        {/* Name and price overlaid on a LinearGradient (FE-31) */}
-                        <LinearGradient
-                          colors={['transparent', 'rgba(0,0,0,0.8)']}
-                          style={styles.productGradientOverlay}
-                        >
-                          <Text style={styles.productOverlayName} numberOfLines={1}>{product.name}</Text>
-                          <Text style={styles.productOverlayPrice}>{formatPrice(product.price / 1550)}</Text>
-                        </LinearGradient>
-                      </View>
+            <View style={[styles.dividerVertical, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
+            <View style={styles.ratingBreakdownRight}>
+              {reviewStats.breakdown.map((pct, idx) => {
+                const starsCount = 5 - idx;
+                return (
+                  <View key={idx} style={styles.breakdownRow}>
+                    <Text style={[styles.breakdownStarText, { color: themeColors.subText }]}>{starsCount}★</Text>
+                    <View style={[styles.breakdownProgressTrack, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]}>
+                      <View style={[styles.breakdownProgressFill, { width: `${pct}%` }]} />
                     </View>
-                  );
-                })}
-              </View>
+                    <Text style={[styles.breakdownPctText, { color: themeColors.subText }]}>{Math.round(pct)}%</Text>
+                  </View>
+                );
+              })}
             </View>
-          )}
+          </View>
+
+          {/* Add a review */}
+          <View style={[styles.addReviewContainer, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#E0E0E0' }]}>
+            <Text style={[styles.addReviewTitle, { color: themeColors.text }]}>Add a review</Text>
+            <View style={styles.starPickerRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setNewRating(star)}>
+                  <Ionicons
+                    name={star <= newRating ? 'star' : 'star-outline'}
+                    size={28}
+                    color="#FFD700"
+                    style={styles.pickerStar}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={[styles.reviewInput, { color: themeColors.text, borderColor: isDark ? '#444' : '#E0E0E0', backgroundColor: isDark ? '#222' : '#FAFAFA' }]}
+              placeholder="Write your review here..."
+              placeholderTextColor={isDark ? '#666' : '#999'}
+              value={newReviewText}
+              onChangeText={setNewReviewText}
+              multiline
+              numberOfLines={3}
+            />
+            {!!reviewSubmitError && (
+              <Text style={styles.reviewErrorText}>{reviewSubmitError}</Text>
+            )}
+            <TouchableOpacity
+              style={[styles.submitReviewButton, isSubmittingReview && { opacity: 0.7 }]}
+              onPress={handleAddReview}
+              disabled={isSubmittingReview}
+            >
+              <Text style={styles.submitReviewButtonText}>{isSubmittingReview ? 'Submitting…' : 'Submit Review'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Individual review cards */}
+          <View style={styles.reviewsListContainer}>
+            {isLoadingReviews && (
+              <Text style={{ color: themeColors.subText, textAlign: 'center', marginBottom: 12 }}>Loading reviews…</Text>
+            )}
+            {!isLoadingReviews && reviewsList.length === 0 && (
+              <Text style={{ color: themeColors.subText, textAlign: 'center', marginBottom: 12 }}>No reviews yet</Text>
+            )}
+            {reviewsList.map((review) => (
+              <View key={review.id} style={[styles.reviewCard, { backgroundColor: themeColors.cardBg, borderColor: isDark ? '#333' : '#F0F0F0' }]}>
+                <View style={styles.reviewHeader}>
+                  {review.avatar ? (
+                    <Image source={{ uri: review.avatar }} style={styles.reviewAvatar} />
+                  ) : (
+                    <View style={[styles.reviewAvatar, styles.reviewAvatarPlaceholder, { backgroundColor: themeColors.imagePlaceholder }]}>
+                      <Ionicons name="person" size={18} color={themeColors.subText} />
+                    </View>
+                  )}
+                  <View style={styles.reviewUserMeta}>
+                    <View style={styles.reviewUserTopRow}>
+                      <Text style={[styles.reviewUserName, { color: themeColors.text }]}>{review.userName}</Text>
+                      {review.isVerified && (
+                        <View style={styles.verifiedBadge}>
+                          <Ionicons name="checkmark-circle" size={10} color="#00BCD4" />
+                          <Text style={styles.verifiedBadgeText}>Verified Booking</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.reviewStarsRow}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons
+                          key={star}
+                          name={star <= review.rating ? 'star' : 'star-outline'}
+                          size={12}
+                          color="#FFD700"
+                        />
+                      ))}
+                      <Text style={[styles.reviewDate, { color: themeColors.subText }]}>{review.date}</Text>
+                    </View>
+                  </View>
+                </View>
+                <Text style={[styles.reviewBodyText, { color: themeColors.text }]}>{review.text}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Sticky Book Now Footer (FE-34) */}
+      {/* Sticky Book Now Footer */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: themeColors.background, borderTopColor: isDark ? '#333' : '#F0F0F0' }]}>
         <View style={styles.stickyFooterContent}>
-          <TouchableOpacity style={styles.fullBookButton} onPress={() => setShowBookingModal(true)}>
+          <TouchableOpacity style={styles.fullBookButton} onPress={handleOpenBooking}>
             <Text style={styles.fullBookButtonText}>Book Now</Text>
           </TouchableOpacity>
           <View style={styles.paymentNoteContainer}>
@@ -729,44 +494,45 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Booking Modal */}
-      <BookingModal
-        visible={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
-        creative={{
-          id: profile.id,
-          name: profile.name,
-          role: profile.role,
-        }}
-        onViewBooking={(bookingId) => router.push(`/service-tracking/${bookingId}` as any)}
-        onMessage={handleMessage}
-      />
+      {!!creatorId && (
+        <>
+          <BookingModal
+            visible={showBookingModal}
+            onClose={() => setShowBookingModal(false)}
+            offeringId={String(id)}
+            creative={{
+              id: creatorId,
+              name: creatorName ?? 'Creative',
+              role: offering.category ?? '',
+            }}
+            onViewBooking={(bookingId) => router.push(`/service-tracking/${bookingId}` as any)}
+            onMessage={handleMessage}
+          />
 
-      {/* Quote Request Modal */}
-      <QuoteRequestModal
-        visible={showQuoteModal}
-        onClose={() => setShowQuoteModal(false)}
-        creative={{
-          id: profile.id,
-          name: profile.name,
-          role: profile.role,
-          priceRange: creative 
-            ? { min: creative.priceRange.minUSD * 1550, max: creative.priceRange.maxUSD * 1550 } 
-            : { min: 25000, max: 100000 },
-        }}
-        onSubmit={(quote) => {
-          setShowQuoteModal(false);
-          router.push({
-            pathname: '/quote-received/[id]',
-            params: {
-              id: quote.id,
-              creativeName: profile.name,
-              service: quote.service,
-              offerAmount: String(Math.round(Number(quote.budget.replace(/[^\d]/g, '')) || 80000)),
-            },
-          } as any);
-        }}
-      />
+          <QuoteRequestModal
+            visible={showQuoteModal}
+            onClose={() => setShowQuoteModal(false)}
+            offeringId={String(id)}
+            creative={{
+              id: creatorId,
+              name: creatorName ?? 'Creative',
+              role: offering.category ?? '',
+            }}
+            onSubmit={(quote) => {
+              setShowQuoteModal(false);
+              router.push({
+                pathname: '/quote-received/[id]',
+                params: {
+                  id: quote.id,
+                  creativeName: creatorName ?? '',
+                  service: quote.service,
+                  offerAmount: String(Math.round(Number(quote.budget.replace(/[^\d]/g, '')) || price)),
+                },
+              } as any);
+            }}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -774,6 +540,21 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backBtnFloating: {
+    position: 'absolute',
+    top: 10,
+    left: 20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   imageContainer: {
     height: 350,
@@ -783,6 +564,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  headerImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerActions: {
     position: 'absolute',
@@ -873,7 +658,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 20,
-    marginTop: 16,
   },
   tag: {
     paddingHorizontal: 16,
@@ -913,16 +697,9 @@ const styles = StyleSheet.create({
   priceLabel: {
     fontSize: 13,
   },
-  priceValues: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
   priceAmount: {
     fontSize: 22,
     fontWeight: '700',
-  },
-  priceRange: {
-    fontSize: 14,
   },
   quoteButton: {
     backgroundColor: '#00BCD4',
@@ -931,132 +708,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quoteButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontWeight: '600',
     fontSize: 14,
-  },
-  
-  // Custom Styles
-  tabContainer: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    marginBottom: 10,
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-    position: 'relative',
-  },
-  activeTabButton: {},
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    bottom: -1,
-    left: '20%',
-    right: '20%',
-    height: 3,
-    backgroundColor: '#00BCD4',
-    borderRadius: 2,
-  },
-  socialIconsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  socialButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#00BCD440',
-  },
-  portfolioGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 24,
-  },
-  portfolioItem: {
-    width: (width - 48 - 12) / 2,
-    height: 130,
-    borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  portfolioImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  instagramBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 8,
-    gap: 4,
-  },
-  instagramBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '600',
-  },
-  servicesScroll: {
-    marginBottom: 24,
-  },
-  serviceCard: {
-    width: 210,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginRight: 12,
-    justifyContent: 'space-between',
-  },
-  serviceName: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  serviceMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 12,
-  },
-  serviceDuration: {
-    fontSize: 12,
-  },
-  serviceFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  servicePrice: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  serviceBookButton: {
-    backgroundColor: '#00BCD4',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  serviceBookButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
   },
   stickyFooterContent: {
     width: '100%',
@@ -1077,7 +731,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   fullBookButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontWeight: '700',
     fontSize: 16,
   },
@@ -1091,7 +745,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  
+
   // Reviews section styles
   reviewsSummaryContainer: {
     flexDirection: 'row',
@@ -1181,6 +835,11 @@ const styles = StyleSheet.create({
     height: 80,
     marginBottom: 12,
   },
+  reviewErrorText: {
+    color: '#FF3B30',
+    fontSize: 13,
+    marginBottom: 12,
+  },
   submitReviewButton: {
     backgroundColor: '#00BCD4',
     paddingVertical: 10,
@@ -1188,7 +847,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitReviewButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -1211,6 +870,10 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  reviewAvatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reviewUserMeta: {
     flex: 1,
@@ -1251,86 +914,5 @@ const styles = StyleSheet.create({
     color: '#00BCD4',
     fontSize: 10,
     fontWeight: '600',
-  },
-  
-  // Shop tab styles
-  shopHeader: {
-    marginBottom: 12,
-  },
-  itemCountText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  productsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  productCard: {
-    width: (width - 48 - 12) / 2,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  productImageContainer: {
-    width: '100%',
-    height: 160,
-    position: 'relative',
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  conditionBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: '#00BCD4',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 2,
-  },
-  conditionBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  heartButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  productGradientOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 70,
-    justifyContent: 'flex-end',
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    zIndex: 1,
-  },
-  productOverlayName: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  productOverlayPrice: {
-    color: '#00BCD4',
-    fontSize: 13,
-    fontWeight: '700',
   },
 });
