@@ -22,7 +22,7 @@ export default function EmptyState({
   const isDark = colorScheme === 'dark';
 
   const tc = {
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     iconBg: isDark ? '#1A1A1A' : '#F5F5F5',
   };

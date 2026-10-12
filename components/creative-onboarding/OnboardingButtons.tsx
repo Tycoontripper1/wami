@@ -22,7 +22,7 @@ export default function OnboardingButtons({
 
   const themeColors = {
     skipBorder: isDark ? '#333' : '#E0E0E0',
-    skipText: isDark ? '#fff' : '#000',
+    skipText: isDark ? '#fff' : '#0F1419',
   };
 
   return (

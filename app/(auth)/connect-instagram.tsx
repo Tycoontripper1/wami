@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   instagram: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 16,
     textAlign: 'center',
   },

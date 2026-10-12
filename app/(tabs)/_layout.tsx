@@ -160,7 +160,7 @@ function PostOptionsModal({ visible, onClose }: { visible: boolean; onClose: () 
           ]}
         >
           <View style={modalStyles.handle} />
-          <Text style={[modalStyles.title, { color: isDark ? '#fff' : '#000' }]}>What would you like to post?</Text>
+          <Text style={[modalStyles.title, { color: isDark ? '#fff' : '#0F1419' }]}>What would you like to post?</Text>
           {POST_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.key}
@@ -170,7 +170,7 @@ function PostOptionsModal({ visible, onClose }: { visible: boolean; onClose: () 
               <View style={[modalStyles.optionIcon, { backgroundColor: Colors.light.primary + '20' }]}>
                 <Ionicons name={opt.icon} size={22} color={Colors.light.primary} />
               </View>
-              <Text style={[modalStyles.optionLabel, { color: isDark ? '#fff' : '#000' }]}>{opt.label}</Text>
+              <Text style={[modalStyles.optionLabel, { color: isDark ? '#fff' : '#0F1419' }]}>{opt.label}</Text>
               <Ionicons name="chevron-forward" size={18} color={isDark ? '#8E8E93' : '#6B7280'} />
             </TouchableOpacity>
           ))}

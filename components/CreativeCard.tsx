@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
   },
   detailsRow: {
     flexDirection: 'row',
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
   },
   reviewsText: {
     fontSize: 14,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontWeight: '600',
     fontSize: 16,
   },
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   profileButtonText: {
-    color: '#000',
+    color: '#0F1419',
     fontWeight: '600',
     fontSize: 16,
   },

@@ -64,7 +64,7 @@ export default function LocationPickerScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     cardBg: isDark ? '#1a1a1a' : '#f5f5f5',
     border: isDark ? '#333' : '#e0e0e0',
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   selectedLocationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: '#0F1419',
   },
   confirmButton: {
     backgroundColor: Colors.light.primary,

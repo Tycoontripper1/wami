@@ -13,7 +13,7 @@ export default function AccountSuccessScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
     cardBg: isDark ? '#1A1A1A' : '#F5F5F5',
   };
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 20,
-    color: '#000',
+    color: '#0F1419',
   },
   optionCard: {
     flexDirection: 'row',
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 4,
   },
   optionSubtitle: {

@@ -31,10 +31,10 @@ export default function CreateAccountScreen() {
   
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
     border: isDark ? '#333' : '#E0E0E0',
-    icon: isDark ? '#fff' : '#000',
+    icon: isDark ? '#fff' : '#0F1419',
   };
 
   const handleCreateAccount = async () => {
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 8,
   },
   subtitle: {

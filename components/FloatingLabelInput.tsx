@@ -45,7 +45,7 @@ export function FloatingLabelInput({
   
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     border: isDark ? '#333' : '#E0E0E0',
     placeholder: isDark ? '#666' : '#999',
     labelInactive: isDark ? '#666' : '#999',

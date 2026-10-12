@@ -29,9 +29,9 @@ export default function SignUpEmailScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
-    icon: isDark ? '#fff' : '#000',
+    icon: isDark ? '#fff' : '#0F1419',
   };
 
   const handleNext = async () => {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 8,
   },
   subtitle: {

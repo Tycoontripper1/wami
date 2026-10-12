@@ -26,10 +26,10 @@ export default function SignInScreen() {
   
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
     border: isDark ? '#333' : '#E0E0E0',
-    icon: isDark ? '#fff' : '#000',
+    icon: isDark ? '#fff' : '#0F1419',
   };
 
   const handleSignIn = async () => {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
+    color: '#0F1419',
     lineHeight: 28,
   },
 

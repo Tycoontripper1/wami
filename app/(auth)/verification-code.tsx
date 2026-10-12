@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 28,
     fontWeight: '600',
-    color: '#000',
+    color: '#0F1419',
   },
   codeInputFilled: {
     borderColor: Colors.light.primary,

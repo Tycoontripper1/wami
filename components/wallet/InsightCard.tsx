@@ -49,7 +49,7 @@ export default function InsightCard({
 
   const themeColors = {
     cardBg: isDark ? '#1A1A1A' : '#F8F9FA',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
   };
 

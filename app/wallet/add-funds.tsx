@@ -39,7 +39,7 @@ export default function AddFundsScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     cardBg: isDark ? '#1A1A1A' : '#F5F5F5',
     border: isDark ? '#333' : '#E0E0E0',

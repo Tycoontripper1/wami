@@ -18,7 +18,7 @@ export default function BrandInput({ icon, placeholder, value, onChangeText, opt
   const themeColors = {
     inputBg: isDark ? '#1A1A1A' : '#F5F5F5',
     border: isDark ? '#333' : '#E0E0E0',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     placeholder: isDark ? '#666' : '#999',
   };
 

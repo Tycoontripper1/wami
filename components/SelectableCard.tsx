@@ -17,7 +17,7 @@ export default function SelectableCard({ title, subtitle, icon, isSelected, onPr
 
   const themeColors = {
     background: isDark ? '#1A1A1A' : '#F5F5F5',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#ccc' : '#666',
     border: isSelected ? Colors.light.primary : (isDark ? '#333' : '#E0E0E0'),
   };

@@ -36,7 +36,7 @@ export default function RecommendedCreatives({
 
   const themeColors = {
     background: isDark ? '#1a1a1a' : '#f5f5f5',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     cardBg: isDark ? '#2a2a2a' : '#fff',
   };

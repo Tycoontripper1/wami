@@ -33,7 +33,7 @@ export default function AddServiceScreen() {
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
     border: isDark ? '#333' : '#e0e0e0',
   };

@@ -14,7 +14,7 @@ export default function PillButton({ label, isSelected, onPress }: PillButtonPro
 
   const themeColors = {
     background: isSelected ? Colors.light.primary : (isDark ? '#1A1A1A' : '#F5F5F5'),
-    text: isSelected ? '#fff' : (isDark ? '#fff' : '#000'),
+    text: isSelected ? '#fff' : (isDark ? '#fff' : '#0F1419'),
     border: isSelected ? Colors.light.primary : (isDark ? '#333' : '#E0E0E0'),
   };
 

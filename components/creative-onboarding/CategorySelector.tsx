@@ -15,7 +15,7 @@ export default function CategorySelector({ selected, onToggle }: CategorySelecto
   const themeColors = {
     pillBg: isDark ? '#1A1A1A' : '#F5F5F5',
     pillBorder: isDark ? '#333' : '#E0E0E0',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
   };
 
   return (

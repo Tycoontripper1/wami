@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#000',
+    color: '#0F1419',
     marginBottom: 8,
   },
   subtitle: {
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '600',
-    color: '#000',
+    color: '#0F1419',
   },
   codeInputFilled: {
     // borderColor: Colors.light.primary, // Design doesn't show border highlight, but it's good UX
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   numberText: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#000',
+    color: '#0F1419',
   },
   nextButton: {
     height: 56,

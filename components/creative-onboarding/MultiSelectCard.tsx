@@ -17,7 +17,7 @@ export default function MultiSelectCard({ title, description, isSelected, onPres
   const themeColors = {
     cardBg: isDark ? '#1A1A1A' : '#fff',
     border: isDark ? '#333' : '#E0E0E0',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
   };
 

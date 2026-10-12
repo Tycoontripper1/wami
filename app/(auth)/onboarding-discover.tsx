@@ -506,7 +506,7 @@ const s3 = StyleSheet.create({
   escrowAvatar: { width: 36, height: 36, borderRadius: 18 },
   escrowName: { fontSize: 13, fontWeight: "700" },
   escrowSub: { fontSize: 11, color: "#888", marginTop: 1 },
-  escrowAmount: { fontSize: 14, fontWeight: "800", color: "#000000" },
+  escrowAmount: { fontSize: 14, fontWeight: "800", color: "#0F1419" },
   divider: { height: 1, marginVertical: 4 },
 });
 

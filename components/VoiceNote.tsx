@@ -33,7 +33,7 @@ export default function VoiceNote({
 
   const themeColors = {
     background: isDark ? '#2a2a2a' : '#f0f0f0',
-    text: isDark ? '#fff' : '#000',
+    text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
   };
 
