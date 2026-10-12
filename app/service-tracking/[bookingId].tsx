@@ -2,9 +2,11 @@ import Colors from '@/constants/Colors';
 import {
     ApiBooking,
     ApiMilestone,
+    cancelBooking,
     getBookingById,
     releaseMilestone,
 } from '@/services/api/bookingsService';
+import { cancelBooking as cancelLocalBooking } from '@/store/bookingsSlice';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -20,6 +22,7 @@ import {
     useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
 
 const STATUS_STEPS: { status: string; label: string }[] = [
   { status: 'pending', label: 'Booking Requested' },
@@ -49,6 +52,8 @@ export default function ServiceTrackingScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [releasingId, setReleasingId] = useState<string | number | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const dispatch = useDispatch();
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -77,6 +82,35 @@ export default function ServiceTrackingScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // PUT /bookings/:id/status {status: 'cancelled'} — there is no
+  // /cancel route; this is the backend's real cancel mechanism.
+  const handleCancelBooking = () => {
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking? This can\'t be undone.',
+      [
+        { text: 'Keep Booking', style: 'cancel' },
+        {
+          text: 'Cancel Booking',
+          style: 'destructive',
+          onPress: async () => {
+            setIsCancelling(true);
+            try {
+              await cancelBooking(bookingId);
+              dispatch(cancelLocalBooking(String(bookingId)));
+              await load();
+            } catch (error) {
+              console.error('Failed to cancel booking:', error);
+              Alert.alert("Couldn't Cancel", 'Something went wrong while cancelling this booking. Please try again.');
+            } finally {
+              setIsCancelling(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleReleaseMilestone = (milestone: ApiMilestone) => {
     Alert.alert(
@@ -248,6 +282,23 @@ export default function ServiceTrackingScreen() {
           >
             <Ionicons name="calendar-outline" size={18} color={Colors.light.primary} />
             <Text style={[styles.rescheduleBtnText, { color: Colors.light.primary }]}>Reschedule Booking</Text>
+          </TouchableOpacity>
+        )}
+
+        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+          <TouchableOpacity
+            style={[styles.rescheduleBtn, { borderColor: '#FF3B30' }, isCancelling && { opacity: 0.6 }]}
+            onPress={handleCancelBooking}
+            disabled={isCancelling}
+          >
+            {isCancelling ? (
+              <ActivityIndicator size="small" color="#FF3B30" />
+            ) : (
+              <Ionicons name="close-circle-outline" size={18} color="#FF3B30" />
+            )}
+            <Text style={[styles.rescheduleBtnText, { color: '#FF3B30' }]}>
+              {isCancelling ? 'Cancelling…' : 'Cancel Booking'}
+            </Text>
           </TouchableOpacity>
         )}
 

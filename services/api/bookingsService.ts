@@ -86,12 +86,21 @@ export const createBooking = async (
   return apiClient.post(API_ENDPOINTS.BOOKINGS.CREATE, payload);
 };
 
-// PATCH /bookings/:id/status  { status }
+// PUT /bookings/:id/status  { status } — PUT, not PATCH, per backend
+// (confirmed by the backend team 2026-10-12). This is also how a booking is
+// cancelled: there is no /bookings/:id/cancel route (404s live).
 export const updateBookingStatus = async (
   id: string | number,
   status: ApiBookingStatus
 ): Promise<ApiResponse<ApiBooking>> => {
-  return apiClient.patch(API_ENDPOINTS.BOOKINGS.STATUS(id), { status });
+  return apiClient.put(API_ENDPOINTS.BOOKINGS.STATUS(id), { status });
+};
+
+// PUT /bookings/:id/status  { status: "cancelled" }
+export const cancelBooking = async (
+  id: string | number
+): Promise<ApiResponse<ApiBooking>> => {
+  return updateBookingStatus(id, 'cancelled');
 };
 
 // POST /bookings/:id/milestones  { title, amount, due_date }
