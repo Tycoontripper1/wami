@@ -2,7 +2,7 @@ import BookingModal from '@/components/BookingModal';
 import EmptyState from '@/components/EmptyState';
 import QuoteRequestModal from '@/components/QuoteRequestModal';
 import Colors from '@/constants/Colors';
-import { saveOffering, unsaveOffering } from '@/services/api/discoveryService';
+import { saveOffering, searchDiscovery, unsaveOffering } from '@/services/api/discoveryService';
 import { ApiOffering, getOfferingById } from '@/services/api/offeringsService';
 import { createReview, getReviews, ReviewableType } from '@/services/api/reviewsService';
 import { addFavorite, removeFavorite } from '@/store/favoritesSlice';
@@ -63,10 +63,13 @@ export default function ProfileScreen() {
   // The creative who owns this offering — carried through navigation from
   // wherever it was discovered (discovery/feed, discovery/search both embed
   // a `creator` object), since there's no endpoint to look this up again
-  // from just the offering id. A deep link without these params can still
-  // view the offering, but can't book/message/review — guarded below.
-  const creatorId = params.creatorId || undefined;
-  const creatorName = params.creatorName || undefined;
+  // from just the offering id. If a screen didn't pass them (discovery/
+  // near-you omits `creator`, confirmed live 2026-10-03), they're looked up
+  // below via discovery/search instead; with neither, the offering can
+  // still be viewed but can't be booked/messaged — guarded below.
+  const [lookedUpCreator, setLookedUpCreator] = useState<{ id: string; name?: string } | null>(null);
+  const creatorId = params.creatorId || lookedUpCreator?.id || undefined;
+  const creatorName = params.creatorName || lookedUpCreator?.name || undefined;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
@@ -100,6 +103,28 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadOffering();
   }, [loadOffering]);
+
+  // Stopgap for the backend gap above: discovery/search embeds
+  // `creator: {id, name, username}` on each item, so search by title and
+  // pick the item with this offering's id. Remove once backend adds
+  // `creator` to discovery/feed and discovery/near-you.
+  useEffect(() => {
+    if (params.creatorId || !offering?.title) return;
+    let cancelled = false;
+    searchDiscovery(offering.title)
+      .then((res) => {
+        const data: any = res.data;
+        const items: any[] = Array.isArray(data) ? data : data?.items ?? [];
+        const match = items.find((item) => String(item.id) === String(id));
+        if (!cancelled && match?.creator?.id !== undefined) {
+          setLookedUpCreator({ id: String(match.creator.id), name: match.creator.name });
+        }
+      })
+      .catch((error) => console.error('Creator lookup failed:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [offering?.title, params.creatorId, id]);
 
   const [reviewsList, setReviewsList] = useState<DisplayReview[]>([]);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
