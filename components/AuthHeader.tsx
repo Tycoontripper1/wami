@@ -97,7 +97,7 @@ export default function AuthHeader({
               accessibilityLabel="Back"
             >
               {/* the glyph sits a few px inside its box; pull it onto the text's left edge */}
-              <Ionicons name="arrow-back" size={26} color={text} style={{ marginLeft: -4 }} />
+              <Ionicons name="arrow-back" size={26} color={text} style={{ marginLeft: -1 }} />
             </TouchableOpacity>
           ) : (
             <View />
@@ -108,7 +108,7 @@ export default function AuthHeader({
               style={[styles.iconButton, { alignItems: 'flex-end' }]}
               accessibilityLabel="Close"
             >
-              <Ionicons name="close" size={22} color={text} style={{ marginRight: -4 }} />
+              <Ionicons name="close" size={22} color={text} style={{ marginRight: -1 }} />
             </TouchableOpacity>
           ) : null}
         </View>

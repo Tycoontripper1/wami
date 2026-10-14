@@ -72,7 +72,7 @@ const halves = (left: string, right: string, c: string) => (
 const glyphs: Record<string, Glyph> = {
   /* strokes */
   // Bold, rounded, with a 45° head: reads cleanly without a button behind it.
-  'arrow-back': { draw: (c) => line('M20 12 H4.8 M11 5.8 L4.8 12 L11 18.2', c, 2.9) },
+  'arrow-back': { draw: (c) => line('M21.5 12 H2.6 M9.1 5.5 L2.6 12 L9.1 18.5', c, 2.9) },
   'arrow-forward': { draw: (c) => line('M4.5 12 H18.5 M12.8 5.8 L19 12 L12.8 18.2', c) },
   'arrow-up': { draw: (c) => line('M12 19.5 V5.5 M5.8 11.2 L12 5 L18.2 11.2', c) },
   'arrow-down': { draw: (c) => line('M12 4.5 V18.5 M5.8 12.8 L12 19 L18.2 12.8', c) },

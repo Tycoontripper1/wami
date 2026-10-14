@@ -1,6 +1,6 @@
 import Colors from '@/constants/Colors';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, TextInputProps, View, ViewStyle, useColorScheme } from 'react-native';
+import { Animated, Platform, StyleSheet, TextInputProps, View, ViewStyle, useColorScheme } from 'react-native';
 import { TextInput } from '@/components/AppText';
 
 interface FloatingLabelInputProps extends TextInputProps {
@@ -24,6 +24,7 @@ export function FloatingLabelInput({
   ...props 
 }: FloatingLabelInputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
   const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -44,6 +45,14 @@ export function FloatingLabelInput({
     onBlur?.(e);
   };
 
+  const multiline = !!props.multiline;
+  // A text area grows with what is typed, from `numberOfLines` rows up to 10 rows,
+  // then scrolls. (Native reports the text height; the web reports it with padding.)
+  const rows = props.numberOfLines ?? 3;
+  const pad = Platform.OS === 'web' ? 0 : 26;
+  const textAreaHeight = Math.min(Math.max(rows * 21 + 26, contentHeight + pad), 10 * 21 + 26);
+  // The container draws the focus border; the browser's own ring would double it.
+  const webNoOutline = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null;
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark' && !forceLight;
   
@@ -83,6 +92,7 @@ export function FloatingLabelInput({
       </Animated.Text>
       <View style={[
         styles.inputContainer,
+        multiline ? styles.multilineContainer : styles.singleLineContainer,
         { 
           borderColor: themeColors.border,
           backgroundColor: themeColors.background 
@@ -92,7 +102,17 @@ export function FloatingLabelInput({
         <TextInput
           {...props}
           value={value}
-          style={[styles.input, { color: themeColors.text }, style]}
+          style={[
+            styles.input,
+            multiline && [styles.multilineInput, { height: textAreaHeight }],
+            { color: themeColors.text },
+            webNoOutline,
+            style,
+          ]}
+          onContentSizeChange={(e) => {
+            setContentHeight(e.nativeEvent.contentSize.height);
+            props.onContentSizeChange?.(e);
+          }}
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder={isFocused ? placeholder : ''}
@@ -112,10 +132,17 @@ const styles = StyleSheet.create({
   // The app's standard field: 46px tall, 10px radius, 15px text.
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    height: 46,
     borderWidth: 1,
     borderRadius: 10,
+  },
+  singleLineContainer: {
+    alignItems: 'center',
+    height: 46,
+  },
+  // A text area grows with its content instead of clipping it to one row.
+  multilineContainer: {
+    alignItems: 'flex-start',
+    minHeight: 46,
   },
   focusedContainer: {
     borderColor: Colors.light.primary,
@@ -126,5 +153,12 @@ const styles = StyleSheet.create({
     height: '100%',
     paddingHorizontal: 14,
     fontSize: 15,
+  },
+  multilineInput: {
+    alignSelf: 'stretch',
+    paddingTop: 13,
+    paddingBottom: 13,
+    lineHeight: 21,
+    textAlignVertical: 'top',
   },
 });

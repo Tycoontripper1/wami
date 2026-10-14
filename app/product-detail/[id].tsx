@@ -171,10 +171,10 @@ export default function ProductDetailScreen() {
       {/* Header */}
       <SafeAreaView edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.headerButton, { alignItems: 'flex-start' }]}>
             <Ionicons name="arrow-back" size={24} color={themeColors.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity style={[styles.headerButton, { alignItems: 'flex-end' }]}>
             <Ionicons name="share-outline" size={24} color={themeColors.text} />
           </TouchableOpacity>
         </View>

@@ -95,7 +95,7 @@ export default function AddServiceScreen() {
           value={description}
           onChangeText={setDescription}
           multiline
-          style={{ height: 100, textAlignVertical: 'top', paddingTop: 12 }}
+          numberOfLines={4}
           containerStyle={{ marginBottom: 20 }}
         />
         <FloatingLabelInput

@@ -215,8 +215,7 @@ export default function SellScreen() {
             onChangeText={setDescription}
             placeholder="Tell buyers more about your product..."
             multiline
-            numberOfLines={4}
-            style={styles.textArea}
+            numberOfLines={5}
           />
         </View>
       </ScrollView>
@@ -305,11 +304,6 @@ const styles = StyleSheet.create({
   },
   form: {
     marginTop: 10,
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-    paddingTop: 12,
   },
   row: {
     flexDirection: 'row',

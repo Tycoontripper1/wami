@@ -219,7 +219,6 @@ export default function EditProfileScreen() {
             placeholder="Tell us about yourself..."
             multiline
             numberOfLines={4}
-            style={styles.bioInput}
           />
         </View>
 
@@ -268,6 +267,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 4,
+    marginLeft: -4,
   },
   headerTitle: {
     fontSize: 18,
@@ -341,11 +341,6 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 30,
-  },
-  bioInput: {
-    height: 100,
-    textAlignVertical: 'top',
-    paddingTop: 12,
   },
   settingsSection: {
     marginTop: 10,
