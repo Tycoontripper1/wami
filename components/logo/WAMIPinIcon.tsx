@@ -36,7 +36,7 @@ export function WAMIPinIcon({
       {cutoutColor ? (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: cutoutColor, borderRadius: size }]} />
       ) : null}
-      <Svg width={size} height={height} viewBox={`0 0 ${PIN_VIEWBOX.width} ${PIN_VIEWBOX.height}`}>
+      <Svg width={size} height={height} style={styles.pin} viewBox={`0 0 ${PIN_VIEWBOX.width} ${PIN_VIEWBOX.height}`}>
         <Path d={PIN_WITH_W_PATH} fill={color} fillRule="evenodd" />
       </Svg>
     </View>
@@ -47,5 +47,13 @@ const styles = StyleSheet.create({
   wrap: {
     position: 'relative',
     overflow: 'hidden',
+  },
+  // Explicit stacking: on web the absolutely positioned cutout above would
+  // otherwise paint over the (non-positioned) SVG and hide the logo.
+  pin: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1,
   },
 });
