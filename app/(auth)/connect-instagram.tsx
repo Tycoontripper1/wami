@@ -1,6 +1,6 @@
 import InstagramConnectCard from '@/components/InstagramConnectCard';
 import { Illo } from '@/constants/Illustration';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
  */
 export default function ConnectInstagramScreen() {
   const router = useRouter();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const fromProfile = from === 'profile';
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
 
@@ -20,7 +22,8 @@ export default function ConnectInstagramScreen() {
     sub: isDark ? '#B8C0C8' : '#4A545E',
   };
 
-  const goHome = () => router.replace('/(tabs)');
+  // From the profile menu: just go back. From sign-up: carry on into the app.
+  const goHome = () => (fromProfile ? router.back() : router.replace('/(tabs)'));
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -41,11 +44,13 @@ export default function ConnectInstagramScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity style={styles.continue} onPress={goHome} activeOpacity={0.85}>
-          <Text style={styles.continueText}>Continue</Text>
+          <Text style={styles.continueText}>{fromProfile ? 'Done' : 'Continue'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={goHome} style={styles.skip}>
-          <Text style={[styles.skipText, { color: theme.sub }]}>Skip for now</Text>
-        </TouchableOpacity>
+        {fromProfile ? null : (
+          <TouchableOpacity onPress={goHome} style={styles.skip}>
+            <Text style={[styles.skipText, { color: theme.sub }]}>Skip for now</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

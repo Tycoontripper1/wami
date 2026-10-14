@@ -15,7 +15,8 @@ type Props = {
  */
 export default function InstagramConnectCard({ onConnected }: Props) {
   const isDark = useColorScheme() === 'dark';
-  const { phase, username, importedCount, error, connect, importPosts, disconnect } = useInstagramConnection();
+  const { phase, username, importedCount, error, connect, importPosts, disconnect, refresh } =
+    useInstagramConnection();
 
   const theme = {
     card: isDark ? '#14181D' : '#F5F7F8',
@@ -89,6 +90,11 @@ export default function InstagramConnectCard({ onConnected }: Props) {
           </View>
         ) : null}
         <Primary label={phase === 'error' ? 'Try again' : 'Connect Instagram'} onPress={() => void connect()} />
+        {phase === 'error' ? (
+          <TouchableOpacity onPress={() => void refresh()} style={styles.link}>
+            <Text style={[styles.linkText, { color: theme.sub }]}>I finished on Instagram, check again</Text>
+          </TouchableOpacity>
+        ) : null}
       </>
     );
   }

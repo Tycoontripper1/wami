@@ -6,6 +6,7 @@ import {
 } from '@/services/api/instagramApiService';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 export type InstagramPhase =
   | 'checking' // asking the backend whether an account is already connected
@@ -91,6 +92,19 @@ export function useInstagramConnection() {
 
   useEffect(() => {
     void refresh();
+  }, [refresh]);
+
+  // Coming back from the browser: pick up a connection that finished after
+  // the first check gave up (slow callback, or completed by hand).
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && (phaseRef.current === 'error' || phaseRef.current === 'idle')) {
+        void refresh();
+      }
+    });
+    return () => sub.remove();
   }, [refresh]);
 
   const connect = useCallback(async () => {

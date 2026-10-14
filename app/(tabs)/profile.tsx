@@ -1,4 +1,5 @@
 import Colors from '@/constants/Colors';
+import { INSTAGRAM_IMPORT_ENABLED } from '@/constants/Features';
 import { getBookings } from '@/services/api/bookingsService';
 import { profileService } from '@/services/api/profileService';
 import { authService } from '@/services/authService';
@@ -87,6 +88,11 @@ export default function ProfileScreen() {
     { icon: 'wallet', label: 'Wallet', route: '/(tabs)/wallet' },
     { icon: 'basket', label: 'My Products', route: '/my-products' },
     { icon: 'calendar', label: 'Manage Availability', route: '/creative-dashboard' },
+    // Hidden in release builds until INSTAGRAM_IMPORT_ENABLED (the backend's
+    // redirect address is not fixed yet); always available while developing.
+    ...(INSTAGRAM_IMPORT_ENABLED || __DEV__
+      ? [{ icon: 'logo-instagram', label: 'Instagram', route: '/connect-instagram?from=profile' }]
+      : []),
     { icon: 'card', label: 'Payment Methods', route: '/payment-methods' },
     { icon: 'bookmark', label: 'Saved', route: '/favourites' },
     { icon: 'time', label: 'Booking History', route: '/booking-history' },
