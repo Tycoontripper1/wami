@@ -3,9 +3,16 @@
 // shipping those to real users would present fabricated information as real.
 // Flip to true only once a real endpoint backs the flow.
 
-// Instagram import (creative onboarding). The backend has no Instagram
-// endpoint; services/instagramService.ts fabricates a profile (random
-// follower counts, stock photos) for any username.
+// Instagram connect + import (creative onboarding). The app side is wired to
+// the backend's real OAuth flow (services/api/instagramApiService.ts).
+//
+// Left OFF because the flow cannot finish yet: GET /instagram/connect hands
+// Instagram the redirect_uri https://joinwami.com/instagram/callback, but that
+// host currently serves an unrelated service (404). The working callback page
+// is https://api.joinwami.com/instagram/callback. Flip to true once the
+// backend's redirect_uri points at a page that really handles the callback
+// (and is registered in the Meta app), and one Instagram account has been
+// connected and imported end to end.
 export const INSTAGRAM_IMPORT_ENABLED = false;
 
 // Arranging a delivery for an order (app/delivery/*). The backend has no

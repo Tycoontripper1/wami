@@ -63,6 +63,14 @@ export const API_ENDPOINTS = {
   },
 
 
+  // Instagram connect + import (backend OAuth flow)
+  INSTAGRAM: {
+    CONNECT: '/instagram/connect',
+    STATUS: '/instagram/status',
+    IMPORT: '/instagram/import',
+    DISCONNECT: '/instagram/disconnect',
+  },
+
   // Discovery (feed, near-you, search, saved, swipe)
   DISCOVERY: {
     FEED: '/discovery/feed',
@@ -236,14 +244,6 @@ export const API_ENDPOINTS = {
     BY_CATEGORY: (category: string) => `/products/category/${category}`,
     BULK_UPDATE: '/products/bulk/update',
     BULK_DELETE: '/products/bulk/delete',
-  },
-
-  // Instagram Integration
-  INSTAGRAM: {
-    CONNECT: '/instagram/connect',
-    DISCONNECT: '/instagram/disconnect',
-    GET_PROFILE: '/instagram/profile',
-    GET_POSTS: '/instagram/posts',
   },
 
   // Account Setup & Onboarding
