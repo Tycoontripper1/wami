@@ -52,6 +52,7 @@ export default function ResetVerificationCodeScreen() {
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader
+          compact
           title="Enter the"
           highlight="code"
           onBack={() => router.back()}

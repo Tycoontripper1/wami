@@ -1,9 +1,8 @@
 import { Ionicons } from '@/components/FlatIcon';
-import CreativeTool, { ToolName } from '@/components/illustrations/CreativeTools';
+import ToolsScatter from '@/components/ToolsScatter';
 import { Illo } from '@/constants/Illustration';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
-  AccessibilityInfo,
   Animated,
   Easing,
   Keyboard,
@@ -31,138 +30,35 @@ type Props = {
 };
 
 // The auth screens pad their content by 24px at the sides and by the safe-area
-// inset + 20px at the top; the header cancels that so the tools run edge to edge.
+// inset + 20px at the top; the header cancels that so the scene runs edge to edge.
 const SIDE = 24;
 const TOP_GAP = 20;
-const BUTTON_ZONE = 56; // room for the back button below the status bar
-
-// Positions are for a 390-wide, 330-tall field; x is a fraction of the width,
-// y and size are scaled with the field's height.
-type Placement = { name: ToolName; x: number; y: number; size: number; rotate: number };
-const FIELD_HEIGHT = 330;
-const PLACEMENTS: Placement[] = [
-  { name: 'flower', x: 0.2, y: 6, size: 32, rotate: 0 },
-  { name: 'scissors', x: 0.34, y: 20, size: 62, rotate: 12 },
-  { name: 'palette', x: 0.66, y: 40, size: 76, rotate: 8 },
-  { name: 'heart', x: 0.88, y: 10, size: 34, rotate: -12 },
-  { name: 'camera', x: 0.05, y: 76, size: 78, rotate: -10 },
-  { name: 'brush', x: 0.43, y: 100, size: 68, rotate: 0 },
-  { name: 'coin', x: 0.9, y: 108, size: 30, rotate: 0 },
-  { name: 'clapper', x: 0.27, y: 148, size: 52, rotate: -6 },
-  { name: 'bulb', x: 0.79, y: 148, size: 60, rotate: 10 },
-  { name: 'spool', x: 0.03, y: 178, size: 62, rotate: -8 },
-  { name: 'pencil', x: 0.6, y: 232, size: 58, rotate: 0 },
-  { name: 'comb', x: 0.19, y: 252, size: 58, rotate: -6 },
-  { name: 'lipstick', x: 0.45, y: 262, size: 46, rotate: 8 },
-  { name: 'headphones', x: 0.76, y: 246, size: 56, rotate: 8 },
-];
-const COMPACT_LIMIT = 215; // keep only what ends above this y
-
-/** One tool: placed, tilted, and drifting a little so the screen feels alive. */
-function FloatingTool({
-  placement,
-  scale,
-  sizeScale,
-  width,
-  index,
-  still,
-}: {
-  placement: Placement;
-  scale: number;
-  sizeScale: number;
-  width: number;
-  index: number;
-  still: boolean;
-}) {
-  const drift = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (still) {
-      drift.setValue(0);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(drift, {
-          toValue: 1,
-          duration: 2400 + (index % 5) * 350,
-          delay: (index % 4) * 220,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(drift, {
-          toValue: 0,
-          duration: 2400 + (index % 5) * 350,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [still, index]);
-
-  const size = placement.size * sizeScale;
-  const sway = index % 2 === 0 ? 4 : -4;
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        left: placement.x * width,
-        top: placement.y * scale,
-        transform: [
-          { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [0, -5 * scale] }) },
-          {
-            rotate: drift.interpolate({
-              inputRange: [0, 1],
-              outputRange: [`${placement.rotate}deg`, `${placement.rotate + sway}deg`],
-            }),
-          },
-        ],
-      }}
-    >
-      <CreativeTool name={placement.name} size={size} />
-    </Animated.View>
-  );
-}
+const BUTTON_ZONE = 52; // room for the back button below the status bar
 
 /**
- * Top of the sign-in / sign-up / password screens: a scatter of the tools
- * creatives work with, then a big headline with one highlighted word and a
- * plain subtitle. The tools fold away while the keyboard is open.
+ * Top of the sign-in / sign-up / password screens: the same Wami-pin-and-tools
+ * scene as the welcome screen, then a big headline with one highlighted word
+ * and a plain subtitle. The scene folds away while the keyboard is open.
  */
 export default function AuthHeader({ title, highlight, subtitle, onBack, onClose, compact, forceLight }: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const isDark = useColorScheme() === 'dark' && !forceLight;
-  const [still, setStill] = useState(false);
-  const fold = useRef(new Animated.Value(1)).current; // 1 = tools open, 0 = folded
+  const fold = useRef(new Animated.Value(1)).current; // 1 = scene open, 0 = folded
 
   useEffect(() => {
-    let mounted = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((v) => mounted && setStill(v));
     const animate = (to: number) =>
       Animated.timing(fold, { toValue: to, duration: 170, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
     const show = Keyboard.addListener('keyboardDidShow', () => animate(0));
     const hide = Keyboard.addListener('keyboardDidHide', () => animate(1));
     return () => {
-      mounted = false;
       show.remove();
       hide.remove();
     };
   }, [fold]);
 
-  // The field takes a share of the screen so the form always fits beneath it.
-  const fieldHeight = Math.round(Math.min(compact ? 200 : FIELD_HEIGHT, height * (compact ? 0.2 : 0.27)));
-  const scale = fieldHeight / FIELD_HEIGHT;
-  // Objects are drawn a little larger than their slot's share, like a sticker sheet.
-  const sizeScale = scale * 1.22;
-  const placements = useMemo(
-    () => (compact ? PLACEMENTS.filter((p) => p.y + p.size <= COMPACT_LIMIT) : PLACEMENTS),
-    [compact],
-  );
+  // The scene takes a share of the screen so the form always fits beneath it.
+  const sceneHeight = Math.round(Math.min(compact ? 230 : 330, height * (compact ? 0.24 : 0.33)));
 
   const text = isDark ? '#FFFFFF' : '#0F1419';
   const sub = isDark ? '#B8C0C8' : '#5A646E';
@@ -173,14 +69,12 @@ export default function AuthHeader({ title, highlight, subtitle, onBack, onClose
     <View style={{ marginHorizontal: -SIDE, marginTop: -(insets.top + TOP_GAP), marginBottom: 12 }}>
       <Animated.View
         style={{
-          height: fold.interpolate({ inputRange: [0, 1], outputRange: [topZone, topZone + fieldHeight] }),
+          height: fold.interpolate({ inputRange: [0, 1], outputRange: [topZone, topZone + sceneHeight] }),
           overflow: 'hidden',
         }}
       >
         <Animated.View style={{ position: 'absolute', top: topZone, left: 0, right: 0, opacity: fold }}>
-          {placements.map((p, i) => (
-            <FloatingTool key={p.name} placement={p} scale={scale} sizeScale={sizeScale} width={width} index={i} still={still} />
-          ))}
+          <ToolsScatter width={width} height={sceneHeight} compact={compact} />
         </Animated.View>
       </Animated.View>
 
@@ -229,7 +123,7 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    zIndex: 5,
+    zIndex: 10,
   },
   iconButton: {
     width: 44,

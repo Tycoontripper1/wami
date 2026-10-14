@@ -20,7 +20,8 @@ export type ToolName =
   | 'headphones'
   | 'heart'
   | 'flower'
-  | 'coin';
+  | 'coin'
+  | 'pin';
 
 const c = Illo;
 const STEEL = '#C9D3DA';
@@ -111,7 +112,8 @@ const drawings: Record<ToolName, () => React.JSX.Element> = {
       <Path d="M22 28 V14 C22 6 42 4 42 14 V28 Z" fill={c.coral} />
       <Path d="M32 8 C38 8 42 10 42 14 V28 H32 Z" fill={c.coralDeep} opacity={0.6} />
       <Rect x={19} y={28} width={26} height={11} rx={3} fill={c.amber} />
-      <Rect x={17} y={38} width={30} height={20} rx={5} fill={c.ink} />
+      <Rect x={17} y={38} width={30} height={20} rx={5} fill={STEEL} />
+      <Rect x={17} y={38} width={13} height={20} rx={5} fill={STEEL_DEEP} opacity={0.45} />
     </G>
   ),
   bulb: () => (
@@ -125,16 +127,16 @@ const drawings: Record<ToolName, () => React.JSX.Element> = {
   ),
   clapper: () => (
     <G>
-      <Rect x={6} y={24} width={52} height={32} rx={6} fill={c.ink} />
+      <Rect x={6} y={24} width={52} height={32} rx={6} fill={LILAC_DEEP} />
       <G transform="rotate(-10 6 24)">
-        <Rect x={6} y={10} width={52} height={14} rx={4} fill={c.ink} />
+        <Rect x={6} y={10} width={52} height={14} rx={4} fill={c.lilac} />
         {[14, 26, 38, 50].map((x) => (
-          <Path key={x} d={`M${x} 10 H${x + 6} L${x} 24 H${x - 6} Z`} fill={c.paper} />
+          <Path key={x} d={`M${x} 10 H${x + 6} L${x} 24 H${x - 6} Z`} fill={c.ink} />
         ))}
       </G>
       <Circle cx={20} cy={40} r={4} fill={c.amber} />
-      <Rect x={30} y={36} width={20} height={4} rx={2} fill={c.paper} opacity={0.85} />
-      <Rect x={30} y={44} width={13} height={4} rx={2} fill={c.paper} opacity={0.55} />
+      <Rect x={30} y={36} width={20} height={4} rx={2} fill={c.paper} opacity={0.9} />
+      <Rect x={30} y={44} width={13} height={4} rx={2} fill={c.paper} opacity={0.6} />
     </G>
   ),
   headphones: () => (
@@ -156,6 +158,18 @@ const drawings: Record<ToolName, () => React.JSX.Element> = {
         <Circle key={a} cx={32 + 15 * Math.cos((a * Math.PI) / 180)} cy={32 + 15 * Math.sin((a * Math.PI) / 180)} r={11} fill={c.tealLight} />
       ))}
       <Circle cx={32} cy={32} r={9} fill={c.amber} />
+    </G>
+  ),
+  pin: () => (
+    <G>
+      <Path d="M32 61 C32 61 9 37 9 24 A23 23 0 0 1 55 24 C55 37 32 61 32 61 Z" fill={c.teal} />
+      <Path d="M32 1 A23 23 0 0 1 55 24 C55 37 32 61 32 61 Z" fill={c.tealDeep} />
+      <Circle cx={32} cy={24} r={14} fill={c.paper} />
+      <Circle cx={27} cy={22} r={2.4} fill={c.ink} />
+      <Circle cx={37} cy={22} r={2.4} fill={c.ink} />
+      <Path d="M26.5 28 Q32 33.5 37.5 28" stroke={c.ink} strokeWidth={2.4} strokeLinecap="round" fill="none" />
+      <Circle cx={22.5} cy={27} r={2.2} fill={c.coral} opacity={0.55} />
+      <Circle cx={41.5} cy={27} r={2.2} fill={c.coral} opacity={0.55} />
     </G>
   ),
   coin: () => (
