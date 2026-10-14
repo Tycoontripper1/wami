@@ -1,10 +1,31 @@
+import FlatIllustration, { IllustrationName } from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 
+// Existing call sites pass an Ionicons name; each maps to a flat illustration
+// so they all pick up the friendlier look without being touched.
+const ICON_TO_ILLUSTRATION: Partial<Record<string, IllustrationName>> = {
+  'location-outline': 'town',
+  'cloud-offline-outline': 'offline',
+  'alert-circle-outline': 'search',
+  'close-circle-outline': 'offline',
+  'basket-outline': 'bag',
+  'bag-outline': 'bag',
+  'notifications-outline': 'bell',
+  'time-outline': 'calendar',
+  'calendar-outline': 'calendar',
+  'chatbubbles-outline': 'chat',
+  'chatbubble-outline': 'chat',
+  'heart-outline': 'heart',
+  'checkmark-circle-outline': 'check',
+};
+
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Overrides the illustration chosen from `icon`. */
+  illustration?: IllustrationName;
   title: string;
   message?: string;
   onRetry?: () => void;
@@ -13,6 +34,7 @@ interface EmptyStateProps {
 
 export default function EmptyState({
   icon = 'cloud-offline-outline',
+  illustration,
   title,
   message,
   onRetry,
@@ -24,13 +46,13 @@ export default function EmptyState({
   const tc = {
     text: isDark ? '#fff' : '#0F1419',
     subText: isDark ? '#999' : '#666',
-    iconBg: isDark ? '#1A1A1A' : '#F5F5F5',
   };
+  const scene: IllustrationName = illustration ?? ICON_TO_ILLUSTRATION[icon] ?? 'offline';
 
   return (
     <View style={styles.container}>
-      <View style={[styles.iconCircle, { backgroundColor: tc.iconBg }]}>
-        <Ionicons name={icon} size={48} color={tc.subText} />
+      <View style={styles.art}>
+        <FlatIllustration name={scene} width={200} soft />
       </View>
       <Text style={[styles.title, { color: tc.text }]}>{title}</Text>
       {message && <Text style={[styles.message, { color: tc.subText }]}>{message}</Text>}
@@ -52,13 +74,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     paddingVertical: 60,
   },
-  iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+  art: {
+    marginBottom: 12,
   },
   title: {
     fontSize: 18,

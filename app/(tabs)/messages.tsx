@@ -1,6 +1,7 @@
 import { extractList } from '@/utils/extractList';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { ApiConversation, getConversations } from '@/services/api/chatService';
 import { Ionicons } from '@expo/vector-icons';
@@ -130,7 +131,7 @@ export default function MessagesScreen() {
 
   const EmptyConversations = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="chatbox-outline" size={80} color={themeColors.subText} />
+      <FlatIllustration name="chat" width={220} soft />
       <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No messages yet</Text>
       <Text style={[styles.emptySubtitle, { color: themeColors.subText }]}>
         Start a conversation with creatives you're interested in!

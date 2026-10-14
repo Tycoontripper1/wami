@@ -1,5 +1,5 @@
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -65,7 +65,7 @@ export default function SuccessScreen({
 
       <View style={styles.content}>
         <Animated.View style={[styles.iconWrap, { transform: [{ scale }] }]}>
-          <Ionicons name="checkmark-circle" size={100} color={Colors.light.primary} />
+          <FlatIllustration name="check" width={220} />
         </Animated.View>
 
         <Animated.View style={{ opacity, transform: [{ translateY: slideUp }], alignItems: 'center' }}>

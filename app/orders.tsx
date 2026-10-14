@@ -1,3 +1,4 @@
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { RootState } from '@/store/store';
 import { ProductOrder } from '@/types/payment';
@@ -107,8 +108,8 @@ export default function OrdersScreen() {
 
       {orders.length === 0 ? (
         <View style={styles.emptyState}>
-          <View style={[styles.emptyIcon, { backgroundColor: Colors.light.primary + '15' }]}>
-            <Ionicons name="cube-outline" size={48} color={Colors.light.primary} />
+          <View style={{ marginBottom: 12 }}>
+            <FlatIllustration name="bag" width={220} soft />
           </View>
           <Text style={[styles.emptyTitle, { color: tc.text }]}>No Orders Yet</Text>
           <Text style={[styles.emptySubtitle, { color: tc.sub }]}>

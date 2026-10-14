@@ -1,4 +1,5 @@
 import { extractList } from '@/utils/extractList';
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookings } from '@/services/api/bookingsService';
 import { RootState } from '@/store/store';
@@ -117,7 +118,7 @@ export default function BookingHistoryScreen() {
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="calendar-outline" size={80} color={themeColors.subText} />
+      <FlatIllustration name="calendar" width={220} soft />
       <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No bookings yet</Text>
       <Text style={[styles.emptySubtitle, { color: themeColors.subText }]}>
         Your booking history will appear here

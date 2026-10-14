@@ -1,4 +1,5 @@
 import { extractList } from '@/utils/extractList';
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import SharedEmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
@@ -137,7 +138,7 @@ export default function FavouritesScreen() {
 
   const EmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="bookmark-outline" size={80} color={themeColors.subText} />
+      <FlatIllustration name="heart" width={220} soft />
       <Text style={[styles.emptyTitle, { color: themeColors.text }]}>No saved creatives</Text>
       <Text style={[styles.emptySubtitle, { color: themeColors.subText }]}>
         Tap the heart icon on creatives you love to save them here!
