@@ -1,9 +1,41 @@
 // Products Service - API calls for product browsing and management
 
-import { Product, ProductCategory } from '@/data/mockProducts';
 import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
 import { ApiResponse, PaginatedResponse } from './types';
+
+// Shape the app's product screens work with (mapped from the backend's
+// product fields — title, price, media_url/thumbnail_url, creator …).
+export type ProductCategory =
+  | 'fashion'
+  | 'accessories'
+  | 'beauty'
+  | 'art'
+  | 'photography'
+  | 'digital'
+  | 'other';
+
+export interface Product {
+  id: string;
+  name: string;
+  category: ProductCategory;
+  price: number;
+  currency: string;
+  description: string;
+  images: string[];
+  sellerId: string;
+  sellerName: string;
+  sellerImage: any;
+  rating: number;
+  reviews: number;
+  stock: number;
+  featured: boolean;
+  tags: string[];
+  createdAt: string;
+  condition: 'New' | 'Pre-owned' | 'Refurbished';
+  size?: string;
+  officialStore: boolean;
+}
 
 export interface ProductSearchParams {
   page?: number;

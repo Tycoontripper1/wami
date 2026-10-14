@@ -1,16 +1,7 @@
 // API Configuration
-// Switch between mock and real API by changing these values
-
-// ============================================
-// IMPORTANT: When real backend is ready
-// ============================================
-// 1. Change API_BASE_URL to your backend URL
-// 2. Set USE_MOCK_API to false
-// 3. Verify response formats match (adjust services if needed)
 
 export const API_CONFIG = {
-  // Base URL for API calls
-  // Mock: local/simulated, Real: https://api.yourbackend.com
+  // Base URL for API calls.
   //
   // NOTE: the WAMI Postman collection's own text documents a mixed scheme
   // (un-versioned auth/account/profile/discovery/products/etc., `v1`-prefixed
@@ -28,12 +19,6 @@ export const API_CONFIG = {
   // ask backend to confirm this is now uniformly correct.
   BASE_URL: 'https://api.joinwami.com/api/v1', // Production API
 
-  // Enable/Disable mock API mode
-  USE_MOCK: false, // Set to false when using real backend
-  
-  // Mock API settings
-  MOCK_DELAY_MS: 1000, // Simulated network delay (500-2000ms recommended)
-  
   // Request timeout  
   TIMEOUT_MS: 30000, // 30 seconds
   
@@ -45,7 +30,7 @@ export const API_CONFIG = {
   API_VERSION: 'v1',
 } as const;
 
-// API Endpoints structure (will work with both mock and real)
+// API Endpoints structure
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
@@ -276,8 +261,5 @@ export const API_ENDPOINTS = {
 
 // Helper to build full URL
 export const buildUrl = (endpoint: string): string => {
-  if (API_CONFIG.USE_MOCK) {
-    return endpoint; // Mock handlers use endpoint patterns
-  }
   return `${API_CONFIG.BASE_URL}${endpoint}`;
 };

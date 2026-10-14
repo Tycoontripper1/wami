@@ -36,11 +36,15 @@ The center "Post" tab doesn't navigate to its own screen — `app/(tabs)/_layout
 
 `store/store.ts` composes one slice per domain: `auth`, `payment` (bookings, escrow payments, product orders, chat conversations/messages all live here), `wallet`, `creativeOnboarding`, `favorites`, `bookings`, `loyalty`, `creativeMatch`, `location`, `onboarding`. `types/payment.ts` is the central domain model for bookings/escrow/orders — `ProductOrder.orderStatus` and `Booking.status` drive most of the order-tracking/service-tracking UI state machines.
 
-### API layer: mock/real switch
+### API layer
 
-`services/api/config.ts` has `API_CONFIG.USE_MOCK` — when `true`, `services/api/client.ts` routes every request through `services/api/mock/mockHandlers.ts`, which serves fixture data from `data/*.ts` (e.g. `MOCK_PRODUCTS`) instead of hitting `API_CONFIG.BASE_URL`. **Check this flag before assuming API calls will work against the live backend** — flip it to `true` for local UI work without a backend connection, `false` to test against the real API. Individual services live in `services/api/*Service.ts` (products, bookings, discovery, wallet, chat, creatives, profile, quotes) and are re-exported from `services/api/index.ts`. A few screen-adjacent features (e.g. `services/instagramService.ts`) use their own simulated-delay mock directly instead of going through this client, since there's no real backend for them yet.
+`services/api/client.ts` is the single HTTP client; it talks to `API_CONFIG.BASE_URL` (`https://api.joinwami.com/api/v1`, set in `services/api/config.ts`). There is no mock mode — the old `USE_MOCK` switch and its fixtures (`data/mock*.ts`, `services/api/mock/`) were removed once every endpoint was wired, so UI work needs the real backend (or a test account on it). Individual services live in `services/api/*Service.ts` (products, bookings, discovery, wallet/seller, chat, offerings, reviews, profile, quotes), imported directly by path.
 
-`services/api/discoveryService.ts` treats creatives, products, and services as one generic "offering" shape (`DiscoveryOffering`) for feed/search/save endpoints — UI code maps defensively over loosely-typed fields (`name || title`, `image || images?.[0]`) rather than assuming a strict shape.
+Two things bite repeatedly:
+- **List shapes vary by endpoint** — a bare array, `{ items }`, or Laravel's paginator `{ data: [...] }`. Always read lists through `utils/extractList.ts`.
+- **Unsupported flows are gated, not simulated**: `constants/Payments.ts` (`PAYMENTS_ENABLED`) and `constants/Features.ts` (`INSTAGRAM_IMPORT_ENABLED`, `DELIVERY_ENABLED`). The simulated `services/instagramService.ts` and `services/deliveryService.ts` stay only behind those switches until real endpoints exist.
+
+`services/api/discoveryService.ts` treats creatives, products, and services as one generic "offering" shape (`DiscoveryOffering`) for feed/search/save endpoints — UI code maps defensively over loosely-typed fields (`name || title`, `media_url || thumbnail_url || image`) rather than assuming a strict shape.
 
 ### Styling
 

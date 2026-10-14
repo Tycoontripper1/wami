@@ -2,8 +2,6 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG, buildUrl } from './config';
-import { mockApiHandler } from './mock/mockHandlers';
-import { mockDelay } from './mock/mockHelpers';
 import { ApiError, ApiResponse, HttpMethod, HttpStatusCode, RequestConfig } from './types';
 
 class ApiClient {
@@ -48,11 +46,6 @@ class ApiClient {
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      // Use mock API if enabled
-      if (API_CONFIG.USE_MOCK) {
-        return await this.mockRequest<T>(method, endpoint, config);
-      }
-
       // Real API request
       return await this.realRequest<T>(method, endpoint, config);
     } catch (error: any) {
@@ -74,25 +67,6 @@ class ApiClient {
 
       throw apiError;
     }
-  }
-
-  // Mock API request handler
-  private async mockRequest<T>(
-    method: HttpMethod,
-    endpoint: string,
-    config?: RequestConfig
-  ): Promise<ApiResponse<T>> {
-    // Simulate network delay
-    await mockDelay();
-
-    // Call mock handler
-    const response = await mockApiHandler<T>(method, endpoint, {
-      body: config?.body,
-      params: config?.params,
-      headers: this.buildHeaders(config?.headers),
-    });
-
-    return response;
   }
 
   // Real API request handler
