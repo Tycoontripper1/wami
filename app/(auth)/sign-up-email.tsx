@@ -1,7 +1,7 @@
+import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
-import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -60,28 +61,18 @@ export default function SignUpEmailScreen() {
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={themeColors.icon} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>W</Text>
-          </View>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: themeColors.text }]}>Enter your email.</Text>
-          <Text style={[styles.subtitle, { color: themeColors.subText }]}>
-            Use this email to verify your account.
-          </Text>
-        </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, flex: undefined, flexGrow: 1 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <AuthHeader
+          title="Let's get"
+          highlight="started"
+          onBack={() => router.back()}
+          subtitle={'Enter your email and we will send you a code to verify it.'}
+        />
 
         {/* Email Input */}
         <FloatingLabelInput
@@ -116,7 +107,7 @@ export default function SignUpEmailScreen() {
             <Text style={styles.nextButtonText}>Next</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

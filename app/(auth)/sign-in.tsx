@@ -1,7 +1,7 @@
+import AuthHeader from '@/components/AuthHeader';
 import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
 import { setOnboardingComplete, setSetupPending } from '@/store/onboardingSlice';
 import { store } from '@/store/store';
-import { AuthBrandLogo } from '@/components/AuthBrandLogo';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SignInScreen() {
@@ -88,22 +88,18 @@ export default function SignInScreen() {
     >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       
-      <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={themeColors.icon} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.logoContainer}>
-          <AuthBrandLogo size="medium" variant="pin" backgroundColor={themeColors.background} />
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: themeColors.text }]}>Enter your email to join us or sign in.</Text>
-        </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, flex: undefined, flexGrow: 1 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <AuthHeader
+          title="Welcome"
+          highlight="back"
+          onBack={() => router.back()}
+          subtitle={'Sign in to pick up where you left off.'}
+        />
 
         {/* Email Input */}
         <FloatingLabelInput
@@ -178,7 +174,7 @@ export default function SignInScreen() {
           {isLoading ? (
             <ActivityIndicator color="#0F1419" />
           ) : (
-            <Text style={styles.signInButtonText}>Next</Text>
+            <Text style={styles.signInButtonText}>Sign In</Text>
           )}
         </TouchableOpacity>
 
@@ -189,7 +185,7 @@ export default function SignInScreen() {
             <Text style={styles.signUpLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

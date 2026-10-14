@@ -1,9 +1,9 @@
+import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
 import { resetPasswordFailure, resetPasswordStart, resetPasswordSuccess } from '@/store/authSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -44,26 +44,18 @@ export default function ForgotPasswordScreen() {
       <StatusBar barStyle="dark-content" />
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#000" />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Forgot your password?</Text>
-          <Text style={styles.subtitle}>
-             If you need help resetting your password we can help by sending you a link to reset it.
-          </Text>
-        </View>
+        <AuthHeader
+          title="Forgot your"
+          highlight="password?"
+          onBack={() => router.back()}
+          onClose={() => router.back()}
+          forceLight
+          subtitle={'Enter your email and we will send you a code to reset it.'}
+        />
 
         {/* Email Input */}
         <FloatingLabelInput
+          forceLight
           label="Email"
           value={email}
           onChangeText={setEmail}

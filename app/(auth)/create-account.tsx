@@ -1,3 +1,4 @@
+import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
@@ -88,25 +89,13 @@ export default function CreateAccountScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={themeColors.icon} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>W</Text>
-          </View>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: themeColors.text }]}>Sign Up to become part of the family</Text>
-          <Text style={[styles.subtitle, { color: themeColors.subText }]}>Sign up with your details and know more</Text>
-        </View>
+        <AuthHeader
+          title="Almost"
+          highlight="there"
+          onBack={() => router.back()}
+          compact
+          subtitle={'A few details and you are in.'}
+        />
 
         {/* Form Inputs */}
         <View style={styles.formContainer}>

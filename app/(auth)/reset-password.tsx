@@ -1,3 +1,4 @@
+import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
@@ -62,30 +63,17 @@ export default function ResetPasswordScreen() {
       <StatusBar barStyle="dark-content" />
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-
-         {/* Logo */}
-         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>W</Text>
-          </View>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Reset Password</Text>
-        </View>
+        <AuthHeader
+          title="Choose a new"
+          highlight="password"
+          onBack={() => router.back()}
+          onClose={() => router.back()}
+          forceLight
+        />
 
         {/* New Password Input */}
         <FloatingLabelInput
+          forceLight
           label="New Password"
           value={newPassword}
           onChangeText={setNewPassword}
@@ -108,6 +96,7 @@ export default function ResetPasswordScreen() {
 
         {/* Re-enter Password Input */}
         <FloatingLabelInput
+          forceLight
           label="Re-enter Password"
           value={reEnterPassword}
           onChangeText={setReEnterPassword}

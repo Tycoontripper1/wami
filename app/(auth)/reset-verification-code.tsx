@@ -1,3 +1,4 @@
+import AuthHeader from '@/components/AuthHeader';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -50,25 +51,13 @@ export default function ResetVerificationCodeScreen() {
       <StatusBar barStyle="dark-content" />
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>W</Text>
-          </View>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Verification Code</Text>
-          <Text style={styles.subtitle}>Enter the code to verify your account</Text>
-        </View>
+        <AuthHeader
+          title="Enter the"
+          highlight="code"
+          onBack={() => router.back()}
+          forceLight
+          subtitle={'Type the 4-digit code we sent you.'}
+        />
 
         {/* Code Input (4 digits) */}
         <View style={styles.codeContainer}>

@@ -6,6 +6,8 @@ interface FloatingLabelInputProps extends TextInputProps {
   label: string;
   containerStyle?: ViewStyle;
   rightAccessory?: React.ReactNode;
+  /** For screens that are always white, whatever the device theme. */
+  forceLight?: boolean;
 }
 
 export function FloatingLabelInput({ 
@@ -13,6 +15,7 @@ export function FloatingLabelInput({
   value, 
   containerStyle, 
   rightAccessory,
+  forceLight,
   style, 
   onFocus, 
   onBlur, 
@@ -41,7 +44,7 @@ export function FloatingLabelInput({
   };
 
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === 'dark' && !forceLight;
   
   const themeColors = {
     background: isDark ? '#000' : '#fff',

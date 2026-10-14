@@ -1,6 +1,6 @@
+import AuthHeader from '@/components/AuthHeader';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
-import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -117,28 +117,16 @@ export default function VerificationCodeScreen() {
       <StatusBar barStyle="dark-content" />
 
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>W</Text>
-          </View>
-        </View>
-
-        {/* Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Verification Code</Text>
-          <Text style={styles.subtitle}>
+        <AuthHeader
+          title="Check your"
+          highlight="email"
+          onBack={() => router.back()}
+          forceLight
+          subtitle={<>
             Enter the 4-digit code sent to{'\n'}
             <Text style={styles.emailHighlight}>{params.email}</Text>
-          </Text>
-        </View>
+          </>}
+        />
 
         {/* Code Input — 4 boxes */}
         <View style={styles.codeContainer}>
