@@ -16,7 +16,8 @@ export type IllustrationName =
   | 'heart'
   | 'offline'
   | 'search'
-  | 'check';
+  | 'check'
+  | 'goodbye';
 
 const c = Illo;
 const TAU = Math.PI * 2;
@@ -343,6 +344,42 @@ function Check({ p }: SceneProps) {
   );
 }
 
+function Goodbye({ p }: SceneProps) {
+  // the pin bobs a little and waves at the open door
+  const bob = 3 * Math.sin(p * TAU);
+  const wave = -14 + 22 * Math.sin(p * TAU * 3);
+  return (
+    <G>
+      {/* doorway: open door edge-on, warm light inside, exit sign above */}
+      <Path d="M206 36 L224 46 V150 L206 146 Z" fill={c.ember} />
+      <Path d="M206 36 L216 41 V148 L206 146 Z" fill={c.amber} />
+      <Rect x={148} y={32} width={58} height={116} rx={5} fill={c.tealNight} />
+      <Rect x={154} y={38} width={46} height={110} rx={2} fill={c.cloud} />
+      <Rect x={154} y={112} width={46} height={36} fill={c.amber} opacity={0.45} />
+      <Rect x={162} y={12} width={30} height={14} rx={4} fill={c.leafLight} />
+      <Path d="M170 19 H184 M179 15 L184 19 L179 23" stroke={c.paper} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <Circle cx={211} cy={96} r={2.6} fill={c.cloud} />
+
+      {/* the Wami pin, waving */}
+      <G transform={`translate(0 ${bob})`}>
+        <G transform={`rotate(${wave} 100 100)`}>
+          <Path d="M100 100 L118 82" stroke={c.tealDeep} strokeWidth={9} strokeLinecap="round" />
+          <Circle cx={120} cy={80} r={7} fill={c.tealLight} />
+        </G>
+        <Path d="M74 58 C55 58 44 72 44 88 C44 110 74 138 74 138 C74 138 104 110 104 88 C104 72 93 58 74 58 Z" fill={c.teal} />
+        <Path d="M74 58 C93 58 104 72 104 88 C104 110 74 138 74 138 Z" fill={c.tealDeep} />
+        <Circle cx={65} cy={86} r={4} fill={c.ink} />
+        <Circle cx={83} cy={86} r={4} fill={c.ink} />
+        <Path d="M66 98 Q74 105 82 98" stroke={c.ink} strokeWidth={3.4} strokeLinecap="round" fill="none" />
+      </G>
+
+      <Circle cx={40} cy={44} r={6} fill={c.amber} />
+      <Circle cx={128} cy={140} r={4} fill={c.tealLight} />
+      <Ellipse cx={120} cy={158} rx={96} ry={6} fill={c.ink} opacity={0.1} />
+    </G>
+  );
+}
+
 const scenes: Record<IllustrationName, (props: SceneProps) => React.JSX.Element> = {
   town: Town,
   calendar: Calendar,
@@ -353,6 +390,7 @@ const scenes: Record<IllustrationName, (props: SceneProps) => React.JSX.Element>
   offline: Offline,
   search: Search,
   check: Check,
+  goodbye: Goodbye,
 };
 
 // Decorative: keep it out of the accessibility tree. The prop names differ by

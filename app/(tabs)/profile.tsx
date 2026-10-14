@@ -7,10 +7,13 @@ import { signOut, updateUser } from '@/store/authSlice';
 import { RootState } from '@/store/store';
 import { extractList } from '@/utils/extractList';
 import { Ionicons } from '@/components/FlatIcon';
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
+  Modal,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -39,6 +42,8 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
 
 
@@ -75,12 +80,18 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    // Clear the persisted session as well — dispatching signOut() on its own
-    // leaves the token in AsyncStorage, and the next cold start would restore
-    // the session and sign the user straight back in.
-    await authService.signOut();
-    dispatch(signOut());
-    router.replace('/(auth)/sign-in');
+    setLoggingOut(true);
+    try {
+      // Clear the persisted session as well — dispatching signOut() on its own
+      // leaves the token in AsyncStorage, and the next cold start would restore
+      // the session and sign the user straight back in.
+      await authService.signOut();
+      dispatch(signOut());
+      setShowLogout(false);
+      router.replace('/(auth)/sign-in');
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const menuSections: { title: string; items: any[] }[] = [
@@ -270,7 +281,7 @@ export default function ProfileScreen() {
         ))}
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <TouchableOpacity style={styles.logoutButton} onPress={() => setShowLogout(true)}>
           <Ionicons name="log-out" size={22} color="#FF3B30" />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
@@ -280,6 +291,38 @@ export default function ProfileScreen() {
           Version 1.0.0
         </Text>
       </ScrollView>
+
+      {/* Log out confirmation */}
+      <Modal
+        visible={showLogout}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !loggingOut && setShowLogout(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: isDark ? '#1A1A1A' : '#fff' }]}>
+            <FlatIllustration name="goodbye" width={190} soft animated />
+            <Text style={[styles.modalTitle, { color: themeColors.text }]}>Log out of Wami?</Text>
+            <Text style={[styles.modalBody, { color: themeColors.subText }]}>
+              You'll need to sign in again to see your bookings, orders and messages.
+            </Text>
+            <TouchableOpacity
+              style={styles.stayButton}
+              onPress={() => setShowLogout(false)}
+              disabled={loggingOut}
+            >
+              <Text style={styles.stayText}>Stay signed in</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.confirmLogout} onPress={handleLogout} disabled={loggingOut}>
+              {loggingOut ? (
+                <ActivityIndicator size="small" color="#FF3B30" />
+              ) : (
+                <Text style={styles.confirmLogoutText}>Log Out</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -470,6 +513,58 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
     marginTop: 8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  stayButton: {
+    alignSelf: 'stretch',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.light.primary,
+  },
+  stayText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F1419',
+  },
+  confirmLogout: {
+    alignSelf: 'stretch',
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  confirmLogoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF3B30',
   },
   becomeCreativeCard: {
     flexDirection: 'row',
