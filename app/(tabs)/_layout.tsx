@@ -125,8 +125,10 @@
 //   },
 // });
 
+import FlatTabIcon, { TabIconName } from '@/components/FlatTabIcon';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { Illo } from '@/constants/Illustration';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -195,22 +197,19 @@ const modalStyles = StyleSheet.create({
 
 type TabIconProps = {
   focused: boolean;
-  iconFocused: keyof typeof Ionicons.glyphMap;
-  iconUnfocused: keyof typeof Ionicons.glyphMap;
+  icon: TabIconName;
   label: string;
 };
 
-function TabItem({ focused, iconFocused, iconUnfocused, label }: TabIconProps) {
+function TabItem({ focused, icon, label }: TabIconProps) {
+  // Post is an action rather than a screen, so it never shows a "selected" pill.
+  const selected = focused && icon !== 'post';
   return (
     <View style={styles.tabItemWrapper}>
-      <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-        <Ionicons
-          name={focused ? iconFocused : iconUnfocused}
-          size={22}
-          color={focused ? '#0F1419' : '#ffffff'}
-        />
+      <View style={[styles.iconWrap, selected && styles.iconWrapActive]}>
+        <FlatTabIcon name={icon} focused={focused} />
       </View>
-      <Text style={[styles.label, focused && styles.labelActive]}>{label}</Text>
+      <Text style={[styles.label, selected && styles.labelActive]}>{label}</Text>
     </View>
   );
 }
@@ -231,10 +230,10 @@ export default function TabLayout() {
           marginHorizontal: 16,
           height: 72,
           borderRadius: 50,
-          backgroundColor: isDark ? '#1C3A39' : Colors.light.primaryLight,
+          backgroundColor: Illo.tealNight,
           borderTopWidth: 0,
           elevation: 0,
-          shadowColor: '#00BFA5',
+          shadowColor: Illo.tealDeep,
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.18,
           shadowRadius: 20,
@@ -257,12 +256,7 @@ export default function TabLayout() {
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem
-              focused={focused}
-              iconFocused="home"
-              iconUnfocused="home-outline"
-              label="Home"
-            />
+            <TabItem focused={focused} icon="home" label="Home" />
           ),
         }}
       />
@@ -270,12 +264,7 @@ export default function TabLayout() {
         name="discover"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem
-              focused={focused}
-              iconFocused="bag"
-              iconUnfocused="bag-outline"
-              label="Shop"
-            />
+            <TabItem focused={focused} icon="shop" label="Shop" />
           ),
         }}
       />
@@ -283,12 +272,7 @@ export default function TabLayout() {
         name="sell"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem
-              focused={focused}
-              iconFocused="add-circle"
-              iconUnfocused="add-circle-outline"
-              label="Post"
-            />
+            <TabItem focused={focused} icon="post" label="Post" />
           ),
         }}
         listeners={() => ({
@@ -302,12 +286,7 @@ export default function TabLayout() {
         name="messages"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem
-              focused={focused}
-              iconFocused="chatbubble-ellipses"
-              iconUnfocused="chatbubble-ellipses-outline"
-              label="Chats"
-            />
+            <TabItem focused={focused} icon="chats" label="Chats" />
           ),
         }}
       />
@@ -315,12 +294,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem
-              focused={focused}
-              iconFocused="person"
-              iconUnfocused="person-outline"
-              label="Profile"
-            />
+            <TabItem focused={focused} icon="profile" label="Profile" />
           ),
         }}
       />
@@ -358,9 +332,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapActive: {
-    backgroundColor: Colors.light.primary,
-    width: 48,
-    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    width: 52,
+    height: 38,
     borderRadius: 22,
   },
   label: {
@@ -379,7 +353,7 @@ const styles = StyleSheet.create({
   
   },
   labelActive: {
-    color: Colors.light.primary,
+    color: Illo.amber,
     fontWeight: '700',
   },
 });
