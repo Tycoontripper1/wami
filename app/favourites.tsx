@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import Colors from '@/constants/Colors';
 import SharedEmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
@@ -50,7 +51,7 @@ export default function FavouritesScreen() {
     try {
       const res = await getSavedOfferings();
       const data: any = res.data;
-      const items = Array.isArray(data) ? data : data?.items ?? [];
+      const items = extractList(data);
       setFavorites(
         items.map((item: any) => ({
           id: String(item.id ?? item.offering_id),

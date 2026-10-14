@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookings } from '@/services/api/bookingsService';
 import { RootState } from '@/store/store';
@@ -46,7 +47,7 @@ export default function BookingHistoryScreen() {
     try {
       const res = await getBookings({ page: 1 });
       const data: any = res.data;
-      setApiBookings(Array.isArray(data) ? data : data?.items ?? []);
+      setApiBookings(extractList(data));
     } catch (error) {
       console.error('Failed to load bookings:', error);
       setLoadError(true);

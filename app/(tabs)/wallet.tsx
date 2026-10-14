@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import SalesChart, { SalesChartPoint } from '@/components/analytics/SalesChart';
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
@@ -88,7 +89,7 @@ export default function WalletScreen() {
       ]);
       setBalance(Number((walletRes.data as any)?.balance ?? 0));
       const txnData: any = txnsRes.data;
-      const items: SellerTransaction[] = Array.isArray(txnData) ? txnData : txnData?.items ?? [];
+      const items: SellerTransaction[] = extractList(txnData);
       setTransactions(items.map(mapSellerTransaction));
     } catch (error) {
       console.error('Failed to load seller wallet:', error);

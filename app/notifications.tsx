@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
@@ -45,7 +46,7 @@ export default function NotificationsScreen() {
     try {
       const res = await getNotifications({ page: 1 });
       const data: any = res.data;
-      setNotifications(Array.isArray(data) ? data : data?.items ?? []);
+      setNotifications(extractList(data));
     } catch (error) {
       console.error('Failed to load notifications:', error);
       setHasError(true);

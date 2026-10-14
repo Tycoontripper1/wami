@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
@@ -47,7 +48,7 @@ export default function MessagesScreen() {
     try {
       const res = await getConversations({ page: 1 });
       const data: any = res.data;
-      setConversations(Array.isArray(data) ? data : data?.items ?? []);
+      setConversations(extractList(data));
     } catch (error) {
       console.error('Failed to load conversations:', error);
       setHasError(true);

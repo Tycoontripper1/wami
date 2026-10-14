@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import SalesChart, { SalesChartPoint } from '@/components/analytics/SalesChart';
 import TopProductsList, { TopProductItem } from '@/components/analytics/TopProductsList';
 import EmptyState from '@/components/EmptyState';
@@ -48,7 +49,7 @@ function extractSummary(data: any) {
 }
 
 function extractTopProducts(data: any): TopProductItem[] {
-  const raw: any[] = Array.isArray(data) ? data : data?.items ?? [];
+  const raw: any[] = extractList(data);
   return raw.map((p: any, index: number) => ({
     id: String(p.id ?? p.product_id ?? index),
     name: p.name ?? p.title ?? 'Product',

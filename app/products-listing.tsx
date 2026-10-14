@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
@@ -76,7 +77,7 @@ export default function ProductsListingScreen() {
     try {
       const res = await getProducts();
       const data: any = res.data;
-      const items = Array.isArray(data) ? data : data?.items ?? [];
+      const items = extractList(data);
       setProducts(items.map(mapApiProductToProduct));
     } catch (error) {
       console.error('Failed to load products:', error);

@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import BookingModal from '@/components/BookingModal';
 import EmptyState from '@/components/EmptyState';
 import QuoteRequestModal from '@/components/QuoteRequestModal';
@@ -115,7 +116,7 @@ export default function ProfileScreen() {
       try {
         const res = await getReviews({ page: 1, reviewable_id: id, reviewable_type: REVIEWABLE_TYPE });
         const data: any = res.data;
-        const raw = Array.isArray(data) ? data : data?.items ?? [];
+        const raw = extractList(data);
         if (!cancelled) setReviewsList(raw.map(mapApiReview));
       } catch (error) {
         console.error('Failed to load reviews:', error);

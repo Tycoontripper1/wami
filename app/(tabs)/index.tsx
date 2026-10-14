@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import SwipeableCardStack, { CreativeData } from '@/components/SwipeableCardStack';
 import AppGuidance from '@/components/AppGuidance';
 import EmptyState from '@/components/EmptyState';
@@ -41,11 +42,7 @@ const mapOfferingToCreativeData = (offering: DiscoveryOffering): CreativeData =>
   creatorUsername: offering.creator?.username,
 });
 
-const extractItems = (data: any): DiscoveryOffering[] => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.items)) return data.items;
-  return [];
-};
+const extractItems = (data: any): DiscoveryOffering[] => extractList<DiscoveryOffering>(data);
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();

@@ -1,3 +1,4 @@
+import { extractList } from '@/utils/extractList';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
@@ -64,7 +65,7 @@ export default function MyProductsScreen() {
     try {
       const res = await getMyItems();
       const data: any = res.data;
-      const offerings: DiscoveryOffering[] = Array.isArray(data) ? data : data?.items ?? [];
+      const offerings: DiscoveryOffering[] = extractList(data);
       setItems(offerings.map(mapOfferingToMyItem));
     } catch (error) {
       console.error('Failed to load my items:', error);
