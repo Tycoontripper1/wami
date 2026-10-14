@@ -5,18 +5,17 @@ import { Ionicons } from '@/components/FlatIcon';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 
 interface QuoteRequestModalProps {
   visible: boolean;

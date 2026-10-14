@@ -4,17 +4,16 @@ import { addBooking, Booking } from '@/store/bookingsSlice';
 import { Ionicons } from '@/components/FlatIcon';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { useDispatch } from 'react-redux';
 
 interface BookingModalProps {

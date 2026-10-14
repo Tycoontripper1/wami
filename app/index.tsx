@@ -6,7 +6,8 @@ import { authService } from '@/services/authService';
 import { restoreSession } from '@/store/authSlice';
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme, useWindowDimensions } from 'react-native';
+import { StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme, useWindowDimensions } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
 

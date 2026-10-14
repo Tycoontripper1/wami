@@ -1,7 +1,8 @@
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 
 interface SelectableCardProps {
   title: string;

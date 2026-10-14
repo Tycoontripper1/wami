@@ -1,6 +1,7 @@
 import Colors from '@/constants/Colors';
 import React from 'react';
-import { StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 
 export interface TopProductItem {
   id: string;

@@ -4,18 +4,17 @@ import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const WAMI_FEE_PERCENT = 0.18;

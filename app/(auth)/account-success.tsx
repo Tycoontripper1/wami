@@ -3,7 +3,8 @@ import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { StatusBar, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AccountSuccessScreen() {

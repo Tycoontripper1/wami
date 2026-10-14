@@ -8,15 +8,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Animated,
-    Image,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  Animated,
+  Image,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import MapView, { Marker, Polyline } from '@/components/maps/MapKit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';

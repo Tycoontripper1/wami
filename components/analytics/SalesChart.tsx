@@ -1,6 +1,7 @@
 import Colors from '@/constants/Colors';
 import React, { useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 
 export interface SalesChartPoint {

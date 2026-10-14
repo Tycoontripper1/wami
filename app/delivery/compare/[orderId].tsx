@@ -8,16 +8,16 @@ import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 

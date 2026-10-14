@@ -4,7 +4,8 @@ import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Animated, StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 

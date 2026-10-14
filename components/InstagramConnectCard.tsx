@@ -2,7 +2,8 @@ import { Ionicons } from '@/components/FlatIcon';
 import { Illo } from '@/constants/Illustration';
 import { useInstagramConnection } from '@/hooks/useInstagramConnection';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 
 type Props = {
   /** Called with the connected @handle (when known), so the caller can keep it. */

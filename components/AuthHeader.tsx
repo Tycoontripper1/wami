@@ -7,12 +7,12 @@ import {
   Easing,
   Keyboard,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   useColorScheme,
   useWindowDimensions,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
@@ -115,10 +115,12 @@ export default function AuthHeader({
       ) : null}
 
       <View style={{ paddingHorizontal: SIDE }}>
-        <Text style={[styles.title, { color: text }, !scene && styles.titlePlain]}>{title}</Text>
-        {highlight ? (
+        <Text style={[styles.title, { color: text }, !scene && styles.titlePlain]}>
+          {!scene && highlight ? `${title} ${highlight}` : title}
+        </Text>
+        {scene && highlight ? (
           <View style={styles.pill}>
-            <Text style={[styles.pillText, !scene && styles.pillTextPlain]}>{highlight}</Text>
+            <Text style={styles.pillText}>{highlight}</Text>
           </View>
         ) : null}
         {subtitle ? <Text style={[styles.subtitle, { color: sub }]}>{subtitle}</Text> : null}
@@ -150,8 +152,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   titlePlain: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   pillTextPlain: {
     fontSize: 34,

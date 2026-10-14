@@ -20,11 +20,11 @@ import {
   Image,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   useColorScheme,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // The list endpoint has no items, so the first page of orders is enriched from

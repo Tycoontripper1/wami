@@ -1,7 +1,8 @@
 import Colors from '@/constants/Colors';
 import { CREATIVE_CATEGORIES, CreativeCategory } from '@/types/creativeOnboarding';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 
 interface CategorySelectorProps {
   selected: CreativeCategory[];

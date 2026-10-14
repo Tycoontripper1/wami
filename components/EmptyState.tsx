@@ -2,7 +2,8 @@ import FlatIllustration, { IllustrationName } from '@/components/illustrations/F
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 
 // Existing call sites pass an Ionicons name; each maps to a flat illustration
 // so they all pick up the friendlier look without being touched.

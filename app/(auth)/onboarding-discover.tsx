@@ -10,11 +10,11 @@ import {
   Easing,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   useColorScheme,
   View,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');

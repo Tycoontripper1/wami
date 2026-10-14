@@ -8,16 +8,15 @@ import { Ionicons } from '@/components/FlatIcon';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    FlatList,
-    Image,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  FlatList,
+  Image,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // The collection's conversation shape is unconfirmed beyond `id` — map

@@ -15,11 +15,11 @@ import {
   StatusBar,
   StyleSheet,
   Switch,
-  Text,
   TouchableOpacity,
   useColorScheme,
   View,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 

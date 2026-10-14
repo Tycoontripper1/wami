@@ -1,6 +1,7 @@
 import Colors from '@/constants/Colors';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 
 interface OnboardingButtonsProps {
   onSkip?: () => void;

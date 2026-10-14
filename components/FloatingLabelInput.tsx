@@ -1,6 +1,7 @@
 import Colors from '@/constants/Colors';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, TextInput, TextInputProps, View, ViewStyle, useColorScheme } from 'react-native';
+import { Animated, StyleSheet, TextInputProps, View, ViewStyle, useColorScheme } from 'react-native';
+import { TextInput } from '@/components/AppText';
 
 interface FloatingLabelInputProps extends TextInputProps {
   label: string;
@@ -72,6 +73,7 @@ export function FloatingLabelInput({
     backgroundColor: themeColors.background,
     paddingHorizontal: 4,
     zIndex: 1,
+    fontFamily: 'Figtree_500Medium',
   };
 
   return (

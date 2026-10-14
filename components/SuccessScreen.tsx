@@ -6,10 +6,10 @@ import {
   Easing,
   StatusBar,
   StyleSheet,
-  Text,
   View,
   useColorScheme,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SuccessScreenProps {

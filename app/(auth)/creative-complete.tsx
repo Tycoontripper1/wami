@@ -7,7 +7,8 @@ import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 

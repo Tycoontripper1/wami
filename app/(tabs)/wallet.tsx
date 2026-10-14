@@ -15,12 +15,11 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   useColorScheme,
   View,
 } from 'react-native';
+import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Maps the seller-wallet transaction shape (unconfirmed field names — the

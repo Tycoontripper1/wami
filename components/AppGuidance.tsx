@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -9,6 +8,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 import { Ionicons } from '@/components/FlatIcon';
 import Svg, { Defs, Mask, Rect, Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';

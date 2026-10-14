@@ -6,6 +6,15 @@ import { authService } from '@/services/authService';
 import { signOut } from '@/store/authSlice';
 import { store } from '@/store/store';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import {
+  Figtree_300Light,
+  Figtree_400Regular,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+  Figtree_800ExtraBold,
+  Figtree_900Black,
+} from '@expo-google-fonts/figtree';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -39,6 +48,13 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Figtree_300Light,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
+    Figtree_800ExtraBold,
+    Figtree_900Black,
     ...FontAwesome.font,
   });
   const [splashReady, setSplashReady] = useState(false);

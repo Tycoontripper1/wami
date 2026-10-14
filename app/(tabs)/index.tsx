@@ -10,7 +10,8 @@ import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/not
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, StatusBar, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TABS = ['Discover', 'Trending', 'Near You'];

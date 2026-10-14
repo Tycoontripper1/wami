@@ -1,7 +1,8 @@
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import React from 'react';
-import { StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native';
+import { Text } from '@/components/AppText';
 
 export default function PhotoUploadRequirements() {
   const colorScheme = useColorScheme();

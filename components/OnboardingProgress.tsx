@@ -1,6 +1,7 @@
 import Colors from '@/constants/Colors';
 import React from 'react';
-import { StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { StyleSheet, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 
 interface OnboardingProgressProps {
   currentStep: number;

@@ -11,10 +11,10 @@ import {
   ImageSourcePropType,
   PanResponder,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Text } from '@/components/AppText';
 
 // expo-av was removed from the SDK 57 Expo Go native module set entirely
 // (import { Video } from 'expo-av' crashed the app on-device with "Cannot

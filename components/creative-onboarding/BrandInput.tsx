@@ -1,7 +1,8 @@
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import React from 'react';
-import { StyleSheet, TextInput, View, useColorScheme } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native';
+import { TextInput } from '@/components/AppText';
 
 interface BrandInputProps {
   icon: keyof typeof Ionicons.glyphMap;

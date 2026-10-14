@@ -1,6 +1,7 @@
 import { Ionicons } from '@/components/FlatIcon';
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { StyleSheet, Text, View, ViewProps } from 'react-native';
+import { StyleSheet, View, ViewProps } from 'react-native';
+import { Text } from '@/components/AppText';
 
 type Coordinate = { latitude: number; longitude: number };
 type Region = Coordinate & { latitudeDelta: number; longitudeDelta: number };

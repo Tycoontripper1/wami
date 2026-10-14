@@ -50,6 +50,8 @@ Two things bite repeatedly:
 
 Plain `StyleSheet.create` throughout — no Tailwind/NativeWind. There's no centralized theme provider beyond `constants/Colors.ts` (`Colors.light.primary` = `#00BCD4`, used for the primary accent in both light and dark mode) and `constants/Brand.ts`. Every screen instead reads `useColorScheme()` locally and builds its own small `tc`/`themeColors` object of hex values for that screen's dark/light variants — follow that per-screen pattern rather than introducing a new theming mechanism.
 
+The typeface is **Figtree**, loaded in `app/_layout.tsx`. React Native has no global default font, so import `Text` and `TextInput` from `@/components/AppText`, never from `react-native`: the wrapper picks the right Figtree weight from each style's `fontWeight`. (`Animated.Text` isn't wrapped; set `fontFamily: 'Figtree_500Medium'` etc. by hand there.)
+
 Controls follow one size: **primary buttons 48px tall with a 12px radius** (about 13px vertical padding), **small secondary buttons a 10px radius** (about 9px vertical padding), and **text fields 46px tall with a 10px radius and 15px text**. `components/FloatingLabelInput.tsx` is the standard field. Chips, tags and filter pills stay fully rounded, and circular icon buttons stay circles. Match these rather than adding new radii.
 
 Path alias `@/*` maps to the project root (`tsconfig.json`).

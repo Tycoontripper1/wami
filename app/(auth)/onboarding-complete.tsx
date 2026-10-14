@@ -7,7 +7,8 @@ import { setOnboardingComplete, setSetupPending } from '@/store/onboardingSlice'
 import { RootState } from '@/store/store';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 
