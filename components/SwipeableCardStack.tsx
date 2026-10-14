@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import SocialProofBadge from './SocialProofBadge';
 
 // expo-av was removed from the SDK 57 Expo Go native module set entirely
 // (import { Video } from 'expo-av' crashed the app on-device with "Cannot
@@ -281,11 +280,6 @@ export default function SwipeableCardStack({
           </TouchableOpacity>
         </View>
 
-        {/* Social Proof Badge */}
-        <View style={styles.socialProofContainer}>
-          <SocialProofBadge type={index % 2 === 0 ? 'views' : 'trending'} />
-        </View>
-
         {/* Tags */}
         <View style={styles.tagsContainer}>
           {item.tags?.map((tag, i) => (
@@ -467,10 +461,5 @@ const styles = StyleSheet.create({
   reviewsText: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.7)',
-  },
-  socialProofContainer: {
-    position: 'absolute',
-    top: 60,
-    left: 16,
   },
 });
