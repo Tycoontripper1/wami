@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   createButton: {
-    height: 56,
+    height: 48,
     backgroundColor: Colors.light.primary,
-    borderRadius: 30,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,

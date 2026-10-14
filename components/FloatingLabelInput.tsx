@@ -8,6 +8,8 @@ interface FloatingLabelInputProps extends TextInputProps {
   rightAccessory?: React.ReactNode;
   /** For screens that are always white, whatever the device theme. */
   forceLight?: boolean;
+  /** A smaller field: 46px tall, 15px text. */
+  compact?: boolean;
 }
 
 export function FloatingLabelInput({ 
@@ -16,6 +18,7 @@ export function FloatingLabelInput({
   containerStyle, 
   rightAccessory,
   forceLight,
+  compact,
   style, 
   onFocus, 
   onBlur, 
@@ -59,11 +62,11 @@ export function FloatingLabelInput({
     left: 12,
     top: animatedValue.interpolate({
       inputRange: [0, 1],
-      outputRange: [18, -10],
+      outputRange: [compact ? 13 : 18, compact ? -9 : -10],
     }),
     fontSize: animatedValue.interpolate({
       inputRange: [0, 1],
-      outputRange: [16, 12],
+      outputRange: [compact ? 15 : 16, 12],
     }),
     color: animatedValue.interpolate({
       inputRange: [0, 1],
@@ -75,12 +78,13 @@ export function FloatingLabelInput({
   };
 
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View style={[styles.container, compact && styles.containerCompact, containerStyle]}>
       <Animated.Text style={labelStyle} pointerEvents="none">
         {label}
       </Animated.Text>
       <View style={[
         styles.inputContainer,
+        compact && styles.inputContainerCompact,
         { 
           borderColor: themeColors.border,
           backgroundColor: themeColors.background 
@@ -90,7 +94,7 @@ export function FloatingLabelInput({
         <TextInput
           {...props}
           value={value}
-          style={[styles.input, { color: themeColors.text }, style]}
+          style={[styles.input, compact && styles.inputCompact, { color: themeColors.text }, style]}
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder={isFocused ? placeholder : ''}
@@ -113,6 +117,17 @@ const styles = StyleSheet.create({
     height: 56,
     borderWidth: 1,
     borderRadius: 12,
+  },
+  containerCompact: {
+    marginBottom: 14,
+  },
+  inputContainerCompact: {
+    height: 46,
+    borderRadius: 10,
+  },
+  inputCompact: {
+    paddingHorizontal: 14,
+    fontSize: 15,
   },
   focusedContainer: {
     borderColor: Colors.light.primary,

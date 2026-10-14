@@ -211,9 +211,9 @@ const styles = StyleSheet.create({
       color: '#999', // Design shows grey links here
   },
   nextButton: {
-    height: 56,
+    height: 48,
     backgroundColor: Colors.light.primary,
-    borderRadius: 30,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 40, // Space it out a bit

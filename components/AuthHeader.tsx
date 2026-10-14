@@ -27,6 +27,8 @@ type Props = {
   compact?: boolean;
   /** For screens that are always white, whatever the device theme. */
   forceLight?: boolean;
+  /** Show the Wami pin and tools scene. Off for the plainest screens (sign-in). */
+  scene?: boolean;
 };
 
 // The auth screens pad their content by 24px at the sides and by the safe-area
@@ -40,7 +42,16 @@ const BUTTON_ZONE = 52; // room for the back button below the status bar
  * scene as the welcome screen, then a big headline with one highlighted word
  * and a plain subtitle. The scene folds away while the keyboard is open.
  */
-export default function AuthHeader({ title, highlight, subtitle, onBack, onClose, compact, forceLight }: Props) {
+export default function AuthHeader({
+  title,
+  highlight,
+  subtitle,
+  onBack,
+  onClose,
+  compact,
+  forceLight,
+  scene = true,
+}: Props) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const isDark = useColorScheme() === 'dark' && !forceLight;
@@ -58,7 +69,7 @@ export default function AuthHeader({ title, highlight, subtitle, onBack, onClose
   }, [fold]);
 
   // The scene takes a share of the screen so the form always fits beneath it.
-  const sceneHeight = Math.round(Math.min(compact ? 230 : 330, height * (compact ? 0.24 : 0.33)));
+  const sceneHeight = scene ? Math.round(Math.min(compact ? 230 : 330, height * (compact ? 0.24 : 0.33))) : 0;
 
   const text = isDark ? '#FFFFFF' : '#0F1419';
   const sub = isDark ? '#B8C0C8' : '#5A646E';
@@ -104,10 +115,10 @@ export default function AuthHeader({ title, highlight, subtitle, onBack, onClose
       ) : null}
 
       <View style={{ paddingHorizontal: SIDE }}>
-        <Text style={[styles.title, { color: text }]}>{title}</Text>
+        <Text style={[styles.title, { color: text }, !scene && styles.titlePlain]}>{title}</Text>
         {highlight ? (
           <View style={styles.pill}>
-            <Text style={styles.pillText}>{highlight}</Text>
+            <Text style={[styles.pillText, !scene && styles.pillTextPlain]}>{highlight}</Text>
           </View>
         ) : null}
         {subtitle ? <Text style={[styles.subtitle, { color: sub }]}>{subtitle}</Text> : null}
@@ -137,6 +148,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 44,
     letterSpacing: -0.6,
+  },
+  titlePlain: {
+    fontSize: 34,
+    lineHeight: 40,
+  },
+  pillTextPlain: {
+    fontSize: 34,
+    lineHeight: 41,
   },
   pill: {
     alignSelf: 'flex-start',

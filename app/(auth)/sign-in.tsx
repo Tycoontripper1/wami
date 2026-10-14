@@ -22,7 +22,6 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -41,10 +40,6 @@ export default function SignInScreen() {
       return;
     }
 
-    if (!agreeToTerms) {
-      Alert.alert('Error', 'Please agree to the Privacy Policy and Terms of Use');
-      return;
-    }
 
     try {
       dispatch(signInStart());
@@ -79,7 +74,7 @@ export default function SignInScreen() {
     }
   };
 
-  const isFormValid = email.trim() && password.trim() && agreeToTerms;
+  const isFormValid = email.trim() && password.trim();
 
   return (
     <KeyboardAvoidingView 
@@ -90,11 +85,12 @@ export default function SignInScreen() {
       
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, flex: undefined, flexGrow: 1 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, flex: undefined, paddingBottom: 16 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <AuthHeader
+          scene={false}
           title="Welcome"
           highlight="back"
           onBack={() => router.back()}
@@ -103,6 +99,7 @@ export default function SignInScreen() {
 
         {/* Email Input */}
         <FloatingLabelInput
+          compact
           label="Email"
           value={email}
           onChangeText={setEmail}
@@ -114,6 +111,7 @@ export default function SignInScreen() {
 
         {/* Password Input */}
         <FloatingLabelInput
+          compact
           label="Password"
           value={password}
           onChangeText={setPassword}
@@ -134,26 +132,6 @@ export default function SignInScreen() {
           }
         />
 
-        {/* Terms Checkbox */}
-        <TouchableOpacity 
-          style={styles.checkboxRow}
-          onPress={() => setAgreeToTerms(!agreeToTerms)}
-          disabled={isLoading}
-        >
-          <View style={[
-            styles.checkbox, 
-            { borderColor: themeColors.border },
-            agreeToTerms && styles.checkboxChecked
-          ]}>
-            {agreeToTerms && <Ionicons name="checkmark" size={16} color="#0F1419" />}
-          </View>
-          <Text style={[styles.checkboxText, { color: themeColors.subText }]}>
-            By continuing, I agree to Wami's{' '}
-            <Text style={styles.link}>Privacy Policy</Text> and{' '}
-            <Text style={styles.link}>Terms of Use</Text>
-          </Text>
-        </TouchableOpacity>
-
         {/* Forgot Password */}
         <TouchableOpacity 
           style={styles.forgotPassword}
@@ -162,14 +140,19 @@ export default function SignInScreen() {
           <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         </TouchableOpacity>
 
-        {/* Spacer */}
-        <View style={{ flex: 1 }} />
+      </ScrollView>
 
-        {/* Sign In Button */}
-        <TouchableOpacity 
+      {/* Pinned to the bottom: always reachable, never scrolled away */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Text style={[styles.termsText, { color: themeColors.subText }]}>
+          By continuing, you agree to Wami's Terms of Use and Privacy Policy.
+        </Text>
+
+        <TouchableOpacity
           style={[styles.signInButton, (!isFormValid || isLoading) && styles.signInButtonDisabled]}
           onPress={handleSignIn}
           disabled={!isFormValid || isLoading}
+          activeOpacity={0.85}
         >
           {isLoading ? (
             <ActivityIndicator color="#0F1419" />
@@ -178,14 +161,13 @@ export default function SignInScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
           <Text style={[styles.signUpText, { color: themeColors.subText }]}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => router.push('/(auth)/sign-up-email')}>
             <Text style={styles.signUpLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -223,39 +205,9 @@ const styles = StyleSheet.create({
   },
 
   eyeButton: {
-    paddingHorizontal: 16,
-    height: 56,
+    paddingHorizontal: 14,
+    height: 46,
     justifyContent: 'center',
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
-  },
-  checkboxText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 18,
-  },
-  link: {
-    color: Colors.light.primary,
-    textDecorationLine: 'underline',
   },
   forgotPassword: {
     alignSelf: 'flex-end',
@@ -267,9 +219,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   signInButton: {
-    height: 56,
+    height: 48,
     backgroundColor: Colors.light.primary,
-    borderRadius: 30,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -281,10 +233,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0F1419',
   },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    gap: 12,
+  },
+  termsText: {
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
   signUpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 2,
   },
   signUpText: {
     fontSize: 14,
