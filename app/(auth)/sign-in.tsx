@@ -4,7 +4,7 @@ import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
 import { signInFailure, signInStart, signInSuccess } from '@/store/authSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';

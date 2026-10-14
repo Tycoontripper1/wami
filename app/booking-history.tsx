@@ -3,7 +3,7 @@ import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookings } from '@/services/api/bookingsService';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

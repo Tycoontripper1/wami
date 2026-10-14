@@ -5,7 +5,7 @@ import { authService } from '@/services/authService';
 import { signOut, updateUser } from '@/store/authSlice';
 import { RootState } from '@/store/store';
 import { extractList } from '@/utils/extractList';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -179,7 +179,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.becomeCreativeContent}>
               <View style={styles.becomeCreativeIcon}>
-                <Ionicons name="sparkles" size={24} color="#0F1419" />
+                <Ionicons name="color-palette" size={24} color="#0F1419" />
               </View>
               <View style={styles.becomeCreativeText}>
                 <Text style={styles.becomeCreativeTitle}>Become a Creative</Text>

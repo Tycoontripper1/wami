@@ -4,7 +4,7 @@ import { deliveryService } from '@/services/deliveryService';
 import { RootState } from '@/store/store';
 import { DeliveryEstimate } from '@/types/delivery';
 import { formatCurrency } from '@/types/payment';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {

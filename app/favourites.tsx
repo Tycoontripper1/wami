@@ -6,7 +6,7 @@ import { SkeletonRow } from '@/components/Skeleton';
 import { getSavedOfferings, unsaveOffering } from '@/services/api/discoveryService';
 import { removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

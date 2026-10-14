@@ -8,7 +8,7 @@ import { ApiOffering, getOfferingById } from '@/services/api/offeringsService';
 import { createReview, getReviews, ReviewableType } from '@/services/api/reviewsService';
 import { addFavorite, removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {

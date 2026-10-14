@@ -3,7 +3,7 @@ import Colors from '@/constants/Colors';
 import { profileService } from '@/services/api/profileService';
 import { RootState } from '@/store/store';
 import { UpdateProfileRequest } from '@/types/accountTypes';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';

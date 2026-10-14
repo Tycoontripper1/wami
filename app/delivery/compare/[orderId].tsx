@@ -4,7 +4,7 @@ import { updateProductOrderStatus } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { Driver, VEHICLE_ICONS } from '@/types/delivery';
 import { buildOrderTimeline, formatCurrency } from '@/types/payment';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {

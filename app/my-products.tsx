@@ -5,7 +5,7 @@ import Colors from '@/constants/Colors';
 import { bulkPublishOfferings } from '@/services/api/offeringsService';
 import { DiscoveryOffering, getMyItems } from '@/services/api/discoveryService';
 import { bulkDeleteProducts, bulkUpdateProducts, deleteProduct, updateProduct } from '@/services/api/productsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

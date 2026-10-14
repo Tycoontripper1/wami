@@ -1,7 +1,7 @@
 import Colors from '@/constants/Colors';
 import { deliveryService } from '@/services/deliveryService';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';

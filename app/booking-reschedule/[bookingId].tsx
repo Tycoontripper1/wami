@@ -1,6 +1,6 @@
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookingById, rescheduleBooking } from '@/services/api/bookingsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {

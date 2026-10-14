@@ -7,7 +7,7 @@ import { getProductById } from '@/services/api/productsService';
 import { addProductOrder } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { PaymentMethodType, ShippingOption, buildOrderTimeline, formatCurrency } from '@/types/payment';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { PaystackProvider, usePaystack } from 'react-native-paystack-webview';

@@ -2,7 +2,7 @@ import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import PhotoUploadRequirements from '@/components/sell/PhotoUploadRequirements';
 import Colors from '@/constants/Colors';
 import { createProduct } from '@/services/api/productsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';

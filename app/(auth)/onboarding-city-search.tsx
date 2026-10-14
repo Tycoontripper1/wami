@@ -3,7 +3,7 @@ import Colors from '@/constants/Colors';
 import { setSelectedCity } from '@/store/onboardingSlice';
 import { RootState } from '@/store/store';
 import { POPULAR_CITIES } from '@/types/onboarding';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

@@ -1,7 +1,7 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { getProductById } from '@/services/api/productsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

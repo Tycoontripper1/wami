@@ -1,7 +1,7 @@
 import Colors from '@/constants/Colors';
 import { createBooking } from '@/services/api/bookingsService';
 import { addBooking, Booking } from '@/store/bookingsSlice';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,

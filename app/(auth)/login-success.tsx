@@ -2,7 +2,7 @@ import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
 import { setDontShowSuccessAgain } from '@/store/authSlice';
 import { useAppDispatch } from '@/store/hooks';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import {

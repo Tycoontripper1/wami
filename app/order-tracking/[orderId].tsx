@@ -4,7 +4,7 @@ import { DELIVERY_ENABLED } from '@/constants/Features';
 import { updateProductOrderStatus } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { buildOrderTimeline } from '@/types/payment';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {

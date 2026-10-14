@@ -5,7 +5,7 @@ import Colors from '@/constants/Colors';
 import { instagramService } from '@/services/instagramService';
 import { setInstagramProfile, setWebsite } from '@/store/creativeOnboardingSlice';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

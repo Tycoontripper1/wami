@@ -3,7 +3,7 @@ import SalesChart, { SalesChartPoint } from '@/components/analytics/SalesChart';
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
 import { getSellerTransactions, getSellerWallet, SellerTransaction } from '@/services/api/sellerService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';

@@ -4,7 +4,7 @@ import { SkeletonRow } from '@/components/Skeleton';
 import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { ApiConversation, getConversations } from '@/services/api/chatService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {

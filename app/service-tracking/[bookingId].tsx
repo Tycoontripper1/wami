@@ -7,7 +7,7 @@ import {
     releaseMilestone,
 } from '@/services/api/bookingsService';
 import { cancelBooking as cancelLocalBooking } from '@/store/bookingsSlice';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

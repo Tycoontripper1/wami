@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import React, { forwardRef, useImperativeHandle } from 'react';
 import { StyleSheet, Text, View, ViewProps } from 'react-native';
 

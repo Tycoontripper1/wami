@@ -2,7 +2,7 @@ import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { createOffering } from '@/services/api/offeringsService';
 import { CREATIVE_ONLY_RESTRICTION_MESSAGE, isCreativeOnlyRestriction } from '@/utils/apiErrors';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

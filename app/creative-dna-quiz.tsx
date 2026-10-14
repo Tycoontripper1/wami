@@ -1,6 +1,6 @@
 import Colors from '@/constants/Colors';
 import { completeQuiz, setPreferences } from '@/store/creativeMatchSlice';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

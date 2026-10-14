@@ -5,7 +5,7 @@ import OnboardingProgress from '@/components/OnboardingProgress';
 import Colors from '@/constants/Colors';
 import { setBrandDetails } from '@/store/creativeOnboardingSlice';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';

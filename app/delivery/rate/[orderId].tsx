@@ -3,7 +3,7 @@ import Colors from '@/constants/Colors';
 import { deliveryService } from '@/services/deliveryService';
 import { RootState } from '@/store/store';
 import { Driver } from '@/types/delivery';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {

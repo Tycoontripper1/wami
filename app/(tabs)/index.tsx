@@ -8,7 +8,7 @@ import { addFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
 import { DiscoveryOffering, getDiscoveryFeed, getNearYou, saveOffering, swipeOffering } from '@/services/api/discoveryService';
 import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';

@@ -2,7 +2,7 @@ import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { profileService } from '@/services/api/profileService';
 import { UpdatePasswordRequest } from '@/types/accountTypes';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

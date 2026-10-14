@@ -3,7 +3,7 @@ import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
 import { signUpFailure, signUpStart, signUpSuccess } from '@/store/authSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';

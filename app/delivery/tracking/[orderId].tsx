@@ -3,7 +3,7 @@ import { deliveryService } from '@/services/deliveryService';
 import { updateProductOrderStatus } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { Driver, VEHICLE_ICONS } from '@/types/delivery';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';

@@ -2,7 +2,7 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
 import { getProducts } from '@/services/api/productsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

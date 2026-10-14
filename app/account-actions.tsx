@@ -4,7 +4,7 @@ import { profileService } from '@/services/api/profileService';
 import { authService } from '@/services/authService';
 import { signOut } from '@/store/authSlice';
 import { AccountActionRequest } from '@/types/accountTypes';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

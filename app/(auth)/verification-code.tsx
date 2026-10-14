@@ -1,6 +1,6 @@
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {

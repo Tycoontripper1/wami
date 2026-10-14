@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, StatusBar } from 'react-nativ
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '@/constants/Colors';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 
 export default function ConnectInstagramScreen() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 import Colors from '@/constants/Colors';
 import { createBooking } from '@/services/api/bookingsService';
 import { createQuote } from '@/services/api/quotesService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {

@@ -3,7 +3,7 @@ import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
 import { authService } from '@/services/authService';
 import { setComplete } from '@/store/creativeOnboardingSlice';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';

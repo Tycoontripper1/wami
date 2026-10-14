@@ -2,7 +2,7 @@ import Colors from '@/constants/Colors';
 import { getRegionCodes, REGIONS } from '@/data/regions';
 import { setLocation } from '@/store/locationSlice';
 import { RootState } from '@/store/store';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';

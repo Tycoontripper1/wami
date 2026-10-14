@@ -2,7 +2,7 @@ import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookingsCalendar } from '@/services/api/bookingsService';
 import { CREATIVE_ONLY_RESTRICTION_MESSAGE, isCreativeOnlyRestriction } from '@/utils/apiErrors';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {

@@ -8,7 +8,7 @@ import {
     markAllNotificationsRead,
     markNotificationRead,
 } from '@/services/api/notificationsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {

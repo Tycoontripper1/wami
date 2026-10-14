@@ -1,6 +1,6 @@
 import FlatIllustration, { IllustrationName } from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 

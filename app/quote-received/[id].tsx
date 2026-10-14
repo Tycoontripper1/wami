@@ -1,6 +1,6 @@
 import Colors from '@/constants/Colors';
 import { respondToQuote } from '@/services/api/quotesService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {

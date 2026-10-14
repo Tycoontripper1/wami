@@ -2,7 +2,7 @@ import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
 import { RootState } from '@/store/store';
 import { ProductOrder } from '@/types/payment';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {

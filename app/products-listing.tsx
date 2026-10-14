@@ -3,7 +3,7 @@ import EmptyState from '@/components/EmptyState';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
 import { getProducts } from '@/services/api/productsService';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/FlatIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
