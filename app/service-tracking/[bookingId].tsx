@@ -40,6 +40,15 @@ const STATUS_INDEX: Record<string, number> = {
   cancelled: -1,
 };
 
+// The API returns ISO timestamps ("2026-11-01T00:00:00.000000Z"); show "1 Nov 2026".
+const formatBookingDate = (value?: string) => {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? value
+    : d.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+};
+
 export default function ServiceTrackingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -195,7 +204,7 @@ export default function ServiceTrackingScreen() {
           <View style={styles.escrowRow}>
             <Ionicons name="calendar" size={16} color={tc.sub} />
             <Text style={[styles.escrowText, { color: tc.sub }]}>
-              {booking.start_date}{booking.end_date && booking.end_date !== booking.start_date ? ` – ${booking.end_date}` : ''}
+              {formatBookingDate(booking.start_date)}{booking.end_date && booking.end_date !== booking.start_date ? ` – ${formatBookingDate(booking.end_date)}` : ''}
             </Text>
           </View>
         </View>
