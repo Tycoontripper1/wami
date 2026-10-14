@@ -1,4 +1,4 @@
-import FlatIllustration from '@/components/illustrations/FlatIllustration';
+import AnimatedCheck from '@/components/AnimatedCheck';
 import Colors from '@/constants/Colors';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -64,9 +64,9 @@ export default function SuccessScreen({
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <View style={styles.content}>
-        <Animated.View style={[styles.iconWrap, { transform: [{ scale }] }]}>
-          <FlatIllustration name="check" width={220} />
-        </Animated.View>
+        <View style={styles.iconWrap}>
+          <AnimatedCheck size={130} />
+        </View>
 
         <Animated.View style={{ opacity, transform: [{ translateY: slideUp }], alignItems: 'center' }}>
           <Text style={[styles.title, { color: tc.text }]}>{title}</Text>
@@ -96,7 +96,8 @@ export default function SuccessScreen({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  iconWrap: { marginBottom: 24 },
+  // AnimatedCheck's box is larger than the badge so the confetti has room.
+  iconWrap: { marginVertical: -20 },
   title: { fontSize: 36, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 16, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   referenceCard: {

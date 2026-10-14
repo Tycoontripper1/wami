@@ -1,5 +1,5 @@
+import AnimatedCheck from '@/components/AnimatedCheck';
 import Colors from '@/constants/Colors';
-import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -50,9 +50,9 @@ export default function CheckoutSuccessScreen() {
 
       <View style={styles.content}>
         {/* Animated check */}
-        <Animated.View style={[styles.iconWrap, { transform: [{ scale }] }]}>
-          <Ionicons name="checkmark-circle" size={100} color={Colors.light.primary} />
-        </Animated.View>
+        <View style={styles.iconWrap}>
+          <AnimatedCheck size={130} />
+        </View>
 
         <Animated.View style={{ opacity, transform: [{ translateY: slideUp }], alignItems: 'center' }}>
           <Text style={[styles.title, { color: tc.text }]}>Done!</Text>
@@ -93,7 +93,8 @@ export default function CheckoutSuccessScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  iconWrap: { marginBottom: 24 },
+  // AnimatedCheck's box is larger than the badge so the confetti has room.
+  iconWrap: { marginVertical: -20 },
   title: { fontSize: 36, fontWeight: '800', marginBottom: 8 },
   subtitle: { fontSize: 16, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   trackingCard: {

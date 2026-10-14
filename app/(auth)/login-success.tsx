@@ -1,3 +1,4 @@
+import AnimatedCheck from '@/components/AnimatedCheck';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
 import { setDontShowSuccessAgain } from '@/store/authSlice';
@@ -135,22 +136,7 @@ export default function LoginSuccessScreen() {
               }) },
             ]}
           />
-          <View style={styles.successCircle}>
-            <Animated.View
-              style={{
-                transform: [
-                  {
-                    scale: checkmarkAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 1],
-                    }),
-                  },
-                ],
-              }}
-            >
-              <Ionicons name="checkmark" size={70} color="#0F1419" />
-            </Animated.View>
-          </View>
+          <AnimatedCheck size={120} />
         </Animated.View>
 
         {/* Title & Subtitle */}

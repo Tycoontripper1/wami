@@ -1,3 +1,4 @@
+import AnimatedCheck from '@/components/AnimatedCheck';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
@@ -35,9 +36,7 @@ export default function AccountSuccessScreen() {
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         {/* Success Icon */}
         <View style={styles.successIconContainer}>
-          <View style={styles.successCircle}>
-            <Ionicons name="checkmark" size={48} color="#0F1419" />
-          </View>
+          <AnimatedCheck size={120} />
         </View>
 
         {/* Title */}
