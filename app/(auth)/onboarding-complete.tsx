@@ -1,12 +1,12 @@
 import AnimatedCheck from '@/components/AnimatedCheck';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import Colors from '@/constants/Colors';
-import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
+import { consolidateOnboardingData, isUnauthenticatedError } from '@/services/api/onboardingUtils';
 import { authService } from '@/services/authService';
-import { setOnboardingComplete } from '@/store/onboardingSlice';
+import { setOnboardingComplete, setSetupPending } from '@/store/onboardingSlice';
 import { RootState } from '@/store/store';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -30,7 +30,14 @@ export default function OnboardingCompleteScreen() {
   const creative = useSelector((state: RootState) => state.creativeOnboarding);
   const [isSubmitting, setIsSubmitting] = React.useState(true);
 
+  // The effect below depends on `router`, whose identity can change between
+  // renders; without this guard account setup could be submitted repeatedly.
+  const hasStarted = useRef(false);
+
   useEffect(() => {
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+
     const completeOnboarding = async () => {
       try {
         setIsSubmitting(true);
@@ -51,6 +58,20 @@ export default function OnboardingCompleteScreen() {
       } catch (error: any) {
         console.error('Onboarding setup failed:', error);
         setIsSubmitting(false);
+
+        if (isUnauthenticatedError(error)) {
+          // No valid session, so setup cannot succeed and retrying is pointless.
+          // Keep the answers, ask for a sign-in, and finish setup right after it.
+          dispatch(setSetupPending(true));
+          // Go first (Alert is a no-op on web), then explain over the sign-in screen.
+          router.replace('/(auth)/sign-in' as any);
+          Alert.alert(
+            'Sign in to finish',
+            'Your session has ended. Sign in and we will finish setting up your account with your answers.',
+          );
+          return;
+        }
+
         Alert.alert(
           'Setup Failed',
           error.message || 'We could not complete your account setup. Please try again.',

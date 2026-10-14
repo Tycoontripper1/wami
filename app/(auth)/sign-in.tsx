@@ -1,3 +1,6 @@
+import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
+import { setOnboardingComplete, setSetupPending } from '@/store/onboardingSlice';
+import { store } from '@/store/store';
 import { AuthBrandLogo } from '@/components/AuthBrandLogo';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
@@ -47,6 +50,21 @@ export default function SignInScreen() {
       dispatch(signInStart());
       const result = await authService.signIn(email, password);
       dispatch(signInSuccess(result));
+
+      // Account setup was rejected earlier for lack of a session. Their
+      // onboarding answers are still in memory, so complete it now.
+      const pending = store.getState().onboarding;
+      if (pending.setupPending) {
+        try {
+          const state = store.getState();
+          await authService.setupAccount(consolidateOnboardingData(state.onboarding, state.creativeOnboarding));
+          dispatch(setSetupPending(false));
+          dispatch(setOnboardingComplete(true));
+        } catch (setupError) {
+          // Signing in still succeeded; setup stays pending for another try.
+          console.error('Deferred account setup failed:', setupError);
+        }
+      }
       
       // Check if user wants to skip success screen
       const dontShowSuccess = await authService.getDontShowSuccess();

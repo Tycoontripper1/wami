@@ -98,3 +98,13 @@ export const consolidateOnboardingData = (
   // Fallback
   throw new Error('Invalid onboarding purpose');
 };
+
+/**
+ * True when a request failed because there is no valid session (HTTP 401 /
+ * "Unauthenticated."), as opposed to a validation or server problem. Retrying
+ * such a request can never succeed; the user has to sign in first.
+ */
+export const isUnauthenticatedError = (error: any): boolean =>
+  error?.statusCode === 401 ||
+  error?.code === 'HTTP_401' ||
+  /unauthenticated/i.test(String(error?.message ?? ''));

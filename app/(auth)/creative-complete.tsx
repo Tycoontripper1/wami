@@ -1,5 +1,6 @@
 import Colors from '@/constants/Colors';
-import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
+import { consolidateOnboardingData, isUnauthenticatedError } from '@/services/api/onboardingUtils';
+import { setSetupPending } from '@/store/onboardingSlice';
 import { authService } from '@/services/authService';
 import { setComplete } from '@/store/creativeOnboardingSlice';
 import { RootState } from '@/store/store';
@@ -52,6 +53,18 @@ export default function CreativeCompleteScreen() {
     } catch (error: any) {
       console.error('Creative setup failed:', error);
       setIsSubmitting(false);
+
+      if (isUnauthenticatedError(error)) {
+        dispatch(setSetupPending(true));
+        // Go first (Alert is a no-op on web), then explain over the sign-in screen.
+        router.replace('/(auth)/sign-in' as any);
+        Alert.alert(
+          'Sign in to finish',
+          'Your session has ended. Sign in and we will finish setting up your account with your answers.',
+        );
+        return;
+      }
+
       Alert.alert(
         'Setup Failed',
         error.message || 'We could not complete your account setup. Please try again.',

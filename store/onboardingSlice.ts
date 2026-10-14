@@ -45,6 +45,9 @@ const onboardingSlice = createSlice({
     setOnboardingComplete: (state, action: PayloadAction<boolean>) => {
       state.isComplete = action.payload;
     },
+    setSetupPending: (state, action: PayloadAction<boolean>) => {
+      state.setupPending = action.payload;
+    },
     resetOnboarding: () => initialState,
   },
 });
@@ -58,6 +61,7 @@ export const {
   setLocation,
   setNotificationsEnabled,
   setOnboardingComplete,
+  setSetupPending,
   resetOnboarding,
 } = onboardingSlice.actions;
 

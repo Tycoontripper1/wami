@@ -10,6 +10,8 @@ export interface OnboardingData {
   };
   notificationsEnabled: boolean;
   isComplete: boolean;
+  /** Setup was rejected for lack of a valid session; run it right after the next sign-in. */
+  setupPending?: boolean;
 }
 
 export const INTEREST_OPTIONS = [
