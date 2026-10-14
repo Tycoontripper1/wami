@@ -73,7 +73,6 @@ export default function AuthHeader({
 
   const text = isDark ? '#FFFFFF' : '#0F1419';
   const sub = isDark ? '#B8C0C8' : '#5A646E';
-  const buttonBg = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,20,25,0.06)';
   const topZone = insets.top + BUTTON_ZONE;
 
   return (
@@ -94,10 +93,11 @@ export default function AuthHeader({
           {onBack ? (
             <TouchableOpacity
               onPress={onBack}
-              style={[styles.iconButton, { backgroundColor: buttonBg }]}
+              style={[styles.iconButton, { alignItems: 'flex-start' }]}
               accessibilityLabel="Back"
             >
-              <Ionicons name="arrow-back" size={22} color={text} />
+              {/* the glyph sits a few px inside its box; pull it onto the text's left edge */}
+              <Ionicons name="arrow-back" size={26} color={text} style={{ marginLeft: -4 }} />
             </TouchableOpacity>
           ) : (
             <View />
@@ -105,10 +105,10 @@ export default function AuthHeader({
           {onClose ? (
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.iconButton, { backgroundColor: buttonBg }]}
+              style={[styles.iconButton, { alignItems: 'flex-end' }]}
               accessibilityLabel="Close"
             >
-              <Ionicons name="close" size={22} color={text} />
+              <Ionicons name="close" size={22} color={text} style={{ marginRight: -4 }} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -132,8 +132,8 @@ export default function AuthHeader({
 const styles = StyleSheet.create({
   buttons: {
     position: 'absolute',
-    left: 20,
-    right: 20,
+    left: SIDE,
+    right: SIDE,
     flexDirection: 'row',
     justifyContent: 'space-between',
     zIndex: 10,
@@ -141,7 +141,6 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
