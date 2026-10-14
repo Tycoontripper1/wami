@@ -56,9 +56,11 @@ export const getProducts = async (
 
 // Get product by ID
 export const getProductById = async (
-  id: string
+  id: string,
+  options?: { expectMissing?: boolean }
 ): Promise<ApiResponse<Product>> => {
-  return apiClient.get(API_ENDPOINTS.PRODUCTS.BY_ID(id));
+  // `expectMissing`: the caller has a fallback for a 404, so it is not an error.
+  return apiClient.get(API_ENDPOINTS.PRODUCTS.BY_ID(id), { expectUnsupported: options?.expectMissing });
 };
 
 // Get products by category

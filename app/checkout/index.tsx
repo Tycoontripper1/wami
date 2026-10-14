@@ -50,7 +50,7 @@ const mapApiProductToCheckout = (p: any): CheckoutProduct => ({
   price: Number(p.price) || 0,
   category: p.category || '',
   image: p.image || p.images?.[0] || p.thumbnail_url || p.media_url || '',
-  sellerName: p.sellerName || p.seller?.name,
+  sellerName: p.creator?.name || p.sellerName || p.seller?.name,
 });
 
 const SHIPPING_OPTIONS = {
@@ -308,7 +308,7 @@ function CheckoutContent() {
       productId: product.id,
       productName: product.name,
       productImage: product.image,
-      sellerName: product.sellerName || 'Creative Seller',
+      sellerName: product.sellerName || 'Seller',
       price: product.price,
       serviceFee,
       deliveryFee,

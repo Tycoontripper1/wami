@@ -1,3 +1,4 @@
+import { getOfferingById } from '@/services/api/offeringsService';
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { getProductById } from '@/services/api/productsService';
@@ -33,6 +34,7 @@ interface ProductDetail {
   status: string;
   condition?: string;
   size?: string;
+  description?: string;
   sellerName?: string;
   officialStore?: boolean;
 }
@@ -44,12 +46,18 @@ const mapApiProductToDetail = (p: any): ProductDetail => ({
   // Confirmed live 2026-09-29.
   price: Number(p.price) || 0,
   category: p.category || '',
-  image: p.image || p.images?.[0] || '',
+  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || '',
   images: p.images,
   status: p.stock === 0 ? 'Sold' : (p.status === 'published' ? 'Active' : p.status || 'Active'),
-  condition: p.condition,
+  condition: p.condition || undefined,
   size: p.size,
-  sellerName: p.sellerName || p.seller?.name,
+  description: typeof p.description === 'string' ? p.description.trim() : undefined,
+  sellerName:
+    p.creator?.name ||
+    p.sellerName ||
+    p.seller?.name ||
+    [p.user?.first_name, p.user?.last_name].filter(Boolean).join(' ') ||
+    undefined,
   officialStore: p.officialStore,
 });
 
@@ -71,8 +79,16 @@ export default function ProductDetailScreen() {
     setIsLoading(true);
     setHasError(false);
     try {
-      const res = await getProductById(productId);
-      setProduct(mapApiProductToDetail(res.data));
+      let data: any;
+      try {
+        data = (await getProductById(productId, { expectMissing: true })).data;
+      } catch (error: any) {
+        // The shop list can include listings whose id /products/:id does not
+        // know (they are offerings); the offering endpoint serves those.
+        if (error?.statusCode !== 404) throw error;
+        data = (await getOfferingById(productId)).data;
+      }
+      setProduct(mapApiProductToDetail(data));
     } catch (error) {
       console.error('Failed to load product:', error);
       setProduct(null);
@@ -86,7 +102,7 @@ export default function ProductDetailScreen() {
     loadProduct();
   }, [loadProduct]);
 
-  const productImages = product?.images?.length ? product.images : product ? [product.image] : [];
+  const productImages = (product?.images?.length ? product.images : product ? [product.image] : []).filter(Boolean);
 
   const handleImageScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -178,6 +194,14 @@ export default function ProductDetailScreen() {
             ))}
           </ScrollView>
 
+          {productImages.length === 0 ? (
+            <View
+              style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: themeColors.cardBg }]}
+            >
+              <Ionicons name="image-outline" size={56} color={themeColors.subText} />
+            </View>
+          ) : null}
+
           {product.status !== 'Active' && (
             <View style={styles.soldOutOverlay}>
               <Text style={styles.soldOutText}>Sold Out</Text>
@@ -219,10 +243,12 @@ export default function ProductDetailScreen() {
 
           <View style={styles.priceRow}>
             <Text style={styles.productPrice}>₦{product.price.toLocaleString()}</Text>
-            <View style={styles.conditionTag}>
-              <Ionicons name="star" size={12} color={Colors.light.primary} />
-              <Text style={styles.conditionTagText}>{product.condition || 'New'}</Text>
-            </View>
+            {product.condition ? (
+              <View style={styles.conditionTag}>
+                <Ionicons name="star" size={12} color={Colors.light.primary} />
+                <Text style={styles.conditionTagText}>{product.condition}</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={[styles.serviceChargeNote, { color: themeColors.subText }]}>
             Price includes Wami buyer protection · service charge calculated at checkout
@@ -237,7 +263,7 @@ export default function ProductDetailScreen() {
               <View style={styles.sellerTextContainer}>
                 <View style={styles.sellerNameRow}>
                   <Text style={[styles.sellerName, { color: themeColors.text }]}>
-                    {product.sellerName || 'Creative Seller'}
+                    {product.sellerName || 'Seller'}
                   </Text>
                   {product.officialStore && (
                     <View style={styles.officialBadge}>
@@ -288,14 +314,12 @@ export default function ProductDetailScreen() {
           )}
 
           {/* Description */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Description</Text>
-            <Text style={[styles.description, { color: themeColors.subText }]}>
-              This is a high-quality {product.name.toLowerCase()} in the {product.category.toLowerCase()} category. 
-              Perfect for those looking for unique and creative items. Each piece is carefully crafted 
-              to ensure the best quality and design.
-            </Text>
-          </View>
+          {product.description ? (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Description</Text>
+              <Text style={[styles.description, { color: themeColors.subText }]}>{product.description}</Text>
+            </View>
+          ) : null}
 
           {/* Details */}
           <View style={styles.section}>
@@ -304,10 +328,12 @@ export default function ProductDetailScreen() {
               <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Category</Text>
               <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.category}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Condition</Text>
-              <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.condition || 'New'}</Text>
-            </View>
+            {product.condition ? (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Condition</Text>
+                <Text style={[styles.detailValue, { color: themeColors.text }]}>{product.condition}</Text>
+              </View>
+            ) : null}
             {product.size && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: themeColors.subText }]}>Size</Text>

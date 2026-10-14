@@ -190,7 +190,9 @@ export default function DiscoverScreen() {
       // separate call that can never succeed.
       const productsRes = await getProducts({ limit: 8 });
       const productsData: any = productsRes.data;
-      const items = dedupeById(extractList(productsData).map(mapProduct));
+      // Drafts are the seller's work in progress, not for sale.
+      const published = extractList(productsData).filter((p: any) => p.status === undefined || p.status === 'published');
+      const items = dedupeById(published.map(mapProduct));
       setProducts(items);
       setFeatured(items.slice(0, 6));
     } catch (error) {

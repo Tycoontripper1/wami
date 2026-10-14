@@ -80,7 +80,12 @@ export default function ProductsListingScreen() {
       const res = await getProducts();
       const data: any = res.data;
       const items = extractList(data);
-      setProducts(items.map(mapApiProductToProduct));
+      // Drafts are the seller's work in progress, not for sale.
+      setProducts(
+        items
+          .filter((p: any) => p.status === undefined || p.status === 'published')
+          .map(mapApiProductToProduct),
+      );
     } catch (error) {
       console.error('Failed to load products:', error);
       setProducts([]);
@@ -200,6 +205,7 @@ export default function ProductsListingScreen() {
       <FlatList
         data={CATEGORIES}
         horizontal
+        style={{ flexGrow: 0 }}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(c) => c.name}
         contentContainerStyle={styles.categoriesRow}
@@ -230,6 +236,7 @@ export default function ProductsListingScreen() {
       <FlatList
         data={FILTER_CHIPS}
         horizontal
+        style={{ flexGrow: 0 }}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(f) => f}
         contentContainerStyle={styles.filterRow}
