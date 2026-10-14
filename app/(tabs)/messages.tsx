@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
   listContainer: {
     paddingBottom: 20,

@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   imagePlaceholder: { alignItems: 'center', gap: 8 },
   imagePlaceholderText: { fontSize: 14 },
   captionInput: {
-    minHeight: 90, borderRadius: 12, borderWidth: 1, padding: 14,
+    minHeight: 90, borderRadius: 10, borderWidth: 1, padding: 14,
     fontSize: 15, textAlignVertical: 'top',
   },
   postButton: {

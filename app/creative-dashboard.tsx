@@ -269,16 +269,16 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 12,
   },
   currencyPrefix: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   input: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     paddingVertical: 12,
     marginLeft: 4,

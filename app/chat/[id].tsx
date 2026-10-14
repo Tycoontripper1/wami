@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     maxHeight: 120,
   },
   input: {
-    fontSize: 16,
+    fontSize: 15,
     maxHeight: 100,
   },
   sendButton: {

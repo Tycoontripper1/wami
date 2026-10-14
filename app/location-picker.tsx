@@ -1,5 +1,9 @@
 import Colors from '@/constants/Colors';
 import { getRegionCodes, REGIONS } from '@/data/regions';
+import { CITY_COORDS, CITY_NOTES, COUNTRY_VIEW } from '@/data/regionGeo';
+import MapBubble, { BUBBLE_ANCHOR } from '@/components/maps/MapBubble';
+import { getNearYou } from '@/services/api/discoveryService';
+import { extractList } from '@/utils/extractList';
 import { setLocation } from '@/store/locationSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
@@ -10,6 +14,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -24,13 +29,40 @@ import { useDispatch, useSelector } from 'react-redux';
 
 const { width, height } = Dimensions.get('window');
 
-// Default initial region (Africa/Europe view)
-const DEFAULT_REGION = {
-  latitude: 20.0,
-  longitude: 10.0,
-  latitudeDelta: 60.0,
-  longitudeDelta: 60.0,
-};
+// Opens on the home country so it fills the map (Nigeria), not the whole continent.
+const DEFAULT_REGION = COUNTRY_VIEW.NG;
+
+// A soft, pastel base map: pale land, white roads, light water and green parks,
+// no business icons, so the bubbles are the only thing that stands out.
+const LIGHT_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#F3F1EC' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8A9099' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#FFFFFF' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#D9D6CF' }] },
+  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }, { color: '#DCEBD0' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#EBE8E1' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#CDE5F1' }] },
+];
+const DARK_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#1B2428' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#8CA0A6' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#10181B' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#2C3A40' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }, { color: '#1F3A2E' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2B383E' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0E2A33' }] },
+];
+
+type NearbyCreative = { id: string; name: string; role?: string; image?: string; latitude: number; longitude: number };
 
 export default function LocationPickerScreen() {
   const insets = useSafeAreaInsets();
@@ -44,6 +76,8 @@ export default function LocationPickerScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState(currentLocation.currentRegion);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  // Creatives that carry coordinates show up on the map as photo bubbles.
+  const [nearby, setNearby] = useState<NearbyCreative[]>([]);
   
   // Map state
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
@@ -70,17 +104,43 @@ export default function LocationPickerScreen() {
     inputBg: isDark ? '#1a1a1a' : '#f5f5f5',
   };
 
-  // Initial map setup
+  // Initial map setup: the saved spot if there is one, otherwise the country.
   useEffect(() => {
     if (currentLocation.coordinates) {
-      const region = {
+      setMapRegion({
         latitude: currentLocation.coordinates.lat,
         longitude: currentLocation.coordinates.lng,
         latitudeDelta: 0.5,
         longitudeDelta: 0.5,
-      };
-      setMapRegion(region);
+      });
+    } else if (COUNTRY_VIEW[currentLocation.currentRegion]) {
+      setMapRegion(COUNTRY_VIEW[currentLocation.currentRegion]);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getNearYou()
+      .then((res) => {
+        if (cancelled) return;
+        const list = extractList<any>(res.data)
+          .map((o) => ({
+            id: String(o.id ?? o.offering_id),
+            name: o.name || o.title || '',
+            role: o.role || o.category || undefined,
+            image: o.image || o.images?.[0] || o.media_url || o.thumbnail_url || undefined,
+            latitude: Number(o.location?.lat ?? o.lat),
+            longitude: Number(o.location?.lng ?? o.lng),
+          }))
+          .filter((o) => o.name && Number.isFinite(o.latitude) && Number.isFinite(o.longitude));
+        setNearby(list.slice(0, 25));
+      })
+      .catch(() => {
+        // The map works without them; the cities are still there.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const getCurrentLocation = async () => {
@@ -204,14 +264,28 @@ export default function LocationPickerScreen() {
   });
 
   const handleSelectCity = (city: string) => {
-    // We don't have coords for these hardcoded cities easily without geocoding them all
-    // For now, just set the text. In real app, we'd geocode this selection too.
-    dispatch(setLocation({
-      region: selectedRegion,
-      city: city,
-      // coordinates: undefined // Keep undefined or geocode if needed
-    }));
-    router.back();
+    const coords = CITY_COORDS[`${selectedRegion}:${city}`];
+    if (!coords) {
+      // No coordinates for this city: save the name straight away.
+      dispatch(setLocation({ region: selectedRegion, city }));
+      router.back();
+      return;
+    }
+    // Fly to the city and drop the pin; the card's Confirm button saves it.
+    setSelectedLocation({
+      ...coords,
+      city,
+      country: REGIONS[selectedRegion]?.name,
+      isoCountryCode: selectedRegion,
+    });
+    mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.3, longitudeDelta: 0.3 }, 700);
+  };
+
+  const handleSelectCountry = (code: string) => {
+    setSelectedRegion(code);
+    setSearchQuery('');
+    const view = COUNTRY_VIEW[code];
+    if (view) mapRef.current?.animateToRegion(view, 700);
   };
 
   return (
@@ -227,16 +301,60 @@ export default function LocationPickerScreen() {
             onPress={handleMapPress}
             showsUserLocation={true}
             showsMyLocationButton={false} // Custom button below
+            showsCompass={false}
+            toolbarEnabled={false}
+            customMapStyle={isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
+            userInterfaceStyle={isDark ? 'dark' : 'light'}
+            mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
         >
-            {selectedLocation && (
+            {/* The popular cities of the chosen country, as tappable bubbles */}
+            {(selectedRegionData?.cities ?? []).map((city) => {
+                const coords = CITY_COORDS[`${selectedRegion}:${city}`];
+                if (!coords) return null;
+                const isSelected = selectedLocation?.city === city && selectedLocation?.isoCountryCode === selectedRegion;
+                return (
+                    <Marker
+                        key={`city-${city}`}
+                        coordinate={coords}
+                        anchor={BUBBLE_ANCHOR}
+                        onPress={() => handleSelectCity(city)}
+                        zIndex={isSelected ? 3 : 1}
+                    >
+                        <MapBubble
+                            title={city}
+                            subtitle={CITY_NOTES[`${selectedRegion}:${city}`]}
+                            selected={isSelected}
+                        />
+                    </Marker>
+                );
+            })}
+
+            {/* Creatives with a known position */}
+            {nearby.map((c) => (
+                <Marker
+                    key={`creative-${c.id}`}
+                    coordinate={{ latitude: c.latitude, longitude: c.longitude }}
+                    anchor={BUBBLE_ANCHOR}
+                    zIndex={2}
+                >
+                    <MapBubble title={c.name} subtitle={c.role} image={c.image} />
+                </Marker>
+            ))}
+
+            {/* A spot picked by tapping the map or by GPS (not one of the cities) */}
+            {selectedLocation &&
+                !(selectedRegionData?.cities ?? []).some((c) => c === selectedLocation.city) && (
                 <Marker
                     coordinate={{
                         latitude: selectedLocation.latitude,
                         longitude: selectedLocation.longitude
                     }}
-                    title={selectedLocation.city}
-                    description={selectedLocation.country}
-                />
+                    anchor={{ x: 0.5, y: 1 }}
+                >
+                    <View style={styles.pin}>
+                        <Ionicons name="location" size={46} color={Colors.light.primary} accent="#FFA000" />
+                    </View>
+                </Marker>
             )}
         </MapView>
         
@@ -263,10 +381,13 @@ export default function LocationPickerScreen() {
         {/* Selected Location Overlay Card */}
         {selectedLocation && (
             <View style={styles.selectedLocationCard}>
-                <View>
-                    <Text style={styles.selectedLocationLabel}>Selected Location</Text>
-                    <Text style={styles.selectedLocationText}>
-                        {selectedLocation.city}, {selectedLocation.country}
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                    <Text style={styles.selectedLocationLabel}>Selected location</Text>
+                    <Text style={styles.selectedLocationText} numberOfLines={1}>
+                        {selectedLocation.city}
+                    </Text>
+                    <Text style={styles.selectedLocationCountry} numberOfLines={1}>
+                        {selectedLocation.country}
                     </Text>
                 </View>
                 <TouchableOpacity 
@@ -319,10 +440,7 @@ export default function LocationPickerScreen() {
                         borderColor: isSelected ? Colors.light.primary : themeColors.border,
                     },
                     ]}
-                    onPress={() => {
-                        setSelectedRegion(code);
-                        setSearchQuery('');
-                    }}
+                    onPress={() => handleSelectCountry(code)}
                 >
                     <Text style={[
                     styles.regionChipText,
@@ -383,7 +501,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapContainer: {
-    height: height * 0.45, // 45% of screen height
+    height: height * 0.5,
     width: '100%',
     position: 'relative',
   },
@@ -426,8 +544,8 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -437,28 +555,37 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  pin: {
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  selectedLocationCountry: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 1,
+  },
   selectedLocationLabel: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#666',
     marginBottom: 2,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   selectedLocationText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#0F1419',
   },
   confirmButton: {
     backgroundColor: Colors.light.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   confirmButtonText: {
     color: '#0F1419',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
@@ -478,11 +605,11 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     letterSpacing: 1,
     marginBottom: 12,
     paddingHorizontal: 16,
@@ -495,14 +622,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   regionChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 24,
     borderWidth: 1,
   },
   regionChipText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
   cityCard: {
     flexDirection: 'row',

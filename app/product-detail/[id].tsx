@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   },
   offerInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
   offerCounterNote: {
     fontSize: 12,

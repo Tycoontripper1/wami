@@ -41,10 +41,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 13,
     marginBottom: 16,
   },
   icon: {
@@ -52,6 +52,6 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
   },
 });

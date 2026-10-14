@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   dateMonth: { fontSize: 12 },
   timesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   timeCard: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
-  notesInput: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15, minHeight: 80, textAlignVertical: 'top', marginBottom: 20 },
+  notesInput: { borderRadius: 10, borderWidth: 1, padding: 14, fontSize: 15, minHeight: 80, textAlignVertical: 'top', marginBottom: 20 },
   summaryCard: { borderRadius: 16, padding: 16, gap: 10, marginBottom: 24 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   divider: { height: 1 },

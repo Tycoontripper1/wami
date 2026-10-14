@@ -149,8 +149,8 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
   tagText: { fontSize: 14, fontWeight: '600' },
   feedbackInput: {
-    width: '100%', minHeight: 90, borderRadius: 12, borderWidth: 1, padding: 14,
-    fontSize: 14, textAlignVertical: 'top',
+    width: '100%', minHeight: 90, borderRadius: 10, borderWidth: 1, padding: 14,
+    fontSize: 15, textAlignVertical: 'top',
   },
   footer: { paddingHorizontal: 24, paddingTop: 12 },
   submitBtn: { backgroundColor: Colors.light.primary, borderRadius: 30, paddingVertical: 16, alignItems: 'center' },

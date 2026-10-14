@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
   sheetSub: { fontSize: 14, marginBottom: 20 },
   inputLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 12 },
-  input: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
+  input: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11, fontSize: 15 },
   saveBtn: {
     backgroundColor: Colors.light.primary, borderRadius: 12,
     paddingVertical: 13, alignItems: 'center', marginTop: 24,

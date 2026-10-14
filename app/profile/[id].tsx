@@ -828,12 +828,12 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   reviewInput: {
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     padding: 12,
-    fontSize: 14,
+    fontSize: 15,
     textAlignVertical: 'top',
-    height: 80,
+    minHeight: 90,
     marginBottom: 12,
   },
   reviewErrorText: {

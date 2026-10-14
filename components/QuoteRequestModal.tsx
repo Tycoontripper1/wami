@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     paddingVertical: 14,
     marginLeft: 6,
   },
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   textArea: {
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 14,
     fontSize: 15,
     minHeight: 100,
