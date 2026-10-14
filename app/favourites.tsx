@@ -20,7 +20,7 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 interface FavoriteItem {
   id: string;
@@ -42,6 +42,7 @@ export default function FavouritesScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  const localFavorites = useSelector((state: RootState) => state.favorites.items);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -67,14 +68,20 @@ export default function FavouritesScreen() {
           creatorUsername: item.creator?.username,
         }))
       );
-    } catch (error) {
-      console.error('Failed to load saved offerings:', error);
-      setFavorites([]);
-      setHasError(true);
+    } catch (error: any) {
+      if (error?.statusCode === 404 || error?.statusCode === 405) {
+        // The backend can't list saved offerings yet (it only accepts POST),
+        // so show what was saved on this device rather than an error.
+        setFavorites(localFavorites as FavoriteItem[]);
+      } else {
+        console.error('Failed to load saved offerings:', error);
+        setFavorites([]);
+        setHasError(true);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [localFavorites]);
 
   useEffect(() => {
     loadSaved();

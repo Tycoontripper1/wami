@@ -55,6 +55,10 @@ export interface RequestConfig {
   // alongside `user` at the top level — e.g. auth returns `{ user, access_token }`,
   // and the default unwrap would discard the token.
   raw?: boolean;
+  // The caller already knows the backend doesn't implement this endpoint yet
+  // (404/405) and handles it. Skip the loud error log and the dev-only red
+  // box for exactly those statuses; every other failure is still reported.
+  expectUnsupported?: boolean;
 }
 
 // API Client response

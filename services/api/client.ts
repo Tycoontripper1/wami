@@ -49,8 +49,13 @@ class ApiClient {
       // Real API request
       return await this.realRequest<T>(method, endpoint, config);
     } catch (error: any) {
-      console.error('API Request Error:', error);
       const apiError = this.transformError(error);
+      const knownUnsupported =
+        config?.expectUnsupported && (apiError.statusCode === 404 || apiError.statusCode === 405);
+      if (knownUnsupported) {
+        throw apiError;
+      }
+      console.error('API Request Error:', error);
 
       // Dev-only: surface backend failures loudly (RN red-box / Expo Go crash
       // overlay) so they can't be missed behind a screen's own graceful

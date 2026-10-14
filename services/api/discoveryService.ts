@@ -70,7 +70,9 @@ export const searchDiscovery = async (
 export const getSavedOfferings = async (
   params?: DiscoveryListParams
 ): Promise<ApiResponse<PaginatedResponse<DiscoveryOffering> | DiscoveryOffering[]>> => {
-  return apiClient.get(API_ENDPOINTS.DISCOVERY.SAVED, { params });
+  // GET isn't implemented by the backend yet (405: "Supported methods: POST"),
+  // and the Saved screen falls back to what was saved on this device.
+  return apiClient.get(API_ENDPOINTS.DISCOVERY.SAVED, { params, expectUnsupported: true });
 };
 
 // POST /discovery/saved  { offering_id }
