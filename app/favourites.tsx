@@ -62,7 +62,10 @@ export default function FavouritesScreen() {
           location: item.location?.city || '',
           rating: item.rating ?? 0,
           reviews: item.reviews ?? item.reviews_count ?? 0,
-          image: item.image ? { uri: item.image } : item.images?.[0] ? { uri: item.images[0] } : undefined,
+          image: (() => {
+            const uri = item.thumbnail_url || item.media_url || item.image || item.images?.[0];
+            return uri ? { uri } : undefined;
+          })(),
           creatorId: item.creator?.id !== undefined ? String(item.creator.id) : undefined,
           creatorName: item.creator?.name,
           creatorUsername: item.creator?.username,
