@@ -272,7 +272,7 @@ export default function TabLayout() {
         name="sell"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabItem focused={focused} icon="post" label="Post" />
+            <TabItem focused={showPostModal} icon="post" label="Post" />
           ),
         }}
         listeners={() => ({

@@ -375,6 +375,391 @@ const glyphs: Record<string, Glyph> = {
     ),
   },
 
+  /* ── the rest ───────────────────────────────────────────────────────────── */
+  'cloud-offline': {
+    draw: (c) => face('M7 18.5 A4.5 4.5 0 0 1 6.5 9.6 A6 6 0 0 1 18 8.6 A4.9 4.9 0 0 1 17.5 18.5 Z', c),
+    cut: cutLine('M3.8 3.8 L20.2 20.2', 3.6),
+    over: (c) => line('M4.6 4.6 L19.4 19.4', c, 2.2),
+  },
+  analytics: {
+    draw: (c) => (
+      <>
+        <Rect x={3} y={13} width={4.6} height={8} rx={1.4} fill={c} />
+        <Rect x={9.7} y={8} width={4.6} height={13} rx={1.4} fill={c} opacity={SHADE} />
+        <Rect x={16.4} y={3} width={4.6} height={18} rx={1.4} fill={c} />
+      </>
+    ),
+  },
+  bicycle: {
+    draw: (c) => (
+      <>
+        <Circle cx={6} cy={16.5} r={4.2} fill={c} opacity={0.35} />
+        <Circle cx={18} cy={16.5} r={4.2} fill={c} opacity={0.35} />
+        <Circle cx={6} cy={16.5} r={4.2} fill="none" stroke={c} strokeWidth={2} />
+        <Circle cx={18} cy={16.5} r={4.2} fill="none" stroke={c} strokeWidth={2} />
+        {line('M6 16.5 L10 9 H15.5 L18 16.5 M10 9 L12.5 16.5 H6 M15.5 9 L14.6 6.2 H17.2 M8.4 7 H11.6', c, 2.2)}
+      </>
+    ),
+  },
+  basket: {
+    draw: (c) => (
+      <>
+        {line('M7.6 9.5 L12 3.5 L16.4 9.5', c, 2.2, SHADE)}
+        {face('M2.5 9.5 H21.5 L19.6 19.2 A2 2 0 0 1 17.6 20.8 H6.4 A2 2 0 0 1 4.4 19.2 Z', c)}
+      </>
+    ),
+    cut: (
+      <>
+        <Rect x={8.4} y={12.5} width={1.8} height={5.5} rx={0.9} {...K} />
+        <Rect x={11.1} y={12.5} width={1.8} height={5.5} rx={0.9} {...K} />
+        <Rect x={13.8} y={12.5} width={1.8} height={5.5} rx={0.9} {...K} />
+      </>
+    ),
+  },
+  cart: {
+    draw: (c) => (
+      <>
+        {line('M2.5 3.5 H5.2 L8 15.5', c, 2.4)}
+        {face('M6 7.5 H21 L19 15.5 H8 Z', c)}
+        <Circle cx={9.6} cy={19.3} r={1.8} fill={c} opacity={SHADE} />
+        <Circle cx={17.4} cy={19.3} r={1.8} fill={c} opacity={SHADE} />
+      </>
+    ),
+  },
+  'alert-circle': {
+    draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
+    cut: (
+      <>
+        <Rect x={10.9} y={6.2} width={2.2} height={7.2} rx={1.1} {...K} />
+        <Circle cx={12} cy={16.8} r={1.3} {...K} />
+      </>
+    ),
+  },
+  warning: {
+    draw: (c) => <Path d="M12 3.6 L21.2 19.8 H2.8 Z" fill={c} stroke={c} strokeWidth={2} strokeLinejoin="round" />,
+    cut: (
+      <>
+        <Rect x={10.9} y={9} width={2.2} height={5.4} rx={1.1} {...K} />
+        <Circle cx={12} cy={17} r={1.2} {...K} />
+      </>
+    ),
+  },
+  'help-circle': {
+    draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
+    cut: (
+      <>
+        {cutLine('M9.4 9.6 A2.7 2.7 0 0 1 14.6 10.2 C14.6 12 12 12.2 12 14.2', 2.2)}
+        <Circle cx={12} cy={17.2} r={1.2} {...K} />
+      </>
+    ),
+  },
+  'swap-horizontal': {
+    draw: (c) => (
+      <>
+        {line('M4 8 H19 M15.5 4.5 L19 8 L15.5 11.5', c)}
+        {line('M20 16 H5 M8.5 12.5 L5 16 L8.5 19.5', c, 2.6, SHADE)}
+      </>
+    ),
+  },
+  construct: {
+    draw: (c) => (
+      <>
+        {line('M5.2 18.8 L12 12', c, 4.2)}
+        <Circle cx={15.4} cy={8.6} r={5} fill={c} />
+      </>
+    ),
+    cut: <Circle cx={18.6} cy={5.4} r={2.6} {...K} />,
+  },
+  cube: {
+    draw: (c) => (
+      <>
+        {face('M12 2.5 L21 7.2 L12 12 L3 7.2 Z', c)}
+        {face('M3 7.2 L12 12 V21.5 L3 16.7 Z', c, 0.55)}
+        {face('M21 7.2 L12 12 V21.5 L21 16.7 Z', c, 0.78)}
+      </>
+    ),
+  },
+  shirt: {
+    draw: (c) => (
+      <Path
+        d="M8.6 3 L2.5 6.2 L4.6 10.4 L7 9.4 V21 H17 V9.4 L19.4 10.4 L21.5 6.2 L15.4 3 A3.4 3.4 0 0 1 8.6 3 Z"
+        fill={c}
+        stroke={c}
+        strokeWidth={0.8}
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  'phone-portrait': {
+    draw: (c) => <Rect x={6.5} y={2} width={11} height={20} rx={3} fill={c} />,
+    cut: (
+      <>
+        <Rect x={8.5} y={4.6} width={7} height={12.6} rx={1} {...K} />
+        <Circle cx={12} cy={19.7} r={0.9} {...K} />
+      </>
+    ),
+    over: (c) => <Rect x={8.5} y={4.6} width={7} height={12.6} rx={1} fill={c} opacity={0.35} />,
+  },
+  link: {
+    draw: (c) => (
+      <>
+        {line('M10 14 L14 10', c, 2.6)}
+        {line('M9.6 7.2 L11.2 5.6 A3.6 3.6 0 0 1 16.3 10.7 L14.7 12.3', c, 2.6)}
+        {line('M14.4 16.8 L12.8 18.4 A3.6 3.6 0 0 1 7.7 13.3 L9.3 11.7', c, 2.6, SHADE)}
+      </>
+    ),
+  },
+  globe: {
+    draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
+    cut: (
+      <>
+        {cutLine('M12 2 C8.4 6.2 8.4 17.8 12 22 C15.6 17.8 15.6 6.2 12 2', 1.8)}
+        {cutLine('M2.4 12 H21.6', 1.8)}
+        {cutLine('M4 7.4 H20 M4 16.6 H20', 1.6)}
+      </>
+    ),
+  },
+  'shield-checkmark': {
+    draw: (c) =>
+      halves(
+        'M12 2.4 L4.2 5.6 V11 C4.2 16 7.6 19.6 12 21.6 Z',
+        'M12 2.4 L19.8 5.6 V11 C19.8 16 16.4 19.6 12 21.6 Z',
+        c,
+      ),
+    cut: cutLine('M8.3 12.2 L11 14.9 L16 9.2', 2.4),
+  },
+  'pause-circle': {
+    draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
+    cut: (
+      <>
+        <Rect x={8.6} y={8} width={2.4} height={8} rx={1} {...K} />
+        <Rect x={13} y={8} width={2.4} height={8} rx={1} {...K} />
+      </>
+    ),
+  },
+  pause: {
+    draw: (c) => (
+      <>
+        <Rect x={5.5} y={4} width={4.6} height={16} rx={1.6} fill={c} />
+        <Rect x={13.9} y={4} width={4.6} height={16} rx={1.6} fill={c} opacity={SHADE} />
+      </>
+    ),
+  },
+  play: {
+    draw: (c) => <Path d="M7.5 4.8 L19 12 L7.5 19.2 Z" fill={c} stroke={c} strokeWidth={2} strokeLinejoin="round" />,
+  },
+  create: {
+    draw: (c) => (
+      <>
+        {face('M16.2 3.2 L20.8 7.8 L9.2 19.4 L3.4 20.6 L4.6 14.8 Z', c)}
+        {face('M16.2 3.2 L20.8 7.8 L18.5 10.1 L13.9 5.5 Z', c, SHADE)}
+      </>
+    ),
+  },
+  receipt: {
+    draw: (c) => face('M5 2.5 H19 V21.5 L16.3 19.6 L13.7 21.5 L11.1 19.6 L8.5 21.5 L5 19.6 Z', c),
+    cut: (
+      <>
+        <Rect x={8} y={7} width={8} height={1.8} rx={0.9} {...K} />
+        <Rect x={8} y={11} width={8} height={1.8} rx={0.9} {...K} />
+        <Rect x={8} y={15} width={5} height={1.8} rx={0.9} {...K} />
+      </>
+    ),
+  },
+  happy: {
+    draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
+    cut: (
+      <>
+        <Circle cx={8.8} cy={9.8} r={1.3} {...K} />
+        <Circle cx={15.2} cy={9.8} r={1.3} {...K} />
+        {cutLine('M7.6 14 C9 17.2 15 17.2 16.4 14', 2.2)}
+      </>
+    ),
+  },
+  restaurant: {
+    draw: (c) => (
+      <>
+        {line('M6 3 V8.5 A2.5 2.5 0 0 0 11 8.5 V3 M8.5 3 V21', c, 2.4)}
+        {line('M17.5 21 V3 C15 5 14.4 9 14.8 13 H17.5', c, 2.4, SHADE)}
+      </>
+    ),
+  },
+  storefront: {
+    draw: (c) => (
+      <>
+        {face('M2.5 10 L4.6 3.8 H19.4 L21.5 10 Z', c, SHADE)}
+        {halves('M4 10 H12 V21 H5.5 A1.5 1.5 0 0 1 4 19.5 Z', 'M12 10 H20 V19.5 A1.5 1.5 0 0 1 18.5 21 H12 Z', c)}
+      </>
+    ),
+    cut: <Rect x={9.5} y={14} width={5} height={7} rx={2.5} {...K} />,
+  },
+  megaphone: {
+    draw: (c) => (
+      <>
+        {face('M3 10 V14 H6.4 L14.5 18.6 V5.4 L6.4 10 Z', c)}
+        {face('M6.4 14 L7.6 19.4 H10 L9 15.7 Z', c, SHADE)}
+        {line('M17.6 9 A4 4 0 0 1 17.6 15', c, 2.4)}
+      </>
+    ),
+  },
+  apps: {
+    draw: (c) => (
+      <>
+        <Rect x={3} y={3} width={8} height={8} rx={2.4} fill={c} />
+        <Rect x={13} y={3} width={8} height={8} rx={2.4} fill={c} opacity={SHADE} />
+        <Rect x={3} y={13} width={8} height={8} rx={2.4} fill={c} opacity={SHADE} />
+        <Rect x={13} y={13} width={8} height={8} rx={2.4} fill={c} />
+      </>
+    ),
+  },
+  backspace: {
+    draw: (c) => face('M8.5 5 H20 A1.5 1.5 0 0 1 21.5 6.5 V17.5 A1.5 1.5 0 0 1 20 19 H8.5 L2.5 12 Z', c),
+    cut: cutLine('M11.7 9.3 L16.5 14.7 M16.5 9.3 L11.7 14.7', 2.2),
+  },
+  watch: {
+    draw: (c) => (
+      <>
+        <Rect x={8} y={1.8} width={8} height={5} rx={1.4} fill={c} opacity={SHADE} />
+        <Rect x={8} y={17.2} width={8} height={5} rx={1.4} fill={c} opacity={SHADE} />
+        <Circle cx={12} cy={12} r={6.8} fill={c} />
+      </>
+    ),
+    cut: cutLine('M12 8.6 V12 L14.2 13.4', 2),
+  },
+  'log-out': {
+    draw: (c) => (
+      <>
+        {line('M9 3.5 H5.5 A2 2 0 0 0 3.5 5.5 V18.5 A2 2 0 0 0 5.5 20.5 H9', c, 2.6, SHADE)}
+        {line('M10 12 H20.5 M16 7.5 L20.5 12 L16 16.5', c)}
+      </>
+    ),
+  },
+  'document-text': {
+    draw: (c) => (
+      <>
+        {face('M6.5 2.5 H14 V6 A2 2 0 0 0 16 8 H19.5 V19.5 A2 2 0 0 1 17.5 21.5 H6.5 A2 2 0 0 1 4.5 19.5 V4.5 A2 2 0 0 1 6.5 2.5 Z', c)}
+        {face('M14 2.5 L19.5 8 H16 A2 2 0 0 1 14 6 Z', c, SHADE)}
+      </>
+    ),
+    cut: (
+      <>
+        <Rect x={7.5} y={11.5} width={9} height={1.8} rx={0.9} {...K} />
+        <Rect x={7.5} y={15.2} width={6} height={1.8} rx={0.9} {...K} />
+      </>
+    ),
+  },
+  briefcase: {
+    draw: (c) => (
+      <>
+        {line('M9 7 V5 A1.5 1.5 0 0 1 10.5 3.5 H13.5 A1.5 1.5 0 0 1 15 5 V7', c, 2.2, SHADE)}
+        <Rect x={2.5} y={7} width={19} height={7} rx={2.5} fill={c} />
+        <Rect x={2.5} y={14.2} width={19} height={6.8} rx={2.5} fill={c} opacity={SHADE} />
+      </>
+    ),
+    cut: <Rect x={10.4} y={12.4} width={3.2} height={3.2} rx={0.8} {...K} />,
+  },
+  call: {
+    draw: (c) =>
+      face(
+        'M6.6 3 L9.3 3.4 L10.6 7.4 L8.7 9 A12 12 0 0 0 15 15.3 L16.6 13.4 L20.6 14.7 L21 17.4 A3 3 0 0 1 18 20.4 C10.7 20 4 13.3 3.6 6 A3 3 0 0 1 6.6 3 Z',
+        c,
+      ),
+  },
+  car: {
+    draw: (c) => (
+      <>
+        {face('M3 14.5 L4.6 9.6 A2 2 0 0 1 6.5 8.2 H17.5 A2 2 0 0 1 19.4 9.6 L21 14.5 V18 H3 Z', c)}
+        <Circle cx={7.2} cy={18} r={2.3} fill={c} opacity={SHADE} />
+        <Circle cx={16.8} cy={18} r={2.3} fill={c} opacity={SHADE} />
+      </>
+    ),
+    cut: <Path d="M6.5 10.2 H17.5 L18.5 13 H5.5 Z" {...K} />,
+  },
+  airplane: {
+    draw: (c) =>
+      face(
+        'M21.5 12 C21.5 13 20 13.8 19 13.8 H14 L9.5 20.5 H7 L9.8 13.8 H5.5 L4 15.8 H2.5 L3.4 12 L2.5 8.2 H4 L5.5 10.2 H9.8 L7 3.5 H9.5 L14 10.2 H19 C20 10.2 21.5 11 21.5 12 Z',
+        c,
+      ),
+  },
+  copy: {
+    draw: (c) => (
+      <>
+        <Rect x={8.5} y={2.5} width={12} height={14} rx={3} fill={c} opacity={SHADE} />
+        <Rect x={3.5} y={7.5} width={12} height={14} rx={3} fill={c} />
+      </>
+    ),
+  },
+  refresh: {
+    draw: (c) => (
+      <>
+        {line('M19.5 12 A7.5 7.5 0 1 1 16.8 6.3', c, 2.6)}
+        {line('M17 2.8 V7 H12.8', c, 2.6)}
+      </>
+    ),
+  },
+  'refresh-circle': {
+    draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
+    cut: (
+      <>
+        {cutLine('M16.4 12 A4.4 4.4 0 1 1 14.8 8.6', 2)}
+        {cutLine('M15 6.4 V9 H12.4', 2)}
+      </>
+    ),
+  },
+  share: {
+    draw: (c) => (
+      <>
+        {line('M12 15 V3.5 M7.6 7.8 L12 3.5 L16.4 7.8', c)}
+        {line('M7.5 11 H5.5 A2 2 0 0 0 3.5 13 V19.5 A2 2 0 0 0 5.5 21.5 H18.5 A2 2 0 0 0 20.5 19.5 V13 A2 2 0 0 0 18.5 11 H16.5', c, 2.4, SHADE)}
+      </>
+    ),
+  },
+  'caret-up': {
+    draw: (c) => <Path d="M12 7.5 L18.5 16 H5.5 Z" fill={c} stroke={c} strokeWidth={2} strokeLinejoin="round" />,
+  },
+  'caret-down': {
+    draw: (c) => <Path d="M12 16.5 L5.5 8 H18.5 Z" fill={c} stroke={c} strokeWidth={2} strokeLinejoin="round" />,
+  },
+  chatbubbles: {
+    draw: (c) => (
+      <>
+        <Rect x={9.5} y={9} width={12} height={9} rx={3.6} fill={c} opacity={SHADE} />
+        {face('M18 17.5 L19.2 21 L14 17.5 Z', c, SHADE)}
+        <Rect x={2.5} y={3} width={13.5} height={10} rx={4} fill={c} />
+        {face('M6 12.5 L5 16.5 L10 12.5 Z', c)}
+      </>
+    ),
+  },
+  map: {
+    draw: (c) => (
+      <>
+        {face('M2.5 5.5 L8.5 3.5 V18.5 L2.5 20.5 Z', c)}
+        {face('M8.5 3.5 L15.5 5.5 V20.5 L8.5 18.5 Z', c, SHADE)}
+        {face('M15.5 5.5 L21.5 3.5 V18.5 L15.5 20.5 Z', c)}
+      </>
+    ),
+  },
+  sunny: {
+    draw: (c) => (
+      <>
+        <Circle cx={12} cy={12} r={4.6} fill={c} />
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+          <Rect key={a} x={11.2} y={1.8} width={1.6} height={3.8} rx={0.8} fill={c} opacity={SHADE} transform={`rotate(${a} 12 12)`} />
+        ))}
+      </>
+    ),
+  },
+  scan: {
+    draw: (c) => (
+      <>
+        {line('M3 8 V5.5 A2.5 2.5 0 0 1 5.5 3 H8 M16 3 H18.5 A2.5 2.5 0 0 1 21 5.5 V8 M21 16 V18.5 A2.5 2.5 0 0 1 18.5 21 H16 M8 21 H5.5 A2.5 2.5 0 0 1 3 18.5 V16', c, 2.4)}
+        {line('M7 12 H17', c, 2.2, SHADE)}
+      </>
+    ),
+  },
+  text: { draw: (c) => line('M5.5 6 H18.5 M12 6 V19.5', c, 3) },
+
   /* filled circles with a knocked-out mark */
   'close-circle': {
     draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
@@ -402,12 +787,23 @@ const glyphs: Record<string, Glyph> = {
 
 // Shapes whose "-outline" variant means "not selected / not saved": drawn as a
 // faint version of the same glyph so the two states stay clearly different.
+// Names that share a drawing.
+const ALIASES: Record<string, string> = {
+  pin: 'location',
+  sparkles: 'color-palette',
+  man: 'person',
+  woman: 'person',
+  images: 'image',
+  'stats-chart': 'analytics',
+};
+
 const GHOST_WHEN_OUTLINE = new Set(['heart', 'star', 'bookmark', 'square', 'ellipse', 'checkbox']);
 
 function resolve(name: string): { glyph?: Glyph; ghost: boolean } {
   const outline = name.endsWith('-outline');
   const base = outline ? name.slice(0, -'-outline'.length) : name.endsWith('-sharp') ? name.slice(0, -'-sharp'.length) : name;
-  return { glyph: glyphs[base], ghost: outline && GHOST_WHEN_OUTLINE.has(base) };
+  const key = ALIASES[base] ?? base;
+  return { glyph: glyphs[key], ghost: outline && GHOST_WHEN_OUTLINE.has(key) };
 }
 
 export function FlatIcon({ name, size = 24, color = '#000000', style }: Props) {
@@ -428,7 +824,7 @@ export function FlatIcon({ name, size = 24, color = '#000000', style }: Props) {
           </Mask>
         </Defs>
       ) : null}
-      <G opacity={ghost ? 0.3 : 1}>
+      <G opacity={ghost ? 0.5 : 1}>
         <G mask={glyph.cut ? `url(#${maskId})` : undefined}>{glyph.draw(color)}</G>
         {glyph.over ? glyph.over(color) : null}
       </G>

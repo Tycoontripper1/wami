@@ -4,7 +4,7 @@ import { AccessibilityInfo, Animated, Easing } from 'react-native';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
 /* Flat, outline-free tab icons on a 24×24 grid. Each has a main face, a shaded
-   face and a small accent. Idle tabs are muted; the selected tab takes its full
+   face and a small accent. Idle tabs are plain; the selected tab takes its full
    brand colours and bounces in. */
 
 export type TabIconName = 'home' | 'shop' | 'post' | 'chats' | 'profile';
@@ -16,7 +16,7 @@ const IDLE: Tones = { main: '#FFFFFF', shade: '#8FB3B8', accent: '#8FB3B8', mark
 const ACTIVE: Record<TabIconName, Tones> = {
   home: { main: Illo.teal, shade: Illo.tealDeep, accent: Illo.amber, mark: Illo.cloud },
   shop: { main: Illo.amber, shade: Illo.ember, accent: Illo.tealLight, mark: Illo.paper },
-  // the Post button is an action, not a place, so it is always in full colour
+  // lit only while the Post sheet is open
   post: { main: Illo.amber, shade: Illo.ember, accent: Illo.ink, mark: Illo.ink },
   chats: { main: Illo.teal, shade: Illo.amber, accent: Illo.paper, mark: Illo.paper },
   profile: { main: Illo.teal, shade: Illo.tealDeep, accent: Illo.amber, mark: Illo.paper },
@@ -88,8 +88,8 @@ export default function FlatTabIcon({ name, focused, size = 30 }: Props) {
   const tilt = useRef(new Animated.Value(0)).current;
   const float = useRef(new Animated.Value(0)).current;
 
-  const alwaysOn = name === 'post';
-  const lit = focused || alwaysOn;
+  // Every tab, Post included, is plain until it is selected.
+  const lit = focused;
 
   useEffect(() => {
     let mounted = true;
