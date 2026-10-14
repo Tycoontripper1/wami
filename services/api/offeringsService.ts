@@ -31,10 +31,10 @@ export const getOfferings = async (params?: {
   return apiClient.get(API_ENDPOINTS.OFFERINGS.LIST, { params });
 };
 
-// GET /offerings/:id — real but undocumented; see config.ts's comment. No
-// creator/owner field in the response — the creative viewing a given
-// offering has to be carried through from wherever it was discovered
-// (discovery/feed and discovery/search both embed a `creator` object).
+// GET /offerings/:id — real but undocumented; see config.ts's comment. The
+// response embeds the owner as `creator: {id, name, username, profile_image}`
+// plus `creator_id` (confirmed live 2026-10-14), which is what Book / Message
+// / Get Quote need.
 // Uses `raw: true` and unwraps `.offering` manually — the response is
 // `{success, offering: {...}}`, and apiClient's default unwrap only knows
 // about `.user` / `.data`, not this endpoint's own `.offering` key.
