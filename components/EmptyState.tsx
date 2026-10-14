@@ -52,7 +52,7 @@ export default function EmptyState({
   return (
     <View style={styles.container}>
       <View style={styles.art}>
-        <FlatIllustration name={scene} width={200} soft />
+        <FlatIllustration name={scene} width={200} soft animated />
       </View>
       <Text style={[styles.title, { color: tc.text }]}>{title}</Text>
       {message && <Text style={[styles.message, { color: tc.subText }]}>{message}</Text>}

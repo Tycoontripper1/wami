@@ -118,7 +118,7 @@ export default function OnboardingScreen() {
         <WAMILogo size="small" variant="pin" color={Illo.ink} cutoutColor={currentSlide.background} />
 
         <Animated.View style={[styles.hero, { opacity: fade }]}>
-          <FlatIllustration name={currentSlide.illustration} width={Math.min(width - 48, 380)} />
+          <FlatIllustration name={currentSlide.illustration} width={Math.min(width - 48, 380)} animated />
           <Text style={styles.titleText}>{currentSlide.title}</Text>
           <Text style={styles.bodyText}>{currentSlide.body}</Text>
         </Animated.View>
