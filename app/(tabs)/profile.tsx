@@ -30,6 +30,8 @@ export default function ProfileScreen() {
   const isDark = colorScheme === 'dark';
 
   const user = useSelector((state: RootState) => state.auth.user);
+  // Creatives are accounts set up to promote (or both promote and discover).
+  const isCreative = user?.account_type === 'promote' || user?.account_type === 'both';
   const favouritesCount = useSelector((state: RootState) => state.favorites.items.length);
   // Real booking count from the backend's paginator; null until it loads.
   const [bookingsCount, setBookingsCount] = useState<number | null>(null);
@@ -169,24 +171,26 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Become a Creative Banner */}
-        <TouchableOpacity
-          style={styles.becomeCreativeCard}
-          onPress={() => router.push('/(auth)/creative-categories' as any)}
-        >
-          <View style={styles.becomeCreativeContent}>
-            <View style={styles.becomeCreativeIcon}>
-              <Ionicons name="sparkles" size={24} color="#0F1419" />
+        {/* Become a Creative Banner — only for accounts that aren't creatives yet */}
+        {!isCreative && (
+          <TouchableOpacity
+            style={styles.becomeCreativeCard}
+            onPress={() => router.push('/(auth)/creative-categories' as any)}
+          >
+            <View style={styles.becomeCreativeContent}>
+              <View style={styles.becomeCreativeIcon}>
+                <Ionicons name="sparkles" size={24} color="#0F1419" />
+              </View>
+              <View style={styles.becomeCreativeText}>
+                <Text style={styles.becomeCreativeTitle}>Become a Creative</Text>
+                <Text style={styles.becomeCreativeSubtitle}>
+                  Showcase your work and get discovered
+                </Text>
+              </View>
             </View>
-            <View style={styles.becomeCreativeText}>
-              <Text style={styles.becomeCreativeTitle}>Become a Creative</Text>
-              <Text style={styles.becomeCreativeSubtitle}>
-                Showcase your work and get discovered
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="arrow-forward-circle" size={28} color="#0F1419" />
-        </TouchableOpacity>
+            <Ionicons name="arrow-forward-circle" size={28} color="#0F1419" />
+          </TouchableOpacity>
+        )}
 
         {/* Stats — real counts only */}
         <View style={[styles.statsContainer, { backgroundColor: themeColors.cardBg }]}>
