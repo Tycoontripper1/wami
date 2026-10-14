@@ -27,11 +27,13 @@ const mapOfferingToCreativeData = (offering: DiscoveryOffering): CreativeData =>
   distance: offering.distance_km !== undefined ? `${offering.distance_km.toFixed(1)} km away` : undefined,
   rating: offering.rating ?? 0,
   reviews: offering.reviews ?? offering.reviews_count ?? 0,
-  image: offering.image
-    ? { uri: offering.image }
-    : offering.images?.[0]
-    ? { uri: offering.images[0] }
-    : require('../../assets/images/onboarding_bg_creative.webp'),
+  // The backend's discovery items carry `media_url` / `thumbnail_url`; with
+  // none of them the card shows its own neutral placeholder rather than a
+  // stock photo that looks like the creative's work.
+  image: (() => {
+    const uri = offering.media_url || offering.thumbnail_url || offering.image || offering.images?.[0];
+    return uri ? { uri } : undefined;
+  })(),
   video: offering.video,
   tags: offering.tags?.slice(0, 3),
   creatorId: offering.creator?.id !== undefined ? String(offering.creator.id) : undefined,

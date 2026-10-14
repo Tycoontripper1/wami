@@ -260,8 +260,12 @@ export default function SwipeableCardStack({
               </TouchableOpacity>
             )}
           </>
-        ) : (
+        ) : item.image ? (
           <Image source={item.image} style={styles.cardMedia} resizeMode="cover" />
+        ) : (
+          <View style={[styles.cardMedia, styles.mediaPlaceholder]}>
+            <Ionicons name="image-outline" size={56} color="#66707A" />
+          </View>
         )}
         
         {/* Gradient overlay */}
@@ -305,12 +309,14 @@ export default function SwipeableCardStack({
         {/* Info Section */}
         <View style={styles.infoSection}>
           <Text style={styles.name}>{item.name}</Text>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.locationText}>
-              {item.location}{item.distance ? ` · ${item.distance}` : ''}
-            </Text>
-          </View>
+          {(!!item.location || !!item.distance) && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.locationText}>
+                {item.location}{item.location && item.distance ? ' · ' : ''}{item.distance ?? ''}
+              </Text>
+            </View>
+          )}
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={14} color="#FFD700" />
             <Text style={styles.ratingText}>{item.rating}</Text>
@@ -353,6 +359,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'absolute',
+  },
+  mediaPlaceholder: {
+    backgroundColor: '#1A222B',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gradient: {
     position: 'absolute',
