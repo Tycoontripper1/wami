@@ -43,8 +43,8 @@ export const API_ENDPOINTS = {
     // Password reset flow: FORGOT_PASSWORD -> (OTP) -> RESET_PASSWORD
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
-    // Not yet implemented by the backend — see docs/API-AUDIT-01-AUTH.md §3.1.
-    // Do not call these until they exist; they will 404.
+    // LOGOUT exists (verified 2026-10-14). ME and REFRESH_TOKEN are not
+    // implemented — see docs/API-AUDIT-01-AUTH.md §3.1; they will 404.
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
     REFRESH_TOKEN: '/auth/refresh',
@@ -115,6 +115,8 @@ export const API_ENDPOINTS = {
   },
   ORDERS: {
     CREATE: '/orders',
+    LIST: '/orders',
+    BY_ID: (id: string | number) => `/orders/${id}`,
   },
 
   // Payments — "Payments" folder. The collection only documents

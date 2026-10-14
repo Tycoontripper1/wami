@@ -69,10 +69,23 @@ export const authService = {
    * action — dispatching that alone leaves the token in AsyncStorage, and the
    * next cold start would silently restore the session.
    *
-   * TODO: also revoke the token server-side once `POST /auth/logout` exists
-   * (see docs/API-AUDIT-01-AUTH.md §3.1).
+   * Also revokes the token on the server (`POST /auth/logout`, verified
+   * 2026-10-14). That call is best effort: it is skipped when there is no
+   * token (the session already expired), is capped at a few seconds, and any
+   * failure is ignored, so a bad connection can never leave someone unable
+   * to sign out locally.
    */
   async signOut(): Promise<void> {
+    if (apiClient.getAuthToken()) {
+      try {
+        await Promise.race([
+          apiClient.post<any>(API_ENDPOINTS.AUTH.LOGOUT, {}, { expectUnsupported: true }),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+      } catch {
+        // Revoking is a courtesy to the server; the local sign-out below is what counts.
+      }
+    }
     await AsyncStorage.multiRemove([STORAGE_KEYS.USER, STORAGE_KEYS.TOKEN]);
     // Clear token from API client
     apiClient.setAuthToken(null);
