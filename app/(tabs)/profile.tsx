@@ -1,8 +1,10 @@
 import Colors from '@/constants/Colors';
+import { getBookings } from '@/services/api/bookingsService';
 import { profileService } from '@/services/api/profileService';
 import { authService } from '@/services/authService';
 import { signOut, updateUser } from '@/store/authSlice';
 import { RootState } from '@/store/store';
+import { extractList } from '@/utils/extractList';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -28,6 +30,9 @@ export default function ProfileScreen() {
   const isDark = colorScheme === 'dark';
 
   const user = useSelector((state: RootState) => state.auth.user);
+  const favouritesCount = useSelector((state: RootState) => state.favorites.items.length);
+  // Real booking count from the backend's paginator; null until it loads.
+  const [bookingsCount, setBookingsCount] = useState<number | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -36,6 +41,12 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     fetchProfile();
+    getBookings({ page: 1 })
+      .then((res) => {
+        const data: any = res.data;
+        setBookingsCount(typeof data?.total === 'number' ? data.total : extractList(data).length);
+      })
+      .catch((error) => console.error('Error fetching booking count:', error));
   }, []);
 
   const fetchProfile = async () => {
@@ -112,7 +123,7 @@ export default function ProfileScreen() {
               </View>
             )}
             <TouchableOpacity style={styles.editAvatarButton} onPress={() => router.push('/edit-profile')}>
-              <Ionicons name="camera" size={16} color="#fff" />
+              <Ionicons name="camera" size={16} color="#0F1419" />
             </TouchableOpacity>
           </View>
           <View style={styles.profileInfo}>
@@ -165,7 +176,7 @@ export default function ProfileScreen() {
         >
           <View style={styles.becomeCreativeContent}>
             <View style={styles.becomeCreativeIcon}>
-              <Ionicons name="sparkles" size={24} color="#fff" />
+              <Ionicons name="sparkles" size={24} color="#0F1419" />
             </View>
             <View style={styles.becomeCreativeText}>
               <Text style={styles.becomeCreativeTitle}>Become a Creative</Text>
@@ -174,44 +185,19 @@ export default function ProfileScreen() {
               </Text>
             </View>
           </View>
-          <Ionicons name="arrow-forward-circle" size={28} color="#fff" />
+          <Ionicons name="arrow-forward-circle" size={28} color="#0F1419" />
         </TouchableOpacity>
 
-        {/* Loyalty Rewards Card */}
-        <TouchableOpacity
-          style={[styles.loyaltyCard, { backgroundColor: themeColors.cardBg }]}
-          onPress={() => router.push('/rewards' as any)}
-        >
-          <View style={styles.loyaltyHeader}>
-            <View style={styles.loyaltyBadge}>
-              <Ionicons name="trophy" size={20} color="#FFD700" />
-            </View>
-            <View style={styles.loyaltyInfo}>
-              <Text style={[styles.loyaltyTitle, { color: themeColors.text }]}>Wami Rewards</Text>
-              <Text style={[styles.loyaltyTier, { color: Colors.light.primary }]}>Bronze Member</Text>
-            </View>
-          </View>
-          <View style={styles.pointsContainer}>
-            <Text style={[styles.pointsValue, { color: themeColors.text }]}>50</Text>
-            <Text style={[styles.pointsLabel, { color: themeColors.subText }]}>points</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Stats */}
+        {/* Stats — real counts only */}
         <View style={[styles.statsContainer, { backgroundColor: themeColors.cardBg }]}>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.text }]}>12</Text>
+            <Text style={[styles.statValue, { color: themeColors.text }]}>{bookingsCount ?? '–'}</Text>
             <Text style={[styles.statLabel, { color: themeColors.subText }]}>Bookings</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: themeColors.border }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.text }]}>8</Text>
+            <Text style={[styles.statValue, { color: themeColors.text }]}>{favouritesCount}</Text>
             <Text style={[styles.statLabel, { color: themeColors.subText }]}>Favourites</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: themeColors.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: themeColors.text }]}>24</Text>
-            <Text style={[styles.statLabel, { color: themeColors.subText }]}>Reviews</Text>
           </View>
         </View>
 
@@ -460,53 +446,11 @@ const styles = StyleSheet.create({
   becomeCreativeTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F1419',
     marginBottom: 2,
   },
   becomeCreativeSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  loyaltyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-  },
-  loyaltyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loyaltyBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loyaltyInfo: {
-    gap: 2,
-  },
-  loyaltyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  loyaltyTier: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  pointsContainer: {
-    alignItems: 'center',
-  },
-  pointsValue: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  pointsLabel: {
-    fontSize: 12,
+    color: '#0F1419',
   },
 });
