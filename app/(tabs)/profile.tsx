@@ -83,25 +83,45 @@ export default function ProfileScreen() {
     router.replace('/(auth)/sign-in');
   };
 
-  const menuItems = [
-    { icon: 'person', label: 'Edit Profile', route: '/edit-profile' },
-    { icon: 'wallet', label: 'Wallet', route: '/(tabs)/wallet' },
-    { icon: 'basket', label: 'My Products', route: '/my-products' },
-    { icon: 'calendar', label: 'Manage Availability', route: '/creative-dashboard' },
-    // Hidden in release builds until INSTAGRAM_IMPORT_ENABLED (the backend's
-    // redirect address is not fixed yet); always available while developing.
-    ...(INSTAGRAM_IMPORT_ENABLED || __DEV__
-      ? [{ icon: 'logo-instagram', label: 'Instagram', route: '/connect-instagram?from=profile' }]
-      : []),
-    { icon: 'card', label: 'Payment Methods', route: '/payment-methods' },
-    { icon: 'bookmark', label: 'Saved', route: '/favourites' },
-    { icon: 'time', label: 'Booking History', route: '/booking-history' },
-    { icon: 'bag', label: 'My Orders', route: '/orders' },
-    { icon: 'notifications', label: 'Notifications', toggle: true, value: notificationsEnabled, onToggle: setNotificationsEnabled },
-    { icon: 'location', label: 'Location Services', toggle: true, value: locationEnabled, onToggle: setLocationEnabled },
-    { icon: 'shield-checkmark', label: 'Privacy & Security', route: '/privacy' },
-    { icon: 'help-circle', label: 'Help & Support', route: '/support' },
-    { icon: 'information-circle', label: 'About', route: '/about' },
+  const menuSections: { title: string; items: any[] }[] = [
+    {
+      title: 'Account',
+      items: [
+        { icon: 'person', label: 'Edit Profile', route: '/edit-profile' },
+        { icon: 'wallet', label: 'Wallet', route: '/(tabs)/wallet' },
+        { icon: 'basket', label: 'My Products', route: '/my-products' },
+        { icon: 'calendar', label: 'Manage Availability', route: '/creative-dashboard' },
+        // Hidden in release builds until INSTAGRAM_IMPORT_ENABLED (the backend's
+        // redirect address is not fixed yet); always available while developing.
+        ...(INSTAGRAM_IMPORT_ENABLED || __DEV__
+          ? [{ icon: 'logo-instagram', label: 'Instagram', route: '/connect-instagram?from=profile' }]
+          : []),
+      ],
+    },
+    {
+      title: 'Activity',
+      items: [
+        { icon: 'bag', label: 'My Orders', route: '/orders' },
+        { icon: 'time', label: 'Booking History', route: '/booking-history' },
+        { icon: 'bookmark', label: 'Saved', route: '/favourites' },
+        { icon: 'card', label: 'Payment Methods', route: '/payment-methods' },
+      ],
+    },
+    {
+      title: 'Preferences',
+      items: [
+        { icon: 'notifications', label: 'Notifications', toggle: true, value: notificationsEnabled, onToggle: setNotificationsEnabled },
+        { icon: 'location', label: 'Location Services', toggle: true, value: locationEnabled, onToggle: setLocationEnabled },
+      ],
+    },
+    {
+      title: 'Support',
+      items: [
+        { icon: 'shield-checkmark', label: 'Privacy & Security', route: '/privacy' },
+        { icon: 'help-circle', label: 'Help & Support', route: '/support' },
+        { icon: 'information-circle', label: 'About', route: '/about' },
+      ],
+    },
   ];
 
   return (
@@ -109,7 +129,7 @@ export default function ProfileScreen() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 10 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 128 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -211,35 +231,43 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Menu Items */}
-        <View style={[styles.menuContainer, { backgroundColor: themeColors.cardBg }]}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.menuItem,
-                index < menuItems.length - 1 && { borderBottomColor: themeColors.border, borderBottomWidth: 1 },
-              ]}
-              onPress={() => item.route && router.push(item.route as any)}
-              disabled={item.toggle}
-            >
-              <View style={styles.menuLeft}>
-                <Ionicons name={item.icon as any} size={22} color={themeColors.subText} />
-                <Text style={[styles.menuLabel, { color: themeColors.text }]}>{item.label}</Text>
-              </View>
-              {item.toggle ? (
-                <Switch
-                  value={item.value}
-                  onValueChange={item.onToggle}
-                  trackColor={{ false: themeColors.border, true: Colors.light.primary }}
-                  thumbColor="#fff"
-                />
-              ) : (
-                <Ionicons name="chevron-forward" size={20} color={themeColors.subText} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Menu */}
+        {menuSections.map((section) => (
+          <View key={section.title} style={styles.menuSection}>
+            <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>{section.title}</Text>
+            <View style={[styles.menuContainer, { backgroundColor: themeColors.cardBg }]}>
+              {section.items.map((item, index) => (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[
+                    styles.menuItem,
+                    index < section.items.length - 1 && { borderBottomColor: themeColors.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                  ]}
+                  onPress={() => item.route && router.push(item.route as any)}
+                  disabled={item.toggle}
+                >
+                  <View style={styles.menuLeft}>
+                    {/* Every icon wears the brand pair: blue with an orange face. */}
+                    <View style={styles.menuIcon}>
+                      <Ionicons name={item.icon as any} size={26} color={Colors.light.primary} accent="#FFA000" />
+                    </View>
+                    <Text style={[styles.menuLabel, { color: themeColors.text }]}>{item.label}</Text>
+                  </View>
+                  {item.toggle ? (
+                    <Switch
+                      value={item.value}
+                      onValueChange={item.onToggle}
+                      trackColor={{ false: themeColors.border, true: Colors.light.primary }}
+                      thumbColor="#fff"
+                    />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={20} color={themeColors.subText} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -279,7 +307,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   avatarContainer: {
     position: 'relative',
@@ -336,14 +364,14 @@ const styles = StyleSheet.create({
   bioSection: {
     padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   bioText: {
     fontSize: 14,
     lineHeight: 20,
   },
   categoriesSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   categoriesScroll: {
     gap: 10,
@@ -370,7 +398,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     padding: 20,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statItem: {
     alignItems: 'center',
@@ -388,22 +416,38 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
   },
+  menuSection: {
+    marginBottom: 22,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
   menuContainer: {
     borderRadius: 16,
-    marginBottom: 16,
     overflow: 'hidden',
+  },
+  menuIcon: {
+    width: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
   menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+    flex: 1,
   },
   menuLabel: {
     fontSize: 15,
@@ -415,7 +459,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
-    marginTop: 8,
+    marginTop: 0,
   },
   logoutText: {
     fontSize: 16,
@@ -425,7 +469,7 @@ const styles = StyleSheet.create({
   versionText: {
     textAlign: 'center',
     fontSize: 13,
-    marginTop: 16,
+    marginTop: 8,
   },
   becomeCreativeCard: {
     flexDirection: 'row',
@@ -433,7 +477,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 20,
     backgroundColor: Colors.light.primary,
   },
   becomeCreativeContent: {

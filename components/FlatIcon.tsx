@@ -19,6 +19,8 @@ type Props = {
   name: IoniconName;
   size?: number;
   color?: string;
+  /** Second colour: the shaded faces of a glyph use it instead of a faded `color`. */
+  accent?: string;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -34,13 +36,30 @@ type Glyph = {
 const SHADE = 0.5;
 const K = { fill: '#000' } as const; // knock-out fill
 
+// Set for the duration of one glyph's `draw`/`over` call (both run synchronously
+// inside FlatIcon's render): shaded parts then take this colour at full strength.
+let ACCENT: string | undefined;
+
+/** Props for a shaded shape drawn directly (not through `face`/`line`). */
+const sh = (c: string) => ({ fill: ACCENT ?? c, opacity: ACCENT ? 1 : SHADE });
+
 const line = (d: string, c: string, w = 2.6, o = 1) => (
-  <Path d={d} fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" opacity={o} />
+  <Path
+    d={d}
+    fill="none"
+    stroke={o < 1 && ACCENT ? ACCENT : c}
+    strokeWidth={w}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    opacity={o < 1 && ACCENT ? 1 : o}
+  />
 );
 const cutLine = (d: string, w = 2.4) => (
   <Path d={d} fill="none" stroke="#000" strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />
 );
-const face = (d: string, c: string, o = 1) => <Path d={d} fill={c} opacity={o} />;
+const face = (d: string, c: string, o = 1) => (
+  <Path d={d} fill={o < 1 && ACCENT ? ACCENT : c} opacity={o < 1 && ACCENT ? 1 : o} />
+);
 
 /** A symmetric pair: full left half, shaded right half. */
 const halves = (left: string, right: string, c: string) => (
@@ -163,7 +182,7 @@ const glyphs: Record<string, Glyph> = {
     draw: (c) => (
       <>
         {face('M2.5 8.5 A3.5 3.5 0 0 1 6 5 H18 A3.5 3.5 0 0 1 21.5 8.5 V9.5 H2.5 Z', c)}
-        <Rect x={2.5} y={9.5} width={19} height={3.4} fill={c} opacity={SHADE} />
+        <Rect x={2.5} y={9.5} width={19} height={3.4} {...sh(c)} />
         {face('M2.5 12.9 H21.5 V15.5 A3.5 3.5 0 0 1 18 19 H6 A3.5 3.5 0 0 1 2.5 15.5 Z', c)}
       </>
     ),
@@ -183,7 +202,7 @@ const glyphs: Record<string, Glyph> = {
     cut: <Rect x={13.6} y={10} width={9} height={6} rx={3} {...K} />,
     over: (c) => (
       <>
-        <Rect x={13.6} y={10} width={8.2} height={6} rx={3} fill={c} opacity={SHADE} />
+        <Rect x={13.6} y={10} width={8.2} height={6} rx={3} {...sh(c)} />
         <Circle cx={17.4} cy={13} r={1.2} fill={c} />
       </>
     ),
@@ -203,14 +222,16 @@ const glyphs: Record<string, Glyph> = {
   time: {
     draw: (c) => <Circle cx={12} cy={12} r={10} fill={c} />,
     cut: cutLine('M12 6.8 V12 L15.6 14.2', 2.4),
+    // Two-tone: the hands take the accent (a faded hand on the same disc would vanish).
+    over: (c) => (ACCENT ? line('M12 6.8 V12 L15.6 14.2', c, 2.4, SHADE) : null),
   },
   camera: {
     draw: (c) => <Rect x={2.5} y={7} width={19} height={13} rx={3.4} fill={c} />,
     cut: <Circle cx={12} cy={13.5} r={4.2} {...K} />,
     over: (c) => (
       <>
-        <Rect x={8.2} y={3.8} width={7.6} height={4.6} rx={1.6} fill={c} opacity={SHADE} />
-        <Circle cx={12} cy={13.5} r={2} fill={c} opacity={SHADE} />
+        <Rect x={8.2} y={3.8} width={7.6} height={4.6} rx={1.6} {...sh(c)} />
+        <Circle cx={12} cy={13.5} r={2} {...sh(c)} />
       </>
     ),
   },
@@ -229,6 +250,13 @@ const glyphs: Record<string, Glyph> = {
         <Circle cx={17.4} cy={6.6} r={1.3} {...K} />
       </>
     ),
+    over: () =>
+      ACCENT ? (
+        <>
+          <Circle cx={12} cy={12} r={2.2} fill={ACCENT} />
+          <Circle cx={17.4} cy={6.6} r={1} fill={ACCENT} />
+        </>
+      ) : null,
   },
   send: {
     draw: (c) => (
@@ -244,8 +272,8 @@ const glyphs: Record<string, Glyph> = {
     draw: (c) => (
       <>
         {face('M6 8.4 H18 L17 19.8 A2 2 0 0 1 15 21.6 H9 A2 2 0 0 1 7 19.8 Z', c)}
-        <Rect x={4} y={4.8} width={16} height={2.6} rx={1.3} fill={c} opacity={SHADE} />
-        <Rect x={9.4} y={2.4} width={5.2} height={2.6} rx={1} fill={c} opacity={SHADE} />
+        <Rect x={4} y={4.8} width={16} height={2.6} rx={1.3} {...sh(c)} />
+        <Rect x={9.4} y={2.4} width={5.2} height={2.6} rx={1} {...sh(c)} />
       </>
     ),
   },
@@ -385,7 +413,7 @@ const glyphs: Record<string, Glyph> = {
     draw: (c) => (
       <>
         <Rect x={3} y={13} width={4.6} height={8} rx={1.4} fill={c} />
-        <Rect x={9.7} y={8} width={4.6} height={13} rx={1.4} fill={c} opacity={SHADE} />
+        <Rect x={9.7} y={8} width={4.6} height={13} rx={1.4} {...sh(c)} />
         <Rect x={16.4} y={3} width={4.6} height={18} rx={1.4} fill={c} />
       </>
     ),
@@ -421,8 +449,8 @@ const glyphs: Record<string, Glyph> = {
       <>
         {line('M2.5 3.5 H5.2 L8 15.5', c, 2.4)}
         {face('M6 7.5 H21 L19 15.5 H8 Z', c)}
-        <Circle cx={9.6} cy={19.3} r={1.8} fill={c} opacity={SHADE} />
-        <Circle cx={17.4} cy={19.3} r={1.8} fill={c} opacity={SHADE} />
+        <Circle cx={9.6} cy={19.3} r={1.8} {...sh(c)} />
+        <Circle cx={17.4} cy={19.3} r={1.8} {...sh(c)} />
       </>
     ),
   },
@@ -541,7 +569,7 @@ const glyphs: Record<string, Glyph> = {
     draw: (c) => (
       <>
         <Rect x={5.5} y={4} width={4.6} height={16} rx={1.6} fill={c} />
-        <Rect x={13.9} y={4} width={4.6} height={16} rx={1.6} fill={c} opacity={SHADE} />
+        <Rect x={13.9} y={4} width={4.6} height={16} rx={1.6} {...sh(c)} />
       </>
     ),
   },
@@ -606,8 +634,8 @@ const glyphs: Record<string, Glyph> = {
     draw: (c) => (
       <>
         <Rect x={3} y={3} width={8} height={8} rx={2.4} fill={c} />
-        <Rect x={13} y={3} width={8} height={8} rx={2.4} fill={c} opacity={SHADE} />
-        <Rect x={3} y={13} width={8} height={8} rx={2.4} fill={c} opacity={SHADE} />
+        <Rect x={13} y={3} width={8} height={8} rx={2.4} {...sh(c)} />
+        <Rect x={3} y={13} width={8} height={8} rx={2.4} {...sh(c)} />
         <Rect x={13} y={13} width={8} height={8} rx={2.4} fill={c} />
       </>
     ),
@@ -619,8 +647,8 @@ const glyphs: Record<string, Glyph> = {
   watch: {
     draw: (c) => (
       <>
-        <Rect x={8} y={1.8} width={8} height={5} rx={1.4} fill={c} opacity={SHADE} />
-        <Rect x={8} y={17.2} width={8} height={5} rx={1.4} fill={c} opacity={SHADE} />
+        <Rect x={8} y={1.8} width={8} height={5} rx={1.4} {...sh(c)} />
+        <Rect x={8} y={17.2} width={8} height={5} rx={1.4} {...sh(c)} />
         <Circle cx={12} cy={12} r={6.8} fill={c} />
       </>
     ),
@@ -653,7 +681,7 @@ const glyphs: Record<string, Glyph> = {
       <>
         {line('M9 7 V5 A1.5 1.5 0 0 1 10.5 3.5 H13.5 A1.5 1.5 0 0 1 15 5 V7', c, 2.2, SHADE)}
         <Rect x={2.5} y={7} width={19} height={7} rx={2.5} fill={c} />
-        <Rect x={2.5} y={14.2} width={19} height={6.8} rx={2.5} fill={c} opacity={SHADE} />
+        <Rect x={2.5} y={14.2} width={19} height={6.8} rx={2.5} {...sh(c)} />
       </>
     ),
     cut: <Rect x={10.4} y={12.4} width={3.2} height={3.2} rx={0.8} {...K} />,
@@ -669,8 +697,8 @@ const glyphs: Record<string, Glyph> = {
     draw: (c) => (
       <>
         {face('M3 14.5 L4.6 9.6 A2 2 0 0 1 6.5 8.2 H17.5 A2 2 0 0 1 19.4 9.6 L21 14.5 V18 H3 Z', c)}
-        <Circle cx={7.2} cy={18} r={2.3} fill={c} opacity={SHADE} />
-        <Circle cx={16.8} cy={18} r={2.3} fill={c} opacity={SHADE} />
+        <Circle cx={7.2} cy={18} r={2.3} {...sh(c)} />
+        <Circle cx={16.8} cy={18} r={2.3} {...sh(c)} />
       </>
     ),
     cut: <Path d="M6.5 10.2 H17.5 L18.5 13 H5.5 Z" {...K} />,
@@ -685,7 +713,7 @@ const glyphs: Record<string, Glyph> = {
   copy: {
     draw: (c) => (
       <>
-        <Rect x={8.5} y={2.5} width={12} height={14} rx={3} fill={c} opacity={SHADE} />
+        <Rect x={8.5} y={2.5} width={12} height={14} rx={3} {...sh(c)} />
         <Rect x={3.5} y={7.5} width={12} height={14} rx={3} fill={c} />
       </>
     ),
@@ -724,7 +752,7 @@ const glyphs: Record<string, Glyph> = {
   chatbubbles: {
     draw: (c) => (
       <>
-        <Rect x={9.5} y={9} width={12} height={9} rx={3.6} fill={c} opacity={SHADE} />
+        <Rect x={9.5} y={9} width={12} height={9} rx={3.6} {...sh(c)} />
         {face('M18 17.5 L19.2 21 L14 17.5 Z', c, SHADE)}
         <Rect x={2.5} y={3} width={13.5} height={10} rx={4} fill={c} />
         {face('M6 12.5 L5 16.5 L10 12.5 Z', c)}
@@ -745,7 +773,7 @@ const glyphs: Record<string, Glyph> = {
       <>
         <Circle cx={12} cy={12} r={4.6} fill={c} />
         {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
-          <Rect key={a} x={11.2} y={1.8} width={1.6} height={3.8} rx={0.8} fill={c} opacity={SHADE} transform={`rotate(${a} 12 12)`} />
+          <Rect key={a} x={11.2} y={1.8} width={1.6} height={3.8} rx={0.8} {...sh(c)} transform={`rotate(${a} 12 12)`} />
         ))}
       </>
     ),
@@ -806,12 +834,22 @@ function resolve(name: string): { glyph?: Glyph; ghost: boolean } {
   return { glyph: glyphs[key], ghost: outline && GHOST_WHEN_OUTLINE.has(key) };
 }
 
-export function FlatIcon({ name, size = 24, color = '#000000', style }: Props) {
+export function FlatIcon({ name, size = 24, color = '#000000', accent, style }: Props) {
   const maskId = `fi-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const { glyph, ghost } = resolve(String(name));
 
   if (!glyph) {
     return <VectorIonicons name={name} size={size} color={color} style={style as any} />;
+  }
+
+  let drawn: React.ReactNode;
+  let over: React.ReactNode;
+  ACCENT = accent;
+  try {
+    drawn = glyph.draw(color);
+    over = glyph.over ? glyph.over(color) : null;
+  } finally {
+    ACCENT = undefined;
   }
 
   return (
@@ -825,8 +863,8 @@ export function FlatIcon({ name, size = 24, color = '#000000', style }: Props) {
         </Defs>
       ) : null}
       <G opacity={ghost ? 0.5 : 1}>
-        <G mask={glyph.cut ? `url(#${maskId})` : undefined}>{glyph.draw(color)}</G>
-        {glyph.over ? glyph.over(color) : null}
+        <G mask={glyph.cut ? `url(#${maskId})` : undefined}>{drawn}</G>
+        {over}
       </G>
     </Svg>
   );
