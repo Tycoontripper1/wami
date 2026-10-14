@@ -1,3 +1,5 @@
+import OnboardingHero from '@/components/OnboardingHero';
+import { Illo } from '@/constants/Illustration';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import Colors from '@/constants/Colors';
 import { setLocation, setNotificationsEnabled } from '@/store/onboardingSlice';
@@ -93,6 +95,7 @@ export default function OnboardingNotificationsScreen() {
 
         {/* Main Content */}
         <View style={styles.mainContent}>
+          <OnboardingHero scene="bell" background={Illo.lilac} />
           <View style={styles.headerContainer}>
             <Text style={[styles.title, { color: themeColors.text }]}>Stay in the loop</Text>
             <Text style={[styles.subtitle, { color: themeColors.subText }]}>

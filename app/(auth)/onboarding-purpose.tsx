@@ -1,3 +1,5 @@
+import OnboardingHero from '@/components/OnboardingHero';
+import { Illo } from '@/constants/Illustration';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import SelectableCard from '@/components/SelectableCard';
 import Colors from '@/constants/Colors';
@@ -57,6 +59,7 @@ export default function OnboardingPurposeScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <OnboardingHero scene="search" background={Illo.lilac} />
           <View style={styles.headerContainer}>
             <Text style={[styles.title, { color: themeColors.text }]}>What are you using{'\n'}Wami for?</Text>
             <Text style={[styles.subtitle, { color: themeColors.subText }]}>

@@ -1,3 +1,5 @@
+import OnboardingHero from '@/components/OnboardingHero';
+import { Illo } from '@/constants/Illustration';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import Colors from '@/constants/Colors';
 import { setSelectedCity } from '@/store/onboardingSlice';
@@ -67,6 +69,7 @@ export default function OnboardingCitySearchScreen() {
 
         {/* Main Content */}
         <View style={styles.mainContent}>
+          <OnboardingHero scene="town" background={Illo.lime} height={120} />
           <View style={styles.headerContainer}>
             <Text style={[styles.title, { color: themeColors.text }]}>
               Where do you want to{'\n'}discover creatives?

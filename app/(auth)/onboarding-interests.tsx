@@ -1,3 +1,5 @@
+import OnboardingHero from '@/components/OnboardingHero';
+import { Illo } from '@/constants/Illustration';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import PillButton from '@/components/PillButton';
 import Colors from '@/constants/Colors';
@@ -53,6 +55,7 @@ export default function OnboardingInterestsScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <OnboardingHero scene="heart" background={Illo.lime} />
           <View style={styles.headerContainer}>
             <Text style={[styles.title, { color: themeColors.text }]}>What interests you?</Text>
             <Text style={[styles.subtitle, { color: themeColors.subText }]}>

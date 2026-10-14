@@ -1,3 +1,4 @@
+import AnimatedCheck from '@/components/AnimatedCheck';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import Colors from '@/constants/Colors';
 import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
@@ -74,9 +75,7 @@ export default function OnboardingCompleteScreen() {
 
         {/* Main Content */}
         <View style={styles.mainContent}>
-          <View style={styles.emojiContainer}>
-            <Text style={styles.emoji}>🎉</Text>
-          </View>
+          <AnimatedCheck size={120} />
 
           <Text style={[styles.title, { color: themeColors.text }]}>You are all set</Text>
           <Text style={[styles.subtitle, { color: themeColors.subText }]}>
@@ -107,12 +106,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  emojiContainer: {
-    marginBottom: 24,
-  },
-  emoji: {
-    fontSize: 80,
   },
   title: {
     fontSize: 32,

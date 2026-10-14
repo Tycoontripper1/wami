@@ -1,3 +1,5 @@
+import OnboardingHero from '@/components/OnboardingHero';
+import { Illo } from '@/constants/Illustration';
 import OnboardingProgress from '@/components/OnboardingProgress';
 import SelectableCard from '@/components/SelectableCard';
 import Colors from '@/constants/Colors';
@@ -61,6 +63,7 @@ export default function OnboardingLocationScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <OnboardingHero scene="town" background={Illo.lilac} />
           <View style={styles.headerContainer}>
             <Text style={[styles.title, { color: themeColors.text }]}>
               Where do you want to{'\n'}discover creatives?
