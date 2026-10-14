@@ -1,3 +1,4 @@
+import { INSTAGRAM_IMPORT_ENABLED } from '@/constants/Features';
 import BrandInput from '@/components/creative-onboarding/BrandInput';
 import OnboardingButtons from '@/components/creative-onboarding/OnboardingButtons';
 import OnboardingProgress from '@/components/OnboardingProgress';
@@ -80,12 +81,16 @@ export default function CreativeBrandScreen() {
     }
   };
 
+  // The Instagram import step is simulated (no backend endpoint), so it is
+  // skipped until INSTAGRAM_IMPORT_ENABLED — see constants/Features.ts.
+  const nextRoute = INSTAGRAM_IMPORT_ENABLED ? './creative-instagram' : './creative-availability';
+
   const handleSkip = () => {
-    router.push('./creative-instagram' as any);
+    router.push(nextRoute as any);
   };
 
   const handleNext = () => {
-    router.push('./creative-instagram' as any);
+    router.push(nextRoute as any);
   };
 
   const isValid = brand.name.trim().length > 0;

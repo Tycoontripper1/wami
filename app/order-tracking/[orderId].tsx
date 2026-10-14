@@ -1,5 +1,6 @@
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
+import { DELIVERY_ENABLED } from '@/constants/Features';
 import { updateProductOrderStatus } from '@/store/paymentSlice';
 import { RootState } from '@/store/store';
 import { buildOrderTimeline } from '@/types/payment';
@@ -187,13 +188,19 @@ export default function OrderTrackingScreen() {
         {/* Arrange Delivery / Cancel */}
         {order.orderStatus === 'packed' && (
           <View style={{ gap: 10 }}>
-            <TouchableOpacity
-              style={styles.arrangeDeliveryBtn}
-              onPress={() => router.push(`/delivery/arrange/${order.id}` as any)}
-            >
-              <Ionicons name="bicycle" size={18} color="#fff" />
-              <Text style={styles.arrangeDeliveryBtnText}>Arrange Delivery</Text>
-            </TouchableOpacity>
+            {DELIVERY_ENABLED ? (
+              <TouchableOpacity
+                style={styles.arrangeDeliveryBtn}
+                onPress={() => router.push(`/delivery/arrange/${order.id}` as any)}
+              >
+                <Ionicons name="bicycle" size={18} color="#fff" />
+                <Text style={styles.arrangeDeliveryBtnText}>Arrange Delivery</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={{ color: tc.sub, fontSize: 13, textAlign: 'center' }}>
+                Delivery booking is coming soon. Your order is packed and ready.
+              </Text>
+            )}
             <TouchableOpacity
               onPress={() =>
                 Alert.alert('Cancel Order', 'Are you sure you want to cancel this order?', [
