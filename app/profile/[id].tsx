@@ -1,4 +1,5 @@
 import { extractList } from '@/utils/extractList';
+import AnimatedHeart from '@/components/AnimatedHeart';
 import BookingModal from '@/components/BookingModal';
 import EmptyState from '@/components/EmptyState';
 import QuoteRequestModal from '@/components/QuoteRequestModal';
@@ -296,7 +297,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <View style={styles.rightIcons}>
               <TouchableOpacity style={styles.iconButton} onPress={handleFavoriteToggle}>
-                <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? '#FF3B30' : '#fff'} />
+                <AnimatedHeart saved={isFavorite} size={24} />
               </TouchableOpacity>
             </View>
           </View>

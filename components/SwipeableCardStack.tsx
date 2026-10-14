@@ -1,3 +1,4 @@
+import AnimatedHeart from '@/components/AnimatedHeart';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -70,6 +71,8 @@ export interface CreativeData {
 
 interface SwipeableCardStackProps {
   data: CreativeData[];
+  /** Whether an item is already saved, so the heart shows its state. */
+  isSaved?: (item: CreativeData) => boolean;
   onSwipeLeft?: (item: CreativeData) => void;
   onSwipeRight?: (item: CreativeData) => void;
   onSave?: (item: CreativeData) => void;
@@ -80,6 +83,7 @@ export default function SwipeableCardStack({
   onSwipeLeft,
   onSwipeRight,
   onSave,
+  isSaved,
 }: SwipeableCardStackProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -303,7 +307,7 @@ export default function SwipeableCardStack({
           style={styles.saveIconButton}
           onPress={() => onSave?.(item)}
         >
-          <Ionicons name="heart-outline" size={24} color="#fff" />
+          <AnimatedHeart saved={isSaved?.(item) ?? false} size={24} />
         </TouchableOpacity>
 
         {/* Info Section */}

@@ -4,16 +4,14 @@ import AppGuidance from '@/components/AppGuidance';
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
-import { addFavorite } from '@/store/favoritesSlice';
-import { RootState } from '@/store/store';
-import { DiscoveryOffering, getDiscoveryFeed, getNearYou, saveOffering, swipeOffering } from '@/services/api/discoveryService';
+import { useFavorites } from '@/hooks/useFavorites';
+import { DiscoveryOffering, getDiscoveryFeed, getNearYou, swipeOffering } from '@/services/api/discoveryService';
 import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, StatusBar, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch, useSelector } from 'react-redux';
 
 const TABS = ['Discover', 'Trending', 'Near You'];
 
@@ -50,8 +48,7 @@ export default function DiscoverScreen() {
   const [activeTab, setActiveTab] = useState('Discover');
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const dispatch = useDispatch();
-  const favorites = useSelector((state: RootState) => state.favorites.items);
+  const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
   const { region, city } = useLocation();
 
@@ -152,16 +149,9 @@ export default function DiscoverScreen() {
     } as any);
   };
 
-  const handleSave = (item: CreativeData) => {
-    const isAlreadySaved = favorites.some((fav) => fav.id === item.id);
-    if (isAlreadySaved) {
-      Alert.alert('Already Saved', `${item.name} is already in your favourites!`);
-      return;
-    }
-    dispatch(addFavorite(item));
-    saveOffering(item.id).catch((error) => console.error('Save offering failed:', error));
-    Alert.alert('Saved!', `${item.name} added to your favourites`);
-  };
+  // The heart animates as feedback, so there is no "Saved!" alert; a second
+  // tap un-saves, like every other heart in the app.
+  const handleSave = (item: CreativeData) => toggleFavorite(item);
 
   const handleLocationPress = () => {
     // Navigate to location picker
@@ -242,6 +232,7 @@ export default function DiscoverScreen() {
               onSwipeLeft={handleSwipeLeft}
               onSwipeRight={handleSwipeRight}
               onSave={handleSave}
+              isSaved={(item) => isFavorite(item.id)}
             />
           ) : (
             <EmptyState

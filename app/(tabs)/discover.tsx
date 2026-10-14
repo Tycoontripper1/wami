@@ -1,4 +1,7 @@
+import AnimatedHeart from '@/components/AnimatedHeart';
 import EmptyState from '@/components/EmptyState';
+import { CreativeData } from '@/components/SwipeableCardStack';
+import { useFavorites } from '@/hooks/useFavorites';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
 import { getProducts } from '@/services/api/productsService';
@@ -123,7 +126,7 @@ const ProductCard = React.memo(function ProductCard({
         )}
 
         <TouchableOpacity style={styles.saveBtn} onPress={onToggleSave} hitSlop={8}>
-          <Ionicons name={saved ? 'heart' : 'heart-outline'} size={16} color={saved ? '#FF3B30' : '#fff'} />
+          <AnimatedHeart saved={saved} size={16} />
         </TouchableOpacity>
       </View>
 
@@ -165,7 +168,7 @@ export default function DiscoverScreen() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
   const themeColors = {
     background: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -204,8 +207,17 @@ export default function DiscoverScreen() {
     loadShop();
   }, [loadShop]);
 
-  const toggleSave = (id: string) => {
-    setSavedIds(prev => (prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]));
+  const toggleSave = (product: ShopProduct) => {
+    const asOffering: CreativeData = {
+      id: product.id,
+      name: product.name,
+      role: product.category,
+      location: '',
+      rating: product.rating ?? 0,
+      reviews: product.reviews ?? 0,
+      image: product.image ? { uri: product.image } : undefined,
+    };
+    toggleFavorite(asOffering);
   };
 
   const goToProduct = (id: string) => router.push(`/product-detail/${id}` as any);
@@ -301,8 +313,8 @@ export default function DiscoverScreen() {
                       product={item}
                       cardWidth={FEATURED_CARD_WIDTH}
                       isDark={isDark}
-                      saved={savedIds.includes(item.id)}
-                      onToggleSave={() => toggleSave(item.id)}
+                      saved={isFavorite(item.id)}
+                      onToggleSave={() => toggleSave(item)}
                       onPress={() => goToProduct(item.id)}
                     />
                   )}
@@ -328,8 +340,8 @@ export default function DiscoverScreen() {
                       product={item}
                       cardWidth={GRID_CARD_WIDTH}
                       isDark={isDark}
-                      saved={savedIds.includes(item.id)}
-                      onToggleSave={() => toggleSave(item.id)}
+                      saved={isFavorite(item.id)}
+                      onToggleSave={() => toggleSave(item)}
                       onPress={() => goToProduct(item.id)}
                     />
                   ))}

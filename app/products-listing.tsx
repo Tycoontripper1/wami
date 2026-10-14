@@ -1,5 +1,7 @@
 import { extractList } from '@/utils/extractList';
+import AnimatedHeart from '@/components/AnimatedHeart';
 import EmptyState from '@/components/EmptyState';
+import { useFavorites } from '@/hooks/useFavorites';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
 import { getProducts } from '@/services/api/productsService';
@@ -39,7 +41,7 @@ const mapApiProductToProduct = (p: any): Product => ({
   name: p.title || p.name || 'Untitled',
   price: p.price ?? 0,
   category: p.category || '',
-  image: p.image || p.images?.[0] || '',
+  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || '',
   status: p.stock === 0 ? 'Sold' : (p.status === 'published' ? 'Active' : p.status || 'Active'),
   condition: p.condition,
   size: p.size,
@@ -68,6 +70,7 @@ export default function ProductsListingScreen() {
   const [selectedFilter, setSelectedFilter] = useState('All');
 
   const [products, setProducts] = useState<Product[]>([]);
+  const { isFavorite, toggle: toggleFavorite } = useFavorites();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -131,8 +134,22 @@ export default function ProductsListingScreen() {
           </View>
         )}
 
-        <TouchableOpacity style={styles.heartButton}>
-          <Ionicons name="heart-outline" size={18} color="#fff" />
+        <TouchableOpacity
+          style={styles.heartButton}
+          hitSlop={8}
+          onPress={() =>
+            toggleFavorite({
+              id: item.id,
+              name: item.name,
+              role: item.category,
+              location: '',
+              rating: 0,
+              reviews: 0,
+              image: item.image ? { uri: item.image } : undefined,
+            })
+          }
+        >
+          <AnimatedHeart saved={isFavorite(item.id)} size={18} />
         </TouchableOpacity>
 
         {item.condition && (
