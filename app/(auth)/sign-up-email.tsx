@@ -68,6 +68,7 @@ export default function SignUpEmailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AuthHeader
+          scene={false}
           title="Let's get"
           highlight="started"
           onBack={() => router.back()}

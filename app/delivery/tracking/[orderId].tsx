@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   expandedText: { fontSize: 13, marginLeft: 4, textTransform: 'capitalize' },
   callBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.light.primary,
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10,
   },
   callBtnText: { color: '#0F1419', fontSize: 13, fontWeight: '700' },
 });

@@ -288,8 +288,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 30,
+    paddingVertical: 9,
+    borderRadius: 10,
     gap: 8,
   },
   nextBtnText: {

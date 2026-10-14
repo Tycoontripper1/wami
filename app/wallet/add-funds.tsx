@@ -399,8 +399,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   buttonText: {
     color: '#fff',

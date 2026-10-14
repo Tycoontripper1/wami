@@ -261,8 +261,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   confirmButton: {
-    height: 56,
-    borderRadius: 28,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },

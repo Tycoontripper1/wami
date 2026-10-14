@@ -177,12 +177,12 @@ const styles = StyleSheet.create({
   priceRange: { fontSize: 20, fontWeight: '800' },
   findDriversBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: Colors.light.primary, borderRadius: 30, paddingVertical: 16,
+    gap: 8, backgroundColor: Colors.light.primary, borderRadius: 12, paddingVertical: 13,
   },
   findDriversBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24 },
   backBtnCentered: {
-    backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,
+    backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 12,
   },
   backBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

@@ -388,9 +388,9 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   inputField: {
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 11,
     fontSize: 15,
   },
   textArea: {
@@ -402,8 +402,8 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: Colors.light.primary,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 20,
   },

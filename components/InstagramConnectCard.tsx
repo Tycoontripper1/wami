@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: Illo.teal,
-    borderRadius: 26,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   primaryText: {

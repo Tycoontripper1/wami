@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
   },
@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     backgroundColor: Colors.light.primary,
     alignItems: 'center',
   },

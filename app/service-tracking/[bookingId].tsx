@@ -355,12 +355,12 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 14, flex: 1, lineHeight: 20 },
   rescheduleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderWidth: 1.5, borderRadius: 30, paddingVertical: 14,
+    gap: 8, borderWidth: 1.5, borderRadius: 12, paddingVertical: 13,
   },
   rescheduleBtnText: { fontSize: 15, fontWeight: '700' },
   emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24, textAlign: 'center' },
   backBtnCentered: {
-    backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,
+    backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 12,
   },
   backBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

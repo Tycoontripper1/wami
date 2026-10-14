@@ -118,6 +118,7 @@ export default function VerificationCodeScreen() {
 
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader
+          scene={false}
           title="Check your"
           highlight="email"
           onBack={() => router.back()}
@@ -245,10 +246,10 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     width: 64,
-    height: 64,
+    height: 56,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderRadius: 10,
     textAlign: 'center',
     fontSize: 28,
     fontWeight: '600',

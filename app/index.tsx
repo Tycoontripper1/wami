@@ -150,8 +150,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primary: {
-    borderRadius: 30,
-    paddingVertical: 17,
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   primaryText: {
@@ -159,9 +159,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   secondary: {
-    borderRadius: 30,
+    borderRadius: 12,
     borderWidth: 2,
-    paddingVertical: 15,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   secondaryText: {

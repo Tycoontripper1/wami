@@ -45,6 +45,7 @@ export default function ForgotPasswordScreen() {
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader
+          scene={false}
           title="Forgot your"
           highlight="password?"
           onBack={() => router.back()}

@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
   retryButtonText: {
     color: '#0F1419',

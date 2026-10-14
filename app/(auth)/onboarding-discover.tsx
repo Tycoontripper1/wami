@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
-    paddingVertical: 15,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     borderWidth: 2,
     alignItems: 'center',
   },
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 2,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     alignItems: 'center',
     backgroundColor: Illo.ink,
   },

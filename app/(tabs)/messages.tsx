@@ -218,8 +218,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 11,
+    borderRadius: 10,
     gap: 10,
   },
   searchInput: {
@@ -309,8 +309,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 24,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   findCreativeButtonText: {
     color: '#0F1419',

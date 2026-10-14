@@ -176,8 +176,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 11,
+    borderRadius: 10,
     marginBottom: 20,
     gap: 8,
   },
@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
   nextButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   nextText: {
     fontSize: 16,

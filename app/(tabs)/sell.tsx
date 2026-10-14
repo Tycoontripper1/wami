@@ -242,8 +242,8 @@ const styles = StyleSheet.create({
   listButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
   listButtonText: {
     color: '#0F1419',

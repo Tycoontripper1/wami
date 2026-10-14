@@ -64,6 +64,7 @@ export default function ResetPasswordScreen() {
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader
+          scene={false}
           title="Choose a new"
           highlight="password"
           onBack={() => router.back()}

@@ -90,10 +90,10 @@ export default function CreateAccountScreen() {
         showsVerticalScrollIndicator={false}
       >
         <AuthHeader
+          scene={false}
           title="Almost"
           highlight="there"
           onBack={() => router.back()}
-          compact
           subtitle={'A few details and you are in.'}
         />
 
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     paddingHorizontal: 16,
-    height: 56,
+    height: 46,
     justifyContent: 'center',
   },
   passwordHint: {

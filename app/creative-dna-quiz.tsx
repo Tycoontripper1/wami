@@ -347,8 +347,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.light.primary,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     gap: 8,
   },
   buttonDisabled: {

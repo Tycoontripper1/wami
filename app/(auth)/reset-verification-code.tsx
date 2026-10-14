@@ -52,7 +52,7 @@ export default function ResetVerificationCodeScreen() {
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader
-          compact
+          scene={false}
           title="Enter the"
           highlight="code"
           onBack={() => router.back()}
@@ -234,10 +234,10 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     width: 64, // Slightly wider since there are fewer
-    height: 64,
+    height: 56,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderRadius: 16,
+    borderRadius: 10,
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '600',

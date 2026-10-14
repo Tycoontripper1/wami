@@ -705,8 +705,8 @@ const styles = StyleSheet.create({
   },
   quoteButton: {
     backgroundColor: '#00BCD4',
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 10,
     alignItems: 'center',
   },
   quoteButtonText: {
@@ -721,8 +721,8 @@ const styles = StyleSheet.create({
   },
   fullBookButton: {
     width: '100%',
-    height: 50,
-    borderRadius: 25,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: '#00BCD4',
     alignItems: 'center',
     justifyContent: 'center',
@@ -844,8 +844,8 @@ const styles = StyleSheet.create({
   },
   submitReviewButton: {
     backgroundColor: '#00BCD4',
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 10,
     alignItems: 'center',
   },
   submitReviewButtonText: {

@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   },
   continue: {
     backgroundColor: Illo.ink,
-    borderRadius: 30,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   continueText: {

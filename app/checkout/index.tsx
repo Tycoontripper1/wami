@@ -750,7 +750,7 @@ const styles = StyleSheet.create({
   footerTotalValue: { fontSize: 20, fontWeight: '800' },
   payBtn: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 40,
-    paddingVertical: 16, borderRadius: 30,
+    paddingVertical: 13, borderRadius: 12,
   },
   payBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   // Sheets
@@ -762,8 +762,8 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 12 },
   input: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
   saveBtn: {
-    backgroundColor: Colors.light.primary, borderRadius: 30,
-    paddingVertical: 16, alignItems: 'center', marginTop: 24,
+    backgroundColor: Colors.light.primary, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center', marginTop: 24,
   },
   saveBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   cancelBtn: { alignItems: 'center', marginTop: 12, paddingVertical: 8 },

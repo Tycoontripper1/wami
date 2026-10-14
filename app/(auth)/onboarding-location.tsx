@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
   nextButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   nextText: {
     fontSize: 16,

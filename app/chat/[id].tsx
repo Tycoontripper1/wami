@@ -317,9 +317,9 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
-    borderRadius: 24,
+    borderRadius: 10,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 11,
     maxHeight: 120,
   },
   input: {
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
 });

@@ -461,8 +461,8 @@ const styles = StyleSheet.create({
   offerButton: {
     flex: 1,
     borderWidth: 2,
-    borderRadius: 24,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingVertical: 9,
     alignItems: 'center',
   },
   offerButtonText: {
@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     backgroundColor: Colors.light.primary,
-    borderRadius: 24,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -500,9 +500,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 11,
     marginBottom: 8,
   },
   offerInput: {
@@ -515,8 +515,8 @@ const styles = StyleSheet.create({
   },
   sendOfferButton: {
     backgroundColor: Colors.light.primary,
-    borderRadius: 24,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   sendOfferButtonText: {
@@ -614,17 +614,17 @@ const styles = StyleSheet.create({
   },
   addToCartButton: {
     width: 56,
-    height: 56,
-    borderRadius: 28,
+    height: 48,
+    borderRadius: 12,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buyButton: {
     flex: 1,
-    height: 56,
+    height: 48,
     backgroundColor: Colors.light.primary,
-    borderRadius: 28,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -648,8 +648,8 @@ const styles = StyleSheet.create({
   backToHomeButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
   backToHomeText: {
     color: '#fff',

@@ -366,8 +366,8 @@ mainContent: {
   changeLocationButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
   changeLocationText: {
     color: '#fff',

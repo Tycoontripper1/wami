@@ -318,8 +318,8 @@ const styles = StyleSheet.create({
   },
   changePhotoButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 10,
     backgroundColor: Colors.light.primary,
   },
   changePhotoText: {
@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
   },
   removePhotoButton: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FF3B30',
   },

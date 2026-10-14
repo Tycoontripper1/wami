@@ -207,8 +207,8 @@ const styles = StyleSheet.create({
   allowButton: {
     flex: 1,
     backgroundColor: Colors.light.primary,
-    paddingVertical: 16,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
     alignItems: 'center',
   },
   allowText: {

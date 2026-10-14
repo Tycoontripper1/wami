@@ -99,7 +99,6 @@ export default function SignInScreen() {
 
         {/* Email Input */}
         <FloatingLabelInput
-          compact
           label="Email"
           value={email}
           onChangeText={setEmail}
@@ -111,7 +110,6 @@ export default function SignInScreen() {
 
         {/* Password Input */}
         <FloatingLabelInput
-          compact
           label="Password"
           value={password}
           onChangeText={setPassword}

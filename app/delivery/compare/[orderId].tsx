@@ -166,8 +166,8 @@ const styles = StyleSheet.create({
   price: { fontSize: 16, fontWeight: '800' },
   eta: { fontSize: 12 },
   selectBtn: {
-    backgroundColor: Colors.light.primary, paddingHorizontal: 18, paddingVertical: 10,
-    borderRadius: 20, minWidth: 76, alignItems: 'center',
+    backgroundColor: Colors.light.primary, paddingHorizontal: 18, paddingVertical: 9,
+    borderRadius: 10, minWidth: 76, alignItems: 'center',
   },
   selectBtnText: { color: '#0F1419', fontSize: 13, fontWeight: '700' },
 });

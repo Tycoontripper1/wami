@@ -303,8 +303,8 @@ const styles = StyleSheet.create({
   exploreButton: {
     backgroundColor: Colors.light.primary,
     paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 30,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   exploreButtonText: {
     color: '#0F1419',
