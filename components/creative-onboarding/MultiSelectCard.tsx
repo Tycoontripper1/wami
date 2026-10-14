@@ -33,10 +33,10 @@ export default function MultiSelectCard({ title, description, isSelected, onPres
       onPress={onPress}
     >
       <View style={styles.textContainer}>
-        <Text style={[styles.title, { color: isSelected ? '#fff' : themeColors.text }]}>
+        <Text style={[styles.title, { color: isSelected ? '#0F1419' : themeColors.text }]}>
           {title}
         </Text>
-        <Text style={[styles.description, { color: isSelected ? 'rgba(255,255,255,0.8)' : themeColors.subText }]} numberOfLines={2}>
+        <Text style={[styles.description, { color: isSelected ? 'rgba(15,20,25,0.75)' : themeColors.subText }]} numberOfLines={2}>
           {description}
         </Text>
       </View>

@@ -161,5 +161,5 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
   emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   shopBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: 40, paddingVertical: 16, borderRadius: 30 },
-  shopBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  shopBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

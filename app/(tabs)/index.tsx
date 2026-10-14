@@ -208,7 +208,7 @@ export default function DiscoverScreen() {
               ]}
               onPress={() => setActiveTab(tab)}
             >
-              {activeTab === tab && <Ionicons name="checkmark-circle" size={16} color="#fff" style={styles.tabIcon} />}
+              {activeTab === tab && <Ionicons name="checkmark-circle" size={16} color="#0F1419" style={styles.tabIcon} />}
               <Text
                 style={[
                   styles.tabText,
@@ -341,7 +341,7 @@ topBar: {
     fontWeight: '500',
   },
   tabTextActive: {
-    color: '#fff',
+    color: '#0F1419',
   },
 mainContent: {
   flex: 1,

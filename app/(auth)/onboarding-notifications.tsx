@@ -125,7 +125,7 @@ export default function OnboardingNotificationsScreen() {
 
           <TouchableOpacity onPress={handleAllow} style={styles.allowButton} disabled={isLoading}>
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#0F1419" />
             ) : (
               <Text style={styles.allowText}>Allow</Text>
             )}
@@ -211,6 +211,6 @@ const styles = StyleSheet.create({
   allowText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });

@@ -159,7 +159,7 @@ export default function QuoteReceivedScreen() {
             <Text style={[styles.counterBtnText, { color: Colors.light.primary }]}>Counter</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} disabled={isResponding}>
-            {isResponding ? <ActivityIndicator color="#fff" /> : <Text style={styles.acceptBtnText}>Accept</Text>}
+            {isResponding ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.acceptBtnText}>Accept</Text>}
           </TouchableOpacity>
         </View>
       )}
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   counterBtn: { flex: 1, borderWidth: 1.5, borderRadius: 26, paddingVertical: 14, alignItems: 'center' },
   counterBtnText: { fontSize: 14, fontWeight: '600' },
   acceptBtn: { flex: 1, backgroundColor: Colors.light.primary, borderRadius: 26, paddingVertical: 14, alignItems: 'center' },
-  acceptBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  acceptBtnText: { color: '#0F1419', fontSize: 14, fontWeight: '700' },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB', alignSelf: 'center', marginBottom: 16 },
@@ -226,6 +226,6 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 },
   input: { flex: 1, fontSize: 16 },
   sendBtn: { backgroundColor: Colors.light.primary, borderRadius: 26, paddingVertical: 15, alignItems: 'center' },
-  sendBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  sendBtnText: { color: '#0F1419', fontSize: 15, fontWeight: '700' },
   cancelBtn: { alignItems: 'center', marginTop: 12, paddingVertical: 8 },
 });

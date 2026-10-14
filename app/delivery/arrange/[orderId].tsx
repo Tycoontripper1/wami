@@ -145,7 +145,7 @@ export default function ArrangeDeliveryScreen() {
             style={styles.findDriversBtn}
             onPress={() => router.push(`/delivery/waiting/${order.id}` as any)}
           >
-            <Ionicons name="search" size={18} color="#fff" />
+            <Ionicons name="search" size={18} color="#0F1419" />
             <Text style={styles.findDriversBtnText}>Find Drivers</Text>
           </TouchableOpacity>
         </View>
@@ -179,10 +179,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, backgroundColor: Colors.light.primary, borderRadius: 30, paddingVertical: 16,
   },
-  findDriversBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  findDriversBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24 },
   backBtnCentered: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,
   },
-  backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  backBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

@@ -206,7 +206,7 @@ export default function CreativeDNAQuizScreen() {
                 <Text
                   style={[
                     styles.optionLabel,
-                    { color: isSelected ? '#fff' : themeColors.text },
+                    { color: isSelected ? '#0F1419' : themeColors.text },
                   ]}
                 >
                   {option.label}
@@ -215,7 +215,7 @@ export default function CreativeDNAQuizScreen() {
                   <Text
                     style={[
                       styles.optionDesc,
-                      { color: isSelected ? 'rgba(255,255,255,0.8)' : themeColors.subText },
+                      { color: isSelected ? 'rgba(15,20,25,0.75)' : themeColors.subText },
                     ]}
                   >
                     {option.desc}
@@ -245,7 +245,7 @@ export default function CreativeDNAQuizScreen() {
           <Text style={styles.nextButtonText}>
             {currentStep === QUIZ_STEPS.length - 1 ? 'Find My Matches' : 'Continue'}
           </Text>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
+          <Ionicons name="arrow-forward" size={20} color="#0F1419" />
         </TouchableOpacity>
       </View>
     </View>
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   nextButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -200,7 +200,7 @@ export default function ProductsListingScreen() {
                   { backgroundColor: selected ? Colors.light.primary : themeColors.pillBg },
                 ]}
               >
-                <Ionicons name={item.icon} size={22} color={selected ? '#fff' : themeColors.subText} />
+                <Ionicons name={item.icon} size={22} color={selected ? '#0F1419' : themeColors.subText} />
               </View>
               <Text style={[styles.categoryLabel, { color: selected ? Colors.light.primary : themeColors.subText }]}>
                 {item.name}
@@ -230,7 +230,7 @@ export default function ProductsListingScreen() {
               ]}
               onPress={() => setSelectedFilter(item)}
             >
-              <Text style={[styles.filterChipText, { color: selected ? '#fff' : themeColors.text }]}>{item}</Text>
+              <Text style={[styles.filterChipText, { color: selected ? '#0F1419' : themeColors.text }]}>{item}</Text>
             </TouchableOpacity>
           );
         }}

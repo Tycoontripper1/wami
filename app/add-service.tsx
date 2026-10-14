@@ -111,7 +111,7 @@ export default function AddServiceScreen() {
           onPress={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>List Service</Text>}
+          {isSaving ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.saveButtonText}>List Service</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -131,5 +131,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary, borderRadius: 12, paddingVertical: 16,
     alignItems: 'center', marginTop: 12,
   },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  saveButtonText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

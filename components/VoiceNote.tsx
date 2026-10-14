@@ -117,8 +117,7 @@ export default function VoiceNote({
         <Ionicons
           name={isPlaying ? 'pause' : 'play'}
           size={20}
-          color="#fff"
-        />
+          color="#0F1419" />
       </TouchableOpacity>
       
       {renderWaveform()}

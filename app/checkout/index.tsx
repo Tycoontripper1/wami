@@ -509,7 +509,7 @@ function CheckoutContent() {
                 onPress={() => setPaymentMethod(method.key)}
               >
                 <View style={[styles.paymentIconWrap, { backgroundColor: selected ? Colors.light.primary : tc.input }]}>
-                  <Ionicons name={method.icon as any} size={20} color={selected ? '#fff' : tc.sub} />
+                  <Ionicons name={method.icon as any} size={20} color={selected ? '#0F1419' : tc.sub} />
                 </View>
                 <View style={styles.paymentInfo}>
                   <Text style={[styles.paymentLabel, { color: tc.text }]}>{method.label}</Text>
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary, paddingHorizontal: 40,
     paddingVertical: 16, borderRadius: 30,
   },
-  payBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  payBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   // Sheets
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary, borderRadius: 30,
     paddingVertical: 16, alignItems: 'center', marginTop: 24,
   },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  saveBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   cancelBtn: { alignItems: 'center', marginTop: 12, paddingVertical: 8 },
   cancelBtnText: { fontSize: 15, fontWeight: '500' },
   bankCard: { borderRadius: 16, padding: 16, gap: 10 },

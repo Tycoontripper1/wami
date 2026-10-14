@@ -108,11 +108,11 @@ export default function OnboardingCitySearchScreen() {
                 ]}
                 onPress={() => handleCitySelect(city)}
               >
-                <Ionicons name="location" size={20} color={selectedCity === city ? '#fff' : themeColors.subText} />
+                <Ionicons name="location" size={20} color={selectedCity === city ? '#0F1419' : themeColors.subText} />
                 <Text
                   style={[
                     styles.cityText,
-                    { color: selectedCity === city ? '#fff' : themeColors.text },
+                    { color: selectedCity === city ? '#0F1419' : themeColors.text },
                   ]}
                 >
                   {city}
@@ -227,6 +227,6 @@ const styles = StyleSheet.create({
   nextText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });

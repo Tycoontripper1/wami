@@ -148,7 +148,7 @@ export default function SellerAnalyticsScreen() {
                   style={[styles.rangePill, active && { backgroundColor: Colors.light.primary }]}
                   onPress={() => setRange(r.key)}
                 >
-                  <Text style={[styles.rangePillText, { color: active ? '#fff' : tc.sub }]}>{r.label}</Text>
+                  <Text style={[styles.rangePillText, { color: active ? '#0F1419' : tc.sub }]}>{r.label}</Text>
                 </TouchableOpacity>
               );
             })}

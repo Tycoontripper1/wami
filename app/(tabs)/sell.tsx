@@ -121,7 +121,7 @@ export default function SellScreen() {
         <Text style={[styles.title, { color: themeColors.text }]}>Sell Product</Text>
         <TouchableOpacity onPress={handleListProduct} style={[styles.listButton, isListing && { opacity: 0.7 }]} disabled={isListing}>
           {isListing ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color="#0F1419" size="small" />
           ) : (
             <Text style={styles.listButtonText}>List Now</Text>
           )}
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   listButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontWeight: '700',
     fontSize: 14,
   },

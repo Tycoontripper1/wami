@@ -129,7 +129,7 @@ export default function ChangePasswordScreen() {
           disabled={isUpdating}
         >
           {isUpdating ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0F1419" />
           ) : (
             <Text style={styles.updateButtonText}>Update Password</Text>
           )}
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   updateButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -220,7 +220,7 @@ export default function ServiceTrackingScreen() {
                 <View key={step.status} style={styles.timelineItem}>
                   <View style={styles.timelineLeft}>
                     <View style={[styles.timelineIcon, { backgroundColor: completed ? Colors.light.primary : tc.input }]}>
-                      <Ionicons name={completed ? 'checkmark' : 'ellipse'} size={14} color={completed ? '#fff' : tc.sub} />
+                      <Ionicons name={completed ? 'checkmark' : 'ellipse'} size={14} color={completed ? '#0F1419' : tc.sub} />
                     </View>
                     {!isLast && <View style={[styles.timelineLine, { backgroundColor: completed ? Colors.light.primary : tc.border }]} />}
                   </View>
@@ -263,7 +263,7 @@ export default function ServiceTrackingScreen() {
                       disabled={releasingId === m.id}
                     >
                       {releasingId === m.id ? (
-                        <ActivityIndicator color="#fff" size="small" />
+                        <ActivityIndicator color="#0F1419" size="small" />
                       ) : (
                         <Text style={styles.releaseBtnText}>Release</Text>
                       )}
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   milestoneTitle: { fontSize: 14, fontWeight: '600' },
   milestoneAmount: { fontSize: 12, marginTop: 2 },
   releaseBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16 },
-  releaseBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  releaseBtnText: { color: '#0F1419', fontSize: 13, fontWeight: '700' },
   releasedPill: { backgroundColor: '#4CD96420', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   releasedPillText: { color: '#4CD964', fontSize: 12, fontWeight: '700' },
   infoBanner: {
@@ -362,5 +362,5 @@ const styles = StyleSheet.create({
   backBtnCentered: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,
   },
-  backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  backBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

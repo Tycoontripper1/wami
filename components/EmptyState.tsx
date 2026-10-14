@@ -36,7 +36,7 @@ export default function EmptyState({
       {message && <Text style={[styles.message, { color: tc.subText }]}>{message}</Text>}
       {onRetry && (
         <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-          <Ionicons name="refresh" size={16} color="#fff" />
+          <Ionicons name="refresh" size={16} color="#0F1419" />
           <Text style={styles.retryButtonText}>{retryLabel}</Text>
         </TouchableOpacity>
       )}
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   retryButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 14,
     fontWeight: '600',
   },

@@ -36,7 +36,7 @@ export default function AccountSuccessScreen() {
         {/* Success Icon */}
         <View style={styles.successIconContainer}>
           <View style={styles.successCircle}>
-            <Ionicons name="checkmark" size={48} color="#fff" />
+            <Ionicons name="checkmark" size={48} color="#0F1419" />
           </View>
         </View>
 

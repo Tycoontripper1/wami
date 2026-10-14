@@ -191,7 +191,7 @@ export default function CreativeDashboardScreen() {
                       onPress={() => toggleTimeSlot(day, time)}
                     >
                       <Text
-                        style={[styles.timeSlotText, { color: isSelected ? '#fff' : themeColors.text }]}
+                        style={[styles.timeSlotText, { color: isSelected ? '#0F1419' : themeColors.text }]}
                       >
                         {time}
                       </Text>

@@ -142,7 +142,7 @@ export default function WithdrawScreen() {
           onPress={handleWithdraw}
           disabled={isSubmitting}
         >
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Request Withdrawal</Text>}
+          {isSubmitting ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.submitButtonText}>Request Withdrawal</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   submitButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '700',
   },

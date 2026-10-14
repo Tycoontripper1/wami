@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   referenceValue: { fontSize: 18, fontWeight: '700', letterSpacing: 1.5 },
   actions: { width: '100%', gap: 12 },
   primaryBtn: {
-    backgroundColor: Colors.light.primary, color: '#fff', fontSize: 17, fontWeight: '700',
+    backgroundColor: Colors.light.primary, color: '#0F1419', fontSize: 17, fontWeight: '700',
     textAlign: 'center', paddingVertical: 18, borderRadius: 30, overflow: 'hidden',
   },
   secondaryBtn: { fontSize: 16, fontWeight: '600', textAlign: 'center', paddingVertical: 12 },

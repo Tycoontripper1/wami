@@ -83,11 +83,11 @@ export default function CreativeCompleteScreen() {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0F1419" />
           ) : (
             <>
               <Text style={styles.buttonText}>Get Started</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Ionicons name="arrow-forward" size={20} color="#0F1419" />
             </>
           )}
         </TouchableOpacity>
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 18,
     fontWeight: '600',
   },

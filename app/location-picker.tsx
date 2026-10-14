@@ -327,7 +327,7 @@ export default function LocationPickerScreen() {
                 >
                     <Text style={[
                     styles.regionChipText,
-                    { color: isSelected ? '#fff' : themeColors.text }
+                    { color: isSelected ? '#0F1419' : themeColors.text }
                     ]}>
                     {region.name}
                     </Text>
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   confirmButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 12,
     fontWeight: '600',
   },

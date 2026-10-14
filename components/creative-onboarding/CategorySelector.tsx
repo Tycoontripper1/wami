@@ -37,7 +37,7 @@ export default function CategorySelector({ selected, onToggle }: CategorySelecto
             <Text
               style={[
                 styles.pillText,
-                { color: isSelected ? '#fff' : themeColors.text },
+                { color: isSelected ? '#0F1419' : themeColors.text },
               ]}
             >
               {category}

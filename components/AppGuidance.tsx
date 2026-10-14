@@ -210,7 +210,7 @@ export default function AppGuidance() {
               <Text style={styles.nextBtnText}>
                 {currentStepIndex === steps.length - 1 ? "Got it!" : "Next"}
               </Text>
-              <Ionicons name="arrow-forward" size={16} color="#fff" />
+              <Ionicons name="arrow-forward" size={16} color="#0F1419" />
             </TouchableOpacity>
           </View>
 
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nextBtnText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '700',
   },

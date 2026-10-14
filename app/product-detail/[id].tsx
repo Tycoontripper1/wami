@@ -242,7 +242,7 @@ export default function ProductDetailScreen() {
                   </Text>
                   {product.officialStore && (
                     <View style={styles.officialBadge}>
-                      <Ionicons name="checkmark-circle" size={12} color="#fff" />
+                      <Ionicons name="checkmark-circle" size={12} color="#0F1419" />
                       <Text style={styles.officialBadgeText}>Official Store</Text>
                     </View>
                   )}
@@ -260,7 +260,7 @@ export default function ProductDetailScreen() {
               <Text style={[styles.offerButtonText, { color: Colors.light.primary }]}>Offer Price</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.messageButton} onPress={handleContactSeller}>
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#fff" />
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#0F1419" />
               <Text style={styles.messageButtonText}>Message</Text>
             </TouchableOpacity>
           </View>
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   officialBadgeText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   messageButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendOfferButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buyButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 18,
     fontWeight: '700',
   },

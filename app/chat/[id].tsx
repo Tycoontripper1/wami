@@ -148,11 +148,11 @@ export default function ChatScreen() {
             isMyMessage ? { backgroundColor: themeColors.myBubble } : { backgroundColor: themeColors.theirBubble },
           ]}
         >
-          <Text style={[styles.messageText, { color: isMyMessage ? '#fff' : themeColors.text }]}>
+          <Text style={[styles.messageText, { color: isMyMessage ? '#0F1419' : themeColors.text }]}>
             {item.body}
           </Text>
           {item.created_at && (
-            <Text style={[styles.messageTime, { color: isMyMessage ? 'rgba(255,255,255,0.7)' : themeColors.subText }]}>
+            <Text style={[styles.messageTime, { color: isMyMessage ? 'rgba(15,20,25,0.7)' : themeColors.subText }]}>
               {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           )}
@@ -192,7 +192,7 @@ export default function ChatScreen() {
             Couldn't load this conversation.
           </Text>
           <TouchableOpacity onPress={load} style={styles.retryBtn}>
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Try Again</Text>
+            <Text style={{ color: '#0F1419', fontWeight: '700' }}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -240,7 +240,7 @@ export default function ChatScreen() {
           onPress={handleSend}
           disabled={!inputText.trim() || isSending}
         >
-          {isSending ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="send" size={20} color="#fff" />}
+          {isSending ? <ActivityIndicator color="#0F1419" size="small" /> : <Ionicons name="send" size={20} color="#0F1419" />}
         </TouchableOpacity>
       </View>
     </View>

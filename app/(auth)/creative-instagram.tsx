@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   modalConnectText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '600',
   },

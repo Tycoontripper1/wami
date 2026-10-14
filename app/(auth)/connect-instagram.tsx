@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F1419',
   },
   instagramIconContainer: {
     marginBottom: 40,
@@ -166,6 +166,6 @@ const styles = StyleSheet.create({
   connectButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });

@@ -273,7 +273,7 @@ export default function WalletScreen() {
                 style={[styles.filterPill, { backgroundColor: selectedFilter === filter ? Colors.light.primary : themeColors.cardBg, borderColor: selectedFilter === filter ? Colors.light.primary : themeColors.border }]}
                 onPress={() => setSelectedFilter(filter)}
               >
-                <Text style={[styles.filterText, { color: selectedFilter === filter ? '#fff' : themeColors.text }]}>{filter}</Text>
+                <Text style={[styles.filterText, { color: selectedFilter === filter ? '#0F1419' : themeColors.text }]}>{filter}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -335,7 +335,7 @@ export default function WalletScreen() {
               <View style={styles.presetsGrid}>
                 {presetAmounts.map((amount) => (
                   <TouchableOpacity key={amount} style={[styles.presetBtn, { backgroundColor: fundAmount === amount.toString() ? Colors.light.primary : themeColors.cardBg }]} onPress={() => setFundAmount(amount.toString())}>
-                    <Text style={[styles.presetText, { color: fundAmount === amount.toString() ? '#fff' : themeColors.text }]}>{currencySymbol}{amount.toLocaleString()}</Text>
+                    <Text style={[styles.presetText, { color: fundAmount === amount.toString() ? '#0F1419' : themeColors.text }]}>{currencySymbol}{amount.toLocaleString()}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

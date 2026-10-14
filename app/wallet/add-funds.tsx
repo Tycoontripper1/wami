@@ -140,7 +140,7 @@ export default function AddFundsScreen() {
                       styles.presetText,
                       {
                         color:
-                          amount === preset.toString() ? '#fff' : themeColors.text,
+                          amount === preset.toString() ? '#0F1419' : themeColors.text,
                       },
                     ]}
                   >

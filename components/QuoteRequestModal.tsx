@@ -211,7 +211,7 @@ export default function QuoteRequestModal({
                   <Text
                     style={[
                       styles.serviceText,
-                      { color: selectedService === service ? '#fff' : themeColors.text },
+                      { color: selectedService === service ? '#0F1419' : themeColors.text },
                     ]}
                   >
                     {service}
@@ -286,7 +286,7 @@ export default function QuoteRequestModal({
             disabled={!selectedService || !budget || !description || isSubmitting}
           >
             {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#0F1419" />
             ) : (
               <Text style={styles.submitButtonText}>Send Quote Request</Text>
             )}
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '600',
   },

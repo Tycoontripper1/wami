@@ -110,7 +110,7 @@ export default function RateDriverScreen() {
                 ]}
                 onPress={() => toggleTag(tag)}
               >
-                <Text style={[styles.tagText, { color: selected ? '#fff' : tc.text }]}>{tag}</Text>
+                <Text style={[styles.tagText, { color: selected ? '#0F1419' : tc.text }]}>{tag}</Text>
               </TouchableOpacity>
             );
           })}
@@ -155,5 +155,5 @@ const styles = StyleSheet.create({
   },
   footer: { paddingHorizontal: 24, paddingTop: 12 },
   submitBtn: { backgroundColor: Colors.light.primary, borderRadius: 30, paddingVertical: 16, alignItems: 'center' },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  submitBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

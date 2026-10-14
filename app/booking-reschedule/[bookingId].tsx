@@ -145,9 +145,9 @@ export default function BookingRescheduleScreen() {
                     ]}
                     onPress={() => setSelectedDate(d.full)}
                   >
-                    <Text style={[styles.dateDay, { color: active ? '#fff' : tc.sub }]}>{d.day}</Text>
-                    <Text style={[styles.dateNum, { color: active ? '#fff' : tc.text }]}>{d.date}</Text>
-                    <Text style={[styles.dateMonth, { color: active ? '#fff' : tc.sub }]}>{d.month}</Text>
+                    <Text style={[styles.dateDay, { color: active ? '#0F1419' : tc.sub }]}>{d.day}</Text>
+                    <Text style={[styles.dateNum, { color: active ? '#0F1419' : tc.text }]}>{d.date}</Text>
+                    <Text style={[styles.dateMonth, { color: active ? '#0F1419' : tc.sub }]}>{d.month}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -164,7 +164,7 @@ export default function BookingRescheduleScreen() {
                   style={[styles.timeCard, { backgroundColor: active ? Colors.light.primary : tc.card, borderColor: active ? Colors.light.primary : tc.border }]}
                   onPress={() => setSelectedTime(time)}
                 >
-                  <Text style={{ color: active ? '#fff' : tc.text, fontSize: 14, fontWeight: '600' }}>{time}</Text>
+                  <Text style={{ color: active ? '#0F1419' : tc.text, fontSize: 14, fontWeight: '600' }}>{time}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -178,7 +178,7 @@ export default function BookingRescheduleScreen() {
           onPress={handleConfirm}
           disabled={!selectedDate || isSubmitting}
         >
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmBtnText}>Confirm New Date</Text>}
+          {isSubmitting ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.confirmBtnText}>Confirm New Date</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -206,5 +206,5 @@ const styles = StyleSheet.create({
   timeCard: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1 },
   footer: { padding: 16, borderTopWidth: 1 },
   confirmBtn: { backgroundColor: Colors.light.primary, borderRadius: 30, paddingVertical: 16, alignItems: 'center' },
-  confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  confirmBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

@@ -38,15 +38,15 @@ export default function OptionCard({ title, description, isSelected, onPress, ic
           <Ionicons
             name={icon}
             size={24}
-            color={isSelected ? '#fff' : Colors.light.primary}
+            color={isSelected ? '#0F1419' : Colors.light.primary}
             style={styles.icon}
           />
         )}
         <View style={styles.textContainer}>
-          <Text style={[styles.title, { color: isSelected ? '#fff' : themeColors.text }]}>
+          <Text style={[styles.title, { color: isSelected ? '#0F1419' : themeColors.text }]}>
             {title}
           </Text>
-          <Text style={[styles.description, { color: isSelected ? 'rgba(255,255,255,0.8)' : themeColors.subText }]}>
+          <Text style={[styles.description, { color: isSelected ? 'rgba(15,20,25,0.75)' : themeColors.subText }]}>
             {description}
           </Text>
         </View>

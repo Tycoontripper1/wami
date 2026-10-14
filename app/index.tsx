@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signUpText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '600',
   },

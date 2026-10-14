@@ -110,7 +110,7 @@ export default function SharePostScreen() {
           onPress={handlePost}
           disabled={isPosting}
         >
-          {isPosting ? <ActivityIndicator color="#fff" /> : <Text style={styles.postButtonText}>Post</Text>}
+          {isPosting ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.postButtonText}>Post</Text>}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -140,5 +140,5 @@ const styles = StyleSheet.create({
   postButton: {
     backgroundColor: Colors.light.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center',
   },
-  postButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  postButtonText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

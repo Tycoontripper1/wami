@@ -151,9 +151,9 @@ export default function BookingCalendarScreen() {
                     ]}
                     onPress={() => setSelectedDay(dateKey)}
                   >
-                    <Text style={[styles.dayNum, { color: isSelected ? '#fff' : tc.text }]}>{day}</Text>
+                    <Text style={[styles.dayNum, { color: isSelected ? '#0F1419' : tc.text }]}>{day}</Text>
                     {dayBookings.length > 0 && (
-                      <View style={[styles.dayDot, { backgroundColor: isSelected ? '#fff' : Colors.light.primary }]} />
+                      <View style={[styles.dayDot, { backgroundColor: isSelected ? '#0F1419' : Colors.light.primary }]} />
                     )}
                   </TouchableOpacity>
                 );

@@ -75,7 +75,7 @@ export default function RecommendedCreatives({
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={24} color="#fff" />
+          <Ionicons name="chevron-forward" size={24} color="#0F1419" />
         </TouchableOpacity>
       </View>
     );
@@ -229,13 +229,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quizTitle: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 2,
   },
   quizDesc: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#0F1419',
     fontSize: 13,
   },
 });

@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unreadText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   findCreativeButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 15,
     fontWeight: '700',
   },

@@ -168,7 +168,7 @@ export default function AccountActionsScreen() {
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#0F1419" />
               ) : (
                 <Text style={styles.confirmButtonText}>
                   {selectedAction === 'deactivate' ? 'Confirm Deactivation' : 'Permanently Delete Account'}
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   confirmButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '700',
   },

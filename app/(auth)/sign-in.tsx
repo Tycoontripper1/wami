@@ -131,7 +131,7 @@ export default function SignInScreen() {
             { borderColor: themeColors.border },
             agreeToTerms && styles.checkboxChecked
           ]}>
-            {agreeToTerms && <Ionicons name="checkmark" size={16} color="#fff" />}
+            {agreeToTerms && <Ionicons name="checkmark" size={16} color="#0F1419" />}
           </View>
           <Text style={[styles.checkboxText, { color: themeColors.subText }]}>
             By continuing, I agree to Wami's{' '}
@@ -158,7 +158,7 @@ export default function SignInScreen() {
           disabled={!isFormValid || isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0F1419" />
           ) : (
             <Text style={styles.signInButtonText}>Next</Text>
           )}
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   signInButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
   signUpContainer: {
     flexDirection: 'row',

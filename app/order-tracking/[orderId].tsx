@@ -193,7 +193,7 @@ export default function OrderTrackingScreen() {
                 style={styles.arrangeDeliveryBtn}
                 onPress={() => router.push(`/delivery/arrange/${order.id}` as any)}
               >
-                <Ionicons name="bicycle" size={18} color="#fff" />
+                <Ionicons name="bicycle" size={18} color="#0F1419" />
                 <Text style={styles.arrangeDeliveryBtnText}>Arrange Delivery</Text>
               </TouchableOpacity>
             ) : (
@@ -243,7 +243,7 @@ export default function OrderTrackingScreen() {
                     styles.timelineIcon,
                     { backgroundColor: event.completed ? Colors.light.primary : tc.input }
                   ]}>
-                    <Ionicons name={icon as any} size={16} color={event.completed ? '#fff' : tc.sub} />
+                    <Ionicons name={icon as any} size={16} color={event.completed ? '#0F1419' : tc.sub} />
                   </View>
                   {!isLast && (
                     <View style={[styles.timelineLine, { backgroundColor: event.completed ? Colors.light.primary : tc.border }]} />
@@ -287,7 +287,7 @@ export default function OrderTrackingScreen() {
         {/* Chat Now for failed delivery */}
         {isDeliveryFailed && (
           <TouchableOpacity style={styles.chatBtn}>
-            <Ionicons name="chatbubble" size={20} color="#fff" />
+            <Ionicons name="chatbubble" size={20} color="#0F1419" />
             <Text style={styles.chatBtnText}>Chat Now</Text>
           </TouchableOpacity>
         )}
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, backgroundColor: Colors.light.primary, borderRadius: 16, paddingVertical: 14,
   },
-  arrangeDeliveryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  arrangeDeliveryBtnText: { color: '#0F1419', fontSize: 15, fontWeight: '700' },
   cancelOrderText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   failedBanner: {
     flexDirection: 'row', gap: 12, padding: 16,
@@ -349,10 +349,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, backgroundColor: Colors.light.primary, borderRadius: 30, paddingVertical: 16,
   },
-  chatBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  chatBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24 },
   backBtnCentered: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 30,
   },
-  backBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  backBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

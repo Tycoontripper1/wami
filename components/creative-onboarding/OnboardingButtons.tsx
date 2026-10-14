@@ -83,6 +83,6 @@ const styles = StyleSheet.create({
   nextText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });

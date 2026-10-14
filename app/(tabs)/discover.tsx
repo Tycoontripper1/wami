@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 8, left: 8,
     backgroundColor: '#FFA000', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
-  featuredBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
+  featuredBadgeText: { color: '#0F1419', fontSize: 9, fontWeight: '700', letterSpacing: 0.3 },
   soldOutOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center',

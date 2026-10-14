@@ -107,7 +107,7 @@ export default function DriverCompareScreen() {
         disabled={!!selectingId}
       >
         {selectingId === item.id ? (
-          <ActivityIndicator color="#fff" size="small" />
+          <ActivityIndicator color="#0F1419" size="small" />
         ) : (
           <Text style={styles.selectBtnText}>Select</Text>
         )}
@@ -169,5 +169,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary, paddingHorizontal: 18, paddingVertical: 10,
     borderRadius: 20, minWidth: 76, alignItems: 'center',
   },
-  selectBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  selectBtnText: { color: '#0F1419', fontSize: 13, fontWeight: '700' },
 });

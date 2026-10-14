@@ -315,7 +315,7 @@ export default function MyProductsScreen() {
             />
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit} disabled={isSavingEdit}>
-              {isSavingEdit ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
+              {isSavingEdit ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.saveButtonText}>Save Changes</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setEditingItem(null)} style={styles.cancelButton}>
               <Text style={{ color: themeColors.subText, fontSize: 15 }}>Cancel</Text>
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 15,
     fontWeight: '700',
   },

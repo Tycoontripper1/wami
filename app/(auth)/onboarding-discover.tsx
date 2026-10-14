@@ -344,7 +344,7 @@ const s2 = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  badgeText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  badgeText: { color: "#0F1419", fontWeight: "800", fontSize: 13 },
   statPill: {
     position: "absolute",
     bottom: -40,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
   },
-  nextText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  nextText: { fontSize: 16, fontWeight: "700", color: "#0F1419" },
   globalSkip: {
     position: "absolute",
     right: 24,

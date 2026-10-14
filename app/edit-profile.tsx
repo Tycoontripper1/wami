@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.primary,
   },
   changePhotoText: {
-    color: '#fff',
+    color: '#0F1419',
     fontWeight: '600',
     fontSize: 14,
   },

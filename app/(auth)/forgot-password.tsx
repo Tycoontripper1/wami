@@ -83,7 +83,7 @@ export default function ForgotPasswordScreen() {
           disabled={!email.trim() || isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0F1419" />
           ) : (
              <Text style={styles.nextButtonText}>Next</Text>
           )}
@@ -149,6 +149,6 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });

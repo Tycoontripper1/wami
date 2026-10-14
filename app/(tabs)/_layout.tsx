@@ -207,7 +207,7 @@ function TabItem({ focused, iconFocused, iconUnfocused, label }: TabIconProps) {
         <Ionicons
           name={focused ? iconFocused : iconUnfocused}
           size={22}
-          color={focused ? '#FFFFFF' : '#ffffff'}
+          color={focused ? '#0F1419' : '#ffffff'}
         />
       </View>
       <Text style={[styles.label, focused && styles.labelActive]}>{label}</Text>

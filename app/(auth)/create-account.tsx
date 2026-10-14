@@ -197,7 +197,7 @@ export default function CreateAccountScreen() {
                 { borderColor: themeColors.border },
                 agreeToPrivacy && styles.checkboxChecked
               ]}>
-                {agreeToPrivacy && <Ionicons name="checkmark" size={16} color="#fff" />}
+                {agreeToPrivacy && <Ionicons name="checkmark" size={16} color="#0F1419" />}
               </View>
               <Text style={[styles.checkboxText, { color: themeColors.subText }]}>
                 I agree to Wami's <Text style={styles.link}>Privacy Policy</Text> and{'\n'}
@@ -214,7 +214,7 @@ export default function CreateAccountScreen() {
                 { borderColor: themeColors.border },
                 agreeToTerms && styles.checkboxChecked
               ]}>
-                {agreeToTerms && <Ionicons name="checkmark" size={16} color="#fff" />}
+                {agreeToTerms && <Ionicons name="checkmark" size={16} color="#0F1419" />}
               </View>
               <Text style={[styles.checkboxText, { color: themeColors.subText }]}>
                 I agree to Wami's <Text style={styles.link}>Privacy Policy</Text> and{'\n'}
@@ -231,7 +231,7 @@ export default function CreateAccountScreen() {
           disabled={!isFormValid || isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#0F1419" />
           ) : (
             <Text style={styles.createButtonText}>Create Account</Text>
           )}
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F1419',
   },
   titleContainer: {
     marginBottom: 32,
@@ -353,6 +353,6 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });

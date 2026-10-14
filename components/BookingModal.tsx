@@ -195,7 +195,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                       },
                     ]}
                   >
-                    <Text style={{ color: i + 1 <= step ? '#fff' : themeColors.subText, fontSize: 12, fontWeight: '700' }}>
+                    <Text style={{ color: i + 1 <= step ? '#0F1419' : themeColors.subText, fontSize: 12, fontWeight: '700' }}>
                       {i + 1}
                     </Text>
                   </View>
@@ -225,7 +225,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                       ]}
                       onPress={() => setProjectType(type)}
                     >
-                      <Text style={{ color: projectType === type ? '#fff' : themeColors.text, fontSize: 13, fontWeight: '500' }}>
+                      <Text style={{ color: projectType === type ? '#0F1419' : themeColors.text, fontSize: 13, fontWeight: '500' }}>
                         {type}
                       </Text>
                     </TouchableOpacity>
@@ -296,9 +296,9 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                       ]}
                       onPress={() => setSelectedDate(d.full)}
                     >
-                      <Text style={[styles.dateDay, { color: selectedDate === d.full ? '#fff' : themeColors.subText }]}>{d.day}</Text>
-                      <Text style={[styles.dateNum, { color: selectedDate === d.full ? '#fff' : themeColors.text }]}>{d.date}</Text>
-                      <Text style={[styles.dateMonth, { color: selectedDate === d.full ? '#fff' : themeColors.subText }]}>{d.month}</Text>
+                      <Text style={[styles.dateDay, { color: selectedDate === d.full ? '#0F1419' : themeColors.subText }]}>{d.day}</Text>
+                      <Text style={[styles.dateNum, { color: selectedDate === d.full ? '#0F1419' : themeColors.text }]}>{d.date}</Text>
+                      <Text style={[styles.dateMonth, { color: selectedDate === d.full ? '#0F1419' : themeColors.subText }]}>{d.month}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -317,7 +317,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                       ]}
                       onPress={() => setSelectedTime(time)}
                     >
-                      <Text style={{ color: selectedTime === time ? '#fff' : themeColors.text, fontSize: 14, fontWeight: '500' }}>
+                      <Text style={{ color: selectedTime === time ? '#0F1419' : themeColors.text, fontSize: 14, fontWeight: '500' }}>
                         {time}
                       </Text>
                     </TouchableOpacity>
@@ -414,7 +414,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#0F1419" />
               ) : (
                 <Text style={styles.bookButtonText}>Confirm Booking</Text>
               )}
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   refCard: { borderRadius: 16, padding: 18, alignItems: 'center', width: '100%' },
   bookButton: { backgroundColor: Colors.light.primary, paddingVertical: 16, borderRadius: 30, alignItems: 'center', marginTop: 10 },
   bookButtonDisabled: { opacity: 0.5 },
-  bookButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  bookButtonText: { color: '#0F1419', fontSize: 16, fontWeight: '600' },
   successButtonsRow: { flexDirection: 'row', gap: 12, marginTop: 10 },
   secondaryButton: { flex: 1, paddingVertical: 16, borderRadius: 30, alignItems: 'center' },
 });

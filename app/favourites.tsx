@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   exploreButtonText: {
-    color: '#fff',
+    color: '#0F1419',
     fontSize: 16,
     fontWeight: '600',
   },

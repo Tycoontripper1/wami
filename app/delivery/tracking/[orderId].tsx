@@ -124,7 +124,7 @@ export default function DeliveryTrackingScreen() {
         {markerPos && (
           <Marker coordinate={markerPos} anchor={{ x: 0.5, y: 0.5 }}>
             <View style={styles.driverMarker}>
-              <Ionicons name={(driver ? VEHICLE_ICONS[driver.vehicleType] : 'bicycle') as any} size={16} color="#fff" />
+              <Ionicons name={(driver ? VEHICLE_ICONS[driver.vehicleType] : 'bicycle') as any} size={16} color="#0F1419" />
             </View>
           </Marker>
         )}
@@ -170,7 +170,7 @@ export default function DeliveryTrackingScreen() {
               <Text style={[styles.expandedText, { color: tc.sub }]}>{driver?.rating}</Text>
             </View>
             <TouchableOpacity style={styles.callBtn}>
-              <Ionicons name="call" size={18} color="#fff" />
+              <Ionicons name="call" size={18} color="#0F1419" />
               <Text style={styles.callBtnText}>Call</Text>
             </TouchableOpacity>
           </View>
@@ -216,5 +216,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.light.primary,
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18,
   },
-  callBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  callBtnText: { color: '#0F1419', fontSize: 13, fontWeight: '700' },
 });

@@ -90,7 +90,7 @@ export default function WaitingForDriversScreen() {
           <ExpandingCircle delayMs={600} />
           <ExpandingCircle delayMs={1200} />
           <View style={styles.centerDot}>
-            <Ionicons name="bicycle" size={22} color="#fff" />
+            <Ionicons name="bicycle" size={22} color="#0F1419" />
           </View>
         </View>
 

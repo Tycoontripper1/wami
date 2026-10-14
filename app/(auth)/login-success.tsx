@@ -148,7 +148,7 @@ export default function LoginSuccessScreen() {
                 ],
               }}
             >
-              <Ionicons name="checkmark" size={70} color="#fff" />
+              <Ionicons name="checkmark" size={70} color="#0F1419" />
             </Animated.View>
           </View>
         </Animated.View>
@@ -185,7 +185,7 @@ export default function LoginSuccessScreen() {
           <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
             <View style={styles.buttonGradient}>
               <Text style={styles.continueButtonText}>Let's Go</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Ionicons name="arrow-forward" size={20} color="#0F1419" />
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -293,6 +293,6 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F1419',
   },
 });
