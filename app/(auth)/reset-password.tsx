@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
@@ -62,6 +63,7 @@ export default function ResetPasswordScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" />
+      <WamiLoader visible={!!isLoading} message="Updating your password…" variant="brand" />
       
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader

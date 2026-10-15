@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
@@ -84,6 +85,7 @@ export default function CreateAccountScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <WamiLoader visible={!!isLoading} message="Creating your account…" variant="brand" />
       
       <ScrollView 
         style={styles.scrollView}

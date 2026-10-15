@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import Colors from '@/constants/Colors';
 import { requestPayout } from '@/services/api/sellerService';
 import { Ionicons } from '@/components/FlatIcon';
@@ -76,6 +77,7 @@ export default function WithdrawScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isSubmitting} message="Sending your request…" variant="light" />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>

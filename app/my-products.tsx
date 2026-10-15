@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import EmptyState from '@/components/EmptyState';
 import { Ionicons } from '@/components/FlatIcon';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
@@ -349,6 +350,7 @@ export default function MyProductsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: tc.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isBulkWorking} message="Updating your products…" variant="light" />
 
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Back">

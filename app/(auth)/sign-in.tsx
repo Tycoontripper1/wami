@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import AuthHeader from '@/components/AuthHeader';
 import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
 import { setOnboardingComplete, setSetupPending } from '@/store/onboardingSlice';
@@ -83,6 +84,7 @@ export default function SignInScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <WamiLoader visible={!!isLoading} message="Signing you in…" />
       
       <ScrollView
         style={{ flex: 1 }}

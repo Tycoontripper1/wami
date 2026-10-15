@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { profileService } from '@/services/api/profileService';
@@ -81,6 +82,7 @@ export default function ChangePasswordScreen() {
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isUpdating} message="Updating your password…" variant="light" />
       
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: themeColors.border }]}>

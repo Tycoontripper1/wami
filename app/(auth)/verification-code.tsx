@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import AuthHeader from '@/components/AuthHeader';
 import Colors from '@/constants/Colors';
 import { authService } from '@/services/authService';
@@ -114,6 +115,7 @@ export default function VerificationCodeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
+      <WamiLoader visible={!!isLoading} message="Checking your code…" variant="brand" />
 
       <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
         <AuthHeader

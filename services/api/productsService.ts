@@ -105,7 +105,8 @@ export const updateProduct = async (
   id: string,
   payload: UpdateProductPayload
 ): Promise<ApiResponse<Product>> => {
-  return apiClient.patch(API_ENDPOINTS.PRODUCTS.UPDATE(id), payload);
+  // The route allows GET, HEAD, PUT and DELETE; PATCH answers 405.
+  return apiClient.put(API_ENDPOINTS.PRODUCTS.UPDATE(id), payload);
 };
 
 // Delete a product listing

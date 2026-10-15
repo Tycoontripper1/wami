@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import * as ImagePicker from 'expo-image-picker';
@@ -71,6 +72,7 @@ export default function SharePostScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isPosting} message="Posting…" variant="light" />
 
       <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>

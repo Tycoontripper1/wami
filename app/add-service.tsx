@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { createOffering } from '@/services/api/offeringsService';
@@ -73,6 +74,7 @@ export default function AddServiceScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isSaving} message="Listing your service…" variant="light" />
 
       <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>

@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import AuthHeader from '@/components/AuthHeader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
@@ -60,6 +61,7 @@ export default function SignUpEmailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isLoading} message="Sending your code…" variant="brand" />
 
       <ScrollView
         style={{ flex: 1 }}

@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import Colors from '@/constants/Colors';
 import { ApiBooking, getBookingById, rescheduleBooking } from '@/services/api/bookingsService';
 import { Ionicons } from '@/components/FlatIcon';
@@ -106,6 +107,7 @@ export default function BookingRescheduleScreen() {
   return (
     <View style={[styles.container, { backgroundColor: tc.bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={!!isSubmitting} message="Moving your booking…" variant="light" />
 
       <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: tc.card, borderBottomColor: tc.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>

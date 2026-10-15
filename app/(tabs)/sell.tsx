@@ -1,3 +1,4 @@
+import WamiLoader from '@/components/WamiLoader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import PhotoUploadRequirements from '@/components/sell/PhotoUploadRequirements';
 import Colors from '@/constants/Colors';
@@ -122,6 +123,7 @@ export default function SellScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <WamiLoader visible={isListing} message="Listing your product…" variant="light" />
       
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
