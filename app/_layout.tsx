@@ -160,6 +160,7 @@ function RootLayoutNav() {
           <Stack.Screen name="creative-dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="creative-dna-quiz" options={{ headerShown: false }} />
           <Stack.Screen name="location-picker" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="explore-map" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="checkout/index" options={{ headerShown: false }} />
           <Stack.Screen name="checkout/success" options={{ headerShown: false, gestureEnabled: false }} />

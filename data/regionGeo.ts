@@ -22,6 +22,20 @@ export const COUNTRY_VIEW: Record<string, MapView> = {
   AU: { latitude: -25.5, longitude: 134, latitudeDelta: 40, longitudeDelta: 40 },
 };
 
+/** Each country's colours (from its flag, picked to read on white): the map icons use them. */
+export const COUNTRY_TONE: Record<string, { main: string; accent: string }> = {
+  NG: { main: '#008751', accent: '#5CC98F' },
+  GH: { main: '#006B3F', accent: '#FCD116' },
+  KE: { main: '#BB0000', accent: '#006600' },
+  ZA: { main: '#007749', accent: '#FFB81C' },
+  US: { main: '#3C3B6E', accent: '#B22234' },
+  CA: { main: '#D80621', accent: '#F4A6AE' },
+  GB: { main: '#012169', accent: '#C8102E' },
+  DE: { main: '#DD0000', accent: '#FFCE00' },
+  FR: { main: '#0055A4', accent: '#EF4135' },
+  AU: { main: '#00843D', accent: '#FFCD00' },
+};
+
 /** Approximate city centres, keyed `CODE:City` as listed in data/regions.ts. */
 export const CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
   'NG:Lagos': { latitude: 6.5244, longitude: 3.3792 },

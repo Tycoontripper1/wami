@@ -1,7 +1,9 @@
 import Colors from '@/constants/Colors';
 import { getRegionCodes, REGIONS } from '@/data/regions';
-import { CITY_COORDS, CITY_NOTES, COUNTRY_VIEW } from '@/data/regionGeo';
+import { CITY_COORDS, CITY_NOTES, COUNTRY_TONE, COUNTRY_VIEW } from '@/data/regionGeo';
+import { Basemap, BasemapCredit, basemapMapType } from '@/components/maps/Basemap';
 import MapBubble, { BUBBLE_ANCHOR } from '@/components/maps/MapBubble';
+import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/components/maps/mapStyles';
 import { getNearYou } from '@/services/api/discoveryService';
 import { extractList } from '@/utils/extractList';
 import { setLocation } from '@/store/locationSlice';
@@ -31,36 +33,6 @@ const { width, height } = Dimensions.get('window');
 
 // Opens on the home country so it fills the map (Nigeria), not the whole continent.
 const DEFAULT_REGION = COUNTRY_VIEW.NG;
-
-// A soft, pastel base map: pale land, white roads, light water and green parks,
-// no business icons, so the bubbles are the only thing that stands out.
-const LIGHT_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#F3F1EC' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8A9099' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#FFFFFF' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#D9D6CF' }] },
-  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }, { color: '#DCEBD0' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#EBE8E1' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#FFFFFF' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#CDE5F1' }] },
-];
-const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#1B2428' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8CA0A6' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#10181B' }] },
-  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#2C3A40' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }, { color: '#1F3A2E' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2B383E' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0E2A33' }] },
-];
 
 type NearbyCreative = { id: string; name: string; role?: string; image?: string; latitude: number; longitude: number };
 
@@ -305,8 +277,9 @@ export default function LocationPickerScreen() {
             toolbarEnabled={false}
             customMapStyle={isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE}
             userInterfaceStyle={isDark ? 'dark' : 'light'}
-            mapType={Platform.OS === 'ios' ? 'mutedStandard' : 'standard'}
+            mapType={basemapMapType}
         >
+            <Basemap dark={isDark} />
             {/* The popular cities of the chosen country, as tappable bubbles */}
             {(selectedRegionData?.cities ?? []).map((city) => {
                 const coords = CITY_COORDS[`${selectedRegion}:${city}`];
@@ -324,6 +297,7 @@ export default function LocationPickerScreen() {
                             title={city}
                             subtitle={CITY_NOTES[`${selectedRegion}:${city}`]}
                             selected={isSelected}
+                            tone={COUNTRY_TONE[selectedRegion]}
                         />
                     </Marker>
                 );
@@ -352,12 +326,19 @@ export default function LocationPickerScreen() {
                     anchor={{ x: 0.5, y: 1 }}
                 >
                     <View style={styles.pin}>
-                        <Ionicons name="location" size={46} color={Colors.light.primary} accent="#FFA000" />
+                        <Ionicons
+                            name="location"
+                            size={46}
+                            color={(COUNTRY_TONE[selectedLocation.isoCountryCode ?? selectedRegion] ?? { main: Colors.light.primary }).main}
+                            accent={(COUNTRY_TONE[selectedLocation.isoCountryCode ?? selectedRegion] ?? { accent: '#FFA000' }).accent}
+                        />
                     </View>
                 </Marker>
             )}
         </MapView>
         
+        <BasemapCredit dark={isDark} style={{ left: 12, bottom: 84 }} />
+
         {/* Back Button Overlay */}
         <TouchableOpacity 
             style={[styles.backButtonOverlay, { top: insets.top + 10 }]} 

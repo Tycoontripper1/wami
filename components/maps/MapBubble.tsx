@@ -17,20 +17,24 @@ type Props = {
   /** A photo for the circle; the Wami pin shows when there is none. */
   image?: string;
   selected?: boolean;
+  /** Icon colours (a country's flag colours); the brand blue and orange by default. */
+  tone?: { main: string; accent: string };
 };
 
-export default function MapBubble({ title, subtitle, image, selected }: Props) {
+export default function MapBubble({ title, subtitle, image, selected, tone }: Props) {
+  const main = tone?.main ?? Colors.light.primary;
+  const accent = tone?.accent ?? '#FFA000';
   return (
     <View style={styles.wrap}>
-      <View style={[styles.circle, selected && styles.circleSelected]}>
+      <View style={[styles.circle, selected && { backgroundColor: main }]}>
         {image ? (
           <Image source={{ uri: image }} style={styles.photo} />
         ) : (
           <Ionicons
             name="location"
             size={26}
-            color={selected ? '#FFFFFF' : Colors.light.primary}
-            accent="#FFA000"
+            color={selected ? '#FFFFFF' : main}
+            accent={accent}
           />
         )}
       </View>
@@ -69,9 +73,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 6,
     elevation: 5,
-  },
-  circleSelected: {
-    backgroundColor: Colors.light.primary,
   },
   photo: {
     width: 40,

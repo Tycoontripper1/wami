@@ -56,6 +56,16 @@ export function Polyline(_props: {
   return null;
 }
 
+export function UrlTile(_props: {
+  urlTemplate: string;
+  maximumZ?: number;
+  tileSize?: number;
+  zIndex?: number;
+  shouldReplaceMapContent?: boolean;
+}) {
+  return null;
+}
+
 export type { Region };
 export default MapView;
 

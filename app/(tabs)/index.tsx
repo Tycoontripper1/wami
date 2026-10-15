@@ -175,6 +175,13 @@ export default function DiscoverScreen() {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.shopButton}
+              onPress={() => router.push('/explore-map' as any)}
+              accessibilityLabel="Explore on the map"
+            >
+              <Ionicons name="map" size={24} color={themeColors.text} />
+            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.shopButton} 
               onPress={() => router.push('/products-listing' as any)}
