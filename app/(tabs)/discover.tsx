@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { Text } from '@/components/AppText';
+import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -60,7 +61,7 @@ const mapProduct = (p: any): ShopProduct => ({
   // returns a number — coerce either way. Confirmed live 2026-09-29.
   price: Number(p.price) || 0,
   category: p.category || '',
-  image: p.images?.[0] || p.image || p.thumbnail_url || p.media_url || '',
+  image: p.images?.[0] || p.image || p.thumbnail_url || p.media_url || localProductPhoto(p.id),
   rating: p.rating,
   reviews: p.reviews,
   featured: p.featured,
@@ -188,6 +189,7 @@ export default function DiscoverScreen() {
       // 2026-10-03, and it 404s live. The "Featured Products" shelf is
       // derived from the front of the real product list instead of a
       // separate call that can never succeed.
+      await loadLocalProductPhotos();
       const productsRes = await getProducts({ limit: 8 });
       const productsData: any = productsRes.data;
       // Drafts are the seller's work in progress, not for sale.

@@ -1,3 +1,4 @@
+import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import { PAYMENT_CANCEL_URL, PAYMENT_SUCCESS_URL, PAYMENTS_ENABLED, PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
@@ -49,7 +50,7 @@ const mapApiProductToCheckout = (p: any): CheckoutProduct => ({
   // concatenation, e.g. "50000.00" + 1500 + 2000 -> "50000.0015002000").
   price: Number(p.price) || 0,
   category: p.category || '',
-  image: p.image || p.images?.[0] || p.thumbnail_url || p.media_url || '',
+  image: p.image || p.images?.[0] || p.thumbnail_url || p.media_url || localProductPhoto(p.id),
   sellerName: p.creator?.name || p.sellerName || p.seller?.name,
 });
 
@@ -91,6 +92,7 @@ function CheckoutContent() {
     setIsLoadingProduct(true);
     setProductError(false);
     try {
+      await loadLocalProductPhotos();
       const res = await getProductById(productId);
       setProduct(mapApiProductToCheckout(res.data));
     } catch (error) {

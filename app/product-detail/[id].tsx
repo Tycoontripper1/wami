@@ -1,3 +1,4 @@
+import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { getOfferingById } from '@/services/api/offeringsService';
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
@@ -46,7 +47,7 @@ const mapApiProductToDetail = (p: any): ProductDetail => ({
   // Confirmed live 2026-09-29.
   price: Number(p.price) || 0,
   category: p.category || '',
-  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || '',
+  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || localProductPhoto(p.id),
   images: p.images,
   status: p.stock === 0 ? 'Sold' : (p.status === 'published' ? 'Active' : p.status || 'Active'),
   condition: p.condition || undefined,
@@ -81,6 +82,7 @@ export default function ProductDetailScreen() {
     try {
       let data: any;
       try {
+        await loadLocalProductPhotos();
         data = (await getProductById(productId, { expectMissing: true })).data;
       } catch (error: any) {
         // The shop list can include listings whose id /products/:id does not

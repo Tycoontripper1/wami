@@ -1,3 +1,4 @@
+import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { extractList } from '@/utils/extractList';
 import AnimatedHeart from '@/components/AnimatedHeart';
 import EmptyState from '@/components/EmptyState';
@@ -40,7 +41,7 @@ const mapApiProductToProduct = (p: any): Product => ({
   name: p.title || p.name || 'Untitled',
   price: p.price ?? 0,
   category: p.category || '',
-  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || '',
+  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || localProductPhoto(p.id),
   status: p.stock === 0 ? 'Sold' : (p.status === 'published' ? 'Active' : p.status || 'Active'),
   condition: p.condition,
   size: p.size,
@@ -77,6 +78,7 @@ export default function ProductsListingScreen() {
     setIsLoading(true);
     setHasError(false);
     try {
+      await loadLocalProductPhotos();
       const res = await getProducts();
       const data: any = res.data;
       const items = extractList(data);
