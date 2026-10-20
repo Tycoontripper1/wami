@@ -21,7 +21,6 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -33,6 +32,7 @@ import {
   View,
   useColorScheme,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ORANGE = '#FFA000';

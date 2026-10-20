@@ -4,6 +4,7 @@ import {
   getInstagramStatus,
   importInstagramPosts,
 } from '@/services/api/instagramApiService';
+import { friendlyMessage, isCreativeOnly } from '@/utils/friendlyError';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
@@ -15,6 +16,7 @@ export type InstagramPhase =
   | 'connected'
   | 'importing'
   | 'imported'
+  | 'unavailable' // this account type can't import (creative accounts only)
   | 'error';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -25,13 +27,11 @@ const URL_MAX_AGE_MS = 4 * 60 * 1000;
 /** Turns an API failure into something a person can act on. */
 function messageFrom(error: any, fallback: string): string {
   const msg = typeof error?.message === 'string' ? error.message : '';
-  // Never show raw server internals (SQL, stack traces) to users.
-  if (!msg || /SQLSTATE|Illuminate|vendor\/|Exception/i.test(msg)) return fallback;
   // The browser refused to open the Instagram window (web only).
   if (/popup/i.test(msg)) {
     return 'Your browser blocked the Instagram window. Allow pop-ups for this site, then try again.';
   }
-  return msg;
+  return friendlyMessage(error, fallback);
 }
 
 /**
@@ -83,7 +83,8 @@ export function useInstagramConnection() {
       return status.connected;
     } catch (e: any) {
       safe(() => {
-        setPhase('idle');
+        // A buyer account can't import; say so instead of offering a button that fails.
+        setPhase(isCreativeOnly(e) ? 'unavailable' : 'idle');
         setError(null);
       });
       return false;

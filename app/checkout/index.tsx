@@ -14,7 +14,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { PaystackProvider, usePaystack } from 'react-native-paystack-webview';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -25,6 +24,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';

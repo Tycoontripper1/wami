@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
   StatusBar,
@@ -14,6 +13,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { Text, TextInput } from '@/components/AppText';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 

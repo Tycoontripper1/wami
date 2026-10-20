@@ -8,13 +8,15 @@ import { Text } from '@/components/AppText';
 type Props = {
   /** Called with the connected @handle (when known), so the caller can keep it. */
   onConnected?: (username?: string) => void;
+  /** Offered when the account isn't a creative one. */
+  onBecomeCreative?: () => void;
 };
 
 /**
  * Connect Instagram and import posts, against the backend's real OAuth flow.
  * The same card is used in creative onboarding and after sign-up.
  */
-export default function InstagramConnectCard({ onConnected }: Props) {
+export default function InstagramConnectCard({ onConnected, onBecomeCreative }: Props) {
   const isDark = useColorScheme() === 'dark';
   const { phase, username, importedCount, error, connect, importPosts, disconnect, refresh } =
     useInstagramConnection();
@@ -49,6 +51,19 @@ export default function InstagramConnectCard({ onConnected }: Props) {
         <ActivityIndicator color={Illo.teal} />
         <Text style={[styles.status, { color: theme.text }]}>{label}</Text>
       </View>
+    );
+  } else if (phase === 'unavailable') {
+    body = (
+      <>
+        <View style={styles.row}>
+          <Ionicons name="information-circle" size={26} color={Illo.teal} />
+          <Text style={[styles.status, { color: theme.text }]}>Instagram import is for creative accounts</Text>
+        </View>
+        <Text style={[styles.help, { color: theme.sub }]}>
+          Switch to a creative account to turn your Instagram posts into listings.
+        </Text>
+        {onBecomeCreative ? <Primary label="Become a creative" onPress={onBecomeCreative} /> : null}
+      </>
     );
   } else if (phase === 'imported') {
     body = (

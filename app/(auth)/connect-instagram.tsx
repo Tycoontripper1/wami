@@ -40,7 +40,7 @@ export default function ConnectInstagramScreen() {
           your profile.
         </Text>
 
-        <InstagramConnectCard />
+        <InstagramConnectCard onBecomeCreative={() => router.push('/(auth)/creative-categories' as any)} />
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>

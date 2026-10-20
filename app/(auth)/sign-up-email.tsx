@@ -7,7 +7,6 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -17,6 +16,7 @@ import {
   useColorScheme,
   ScrollView,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -73,7 +73,7 @@ export default function SignUpEmailScreen() {
           scene={false}
           title="Let's get"
           highlight="started"
-          onBack={() => router.back()}
+          onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           subtitle={'Enter your email and we will send you a code to verify it.'}
         />
 

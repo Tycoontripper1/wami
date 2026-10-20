@@ -9,7 +9,6 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Modal,
   ScrollView,
@@ -19,6 +18,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

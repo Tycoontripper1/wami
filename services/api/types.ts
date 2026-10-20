@@ -24,7 +24,11 @@ export interface PaginatedResponse<T> {
 // Error response
 export interface ApiError {
   code: string;
+  /** Written for the person using the app. Safe to show as is. */
   message: string;
+  /** The backend's own wording, for logs and debugging only. */
+  serverMessage?: string;
+  /** Field-level validation messages, when the backend sent them. */
   details?: any;
   statusCode?: number;
 }

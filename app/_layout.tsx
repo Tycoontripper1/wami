@@ -1,3 +1,4 @@
+import { DialogHost } from '@/components/AppAlert';
 import { AppSplashScreen } from '@/components/AppSplashScreen';
 import { useColorScheme } from '@/components/useColorScheme';
 import { apiClient } from '@/services/api/client';
@@ -149,6 +150,7 @@ function RootLayoutNav() {
   return (
     <Provider store={store}>
       <ExpiredSessionHandler />
+      <DialogHost />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -161,6 +163,7 @@ function RootLayoutNav() {
           <Stack.Screen name="creative-dna-quiz" options={{ headerShown: false }} />
           <Stack.Screen name="location-picker" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="explore-map" options={{ headerShown: false }} />
+          <Stack.Screen name="swipe" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="checkout/index" options={{ headerShown: false }} />
           <Stack.Screen name="checkout/success" options={{ headerShown: false, gestureEnabled: false }} />

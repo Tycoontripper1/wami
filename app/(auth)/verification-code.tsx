@@ -6,12 +6,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -122,7 +122,7 @@ export default function VerificationCodeScreen() {
           scene={false}
           title="Check your"
           highlight="email"
-          onBack={() => router.back()}
+          onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           forceLight
           subtitle={<>
             Enter the 4-digit code sent to{'\n'}

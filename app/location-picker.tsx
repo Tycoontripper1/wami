@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Platform,
   ScrollView,
@@ -24,6 +23,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { Alert } from '@/components/AppAlert';
 import { Text, TextInput } from '@/components/AppText';
 import MapView, { Marker, Region } from '@/components/maps/MapKit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

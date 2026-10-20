@@ -2,6 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG, buildUrl } from './config';
+import { friendlyMessage } from '@/utils/friendlyError';
 import { ApiError, ApiResponse, HttpMethod, HttpStatusCode, RequestConfig } from './types';
 
 class ApiClient {
@@ -55,19 +56,15 @@ class ApiClient {
       if (knownUnsupported) {
         throw apiError;
       }
-      console.error('API Request Error:', error);
-
-      // Dev-only: surface backend failures loudly (RN red-box / Expo Go crash
-      // overlay) so they can't be missed behind a screen's own graceful
-      // "couldn't load, try again" fallback UI. Thrown outside this promise
-      // chain so the caller's own try/catch still runs normally in every
-      // build — production behavior (and this rethrow) is unaffected.
+      // Backend failures are the screen's to show, in plain words (see
+      // utils/friendlyError.ts). In development they are only logged: a
+      // log line, not a red error screen over the app.
       if (__DEV__) {
-        setTimeout(() => {
-          throw new Error(
-            `[Backend Error] ${method} ${endpoint} -> ${apiError.code}: ${apiError.message}`
-          );
-        }, 0);
+        console.log(
+          `[api] ${method} ${endpoint} -> ${apiError.statusCode ?? apiError.code}: ${
+            apiError.serverMessage ?? apiError.message
+          }`
+        );
       }
 
       throw apiError;
@@ -176,11 +173,13 @@ class ApiClient {
       errorData = { message: response.statusText };
     }
 
+    const details = errorData.errors ?? errorData.details;
     return {
       code: errorData.code || `HTTP_${response.status}`,
-      message: errorData.message || 'An error occurred',
+      message: friendlyMessage({ statusCode: response.status, message: errorData.message, details }),
+      serverMessage: errorData.message,
       statusCode: response.status,
-      details: errorData.details,
+      details,
     };
   }
 
@@ -192,7 +191,8 @@ class ApiClient {
 
     return {
       code: 'NETWORK_ERROR',
-      message: error.message || 'Network request failed',
+      message: friendlyMessage({ code: 'NETWORK_ERROR', message: error?.message }),
+      serverMessage: error?.message,
       details: error,
     };
   }
