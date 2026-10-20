@@ -52,10 +52,11 @@ export default function WamiLoader({ visible, message, variant = 'brand' }: Prop
   const textColor = brand ? '#FFFFFF' : isDark ? '#FFFFFF' : Illo.ink;
 
   // One loop, 0..1: fall (0–0.42), land + squash (0.42–0.52), spring (0.52–0.78), settle (0.78–1).
+  // (The native driver rejects an `easing` on interpolations, so the fall's
+  // acceleration and the bounce's ease are drawn as extra keyframes.)
   const drop = p.interpolate({
-    inputRange: [0, 0.42, 0.52, 0.65, 0.78, 1],
-    outputRange: [-70, 0, 0, -22, 0, 0],
-    easing: Easing.out(Easing.quad),
+    inputRange: [0, 0.105, 0.21, 0.315, 0.42, 0.52, 0.585, 0.65, 0.715, 0.78, 1],
+    outputRange: [-70, -65.6, -52.5, -30.6, 0, 0, -16.5, -22, -5.5, 0, 0],
   });
   const squashY = p.interpolate({
     inputRange: [0, 0.42, 0.47, 0.54, 0.78, 0.84, 1],
