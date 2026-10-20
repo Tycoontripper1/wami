@@ -1,144 +1,157 @@
-import { extractList } from '@/utils/extractList';
-import SwipeableCardStack, { CreativeData } from '@/components/SwipeableCardStack';
 import AppGuidance from '@/components/AppGuidance';
+import { Text } from '@/components/AppText';
 import EmptyState from '@/components/EmptyState';
-import Colors from '@/constants/Colors';
-import { useLocation } from '@/hooks/useLocationData';
-import { useFavorites } from '@/hooks/useFavorites';
-import { DiscoveryOffering, getDiscoveryFeed, getNearYou, swipeOffering } from '@/services/api/discoveryService';
-import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
+import {
+  CreativeFeedCard,
+  ListingData,
+  ListingFeedCard,
+  PostFeedCard,
+  WamiFeedCard,
+} from '@/components/feed/FeedCards';
 import { Ionicons } from '@/components/FlatIcon';
+import type { CreativeData } from '@/components/SwipeableCardStack';
+import Colors from '@/constants/Colors';
+import { WAMI_CARDS, WamiCard } from '@/constants/WamiCards';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useLocation } from '@/hooks/useLocationData';
+import { DiscoveryOffering, getDiscoveryFeed, getNearYou } from '@/services/api/discoveryService';
+import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
+import { getProducts } from '@/services/api/productsService';
+import { extractList } from '@/utils/extractList';
+import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
+import { mapOfferingToCreativeData } from '@/utils/mapOffering';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
-import { Text } from '@/components/AppText';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TABS = ['Discover', 'Trending', 'Near You'];
+const TABS = ['For you', 'Near you', 'Trending'] as const;
+type Tab = (typeof TABS)[number];
 
-// Map a backend discovery offering onto the shape SwipeableCardStack expects
-const mapOfferingToCreativeData = (offering: DiscoveryOffering): CreativeData => ({
-  id: String(offering.id ?? offering.offering_id),
-  name: offering.name || offering.title || 'Untitled',
-  role: offering.role || offering.category || '',
-  location: offering.location?.city
-    ? `${offering.location.city}${offering.location.region ? ', ' + offering.location.region : ''}`
-    : '',
-  distance: offering.distance_km !== undefined ? `${offering.distance_km.toFixed(1)} km away` : undefined,
-  rating: offering.rating ?? 0,
-  reviews: offering.reviews ?? offering.reviews_count ?? 0,
-  // The backend's discovery items carry `media_url` / `thumbnail_url`; with
-  // none of them the card shows its own neutral placeholder rather than a
-  // stock photo that looks like the creative's work.
-  image: (() => {
-    const uri = offering.media_url || offering.thumbnail_url || offering.image || offering.images?.[0];
-    return uri ? { uri } : undefined;
-  })(),
-  video: offering.video,
-  tags: offering.tags?.slice(0, 3),
-  creatorId: offering.creator?.id !== undefined ? String(offering.creator.id) : undefined,
-  creatorName: offering.creator?.name,
-  creatorUsername: offering.creator?.username,
-});
+const DISMISSED_KEY = '@wami_dismissed_cards';
 
-const extractItems = (data: any): DiscoveryOffering[] => extractList<DiscoveryOffering>(data);
+type FeedItem =
+  | { kind: 'wami'; key: string; card: WamiCard }
+  | { kind: 'creative'; key: string; data: CreativeData }
+  | { kind: 'listing'; key: string; data: ListingData };
 
-export default function DiscoverScreen() {
+// /products lists the same listing twice (a marketplace row and a manual row);
+// keep one, preferring the manual row, which is the one the app can open.
+function toListings(raw: any[]): ListingData[] {
+  const published = raw.filter((p) => p.status === undefined || p.status === 'published');
+  const seen = new Set<string>();
+  const out: ListingData[] = [];
+  [...published]
+    .sort((a, b) => (a.source === 'manual' ? -1 : 0) - (b.source === 'manual' ? -1 : 0))
+    .forEach((p) => {
+      const sig = `${p.title}|${Number(p.price)}|${String(p.created_at ?? '').slice(0, 16)}`;
+      if (seen.has(sig)) return;
+      seen.add(sig);
+      out.push({
+        id: String(p.id),
+        name: p.title || p.name || 'Untitled',
+        category: p.category || '',
+        price: Number(p.price) || 0,
+        image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || localProductPhoto(p.id) || undefined,
+        stock: typeof p.stock === 'number' ? p.stock : undefined,
+      });
+    });
+  return out;
+}
+
+export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('Discover');
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = useColorScheme() === 'dark';
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
-
   const { region, city } = useLocation();
 
-  const [feedOfferings, setFeedOfferings] = useState<DiscoveryOffering[] | null>(null);
-  const [nearYouOfferings, setNearYouOfferings] = useState<DiscoveryOffering[] | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>('For you');
+  const [feed, setFeed] = useState<DiscoveryOffering[] | null>(null);
+  const [nearYou, setNearYou] = useState<DiscoveryOffering[] | null>(null);
+  const [listings, setListings] = useState<ListingData[]>([]);
   const [feedError, setFeedError] = useState(false);
   const [nearYouError, setNearYouError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [dismissed, setDismissed] = useState<string[]>([]);
 
-  const themeColors = {
+  const tc = {
     background: isDark ? '#000' : '#fff',
     text: isDark ? '#fff' : '#0F1419',
-    subText: isDark ? '#ccc' : '#666',
-    headerBg: isDark ? '#000' : '#fff',
-    cardBg: isDark ? '#1A1A1A' : '#F5F5F5',
-    border: isDark ? '#333' : '#F0F0F0',
+    sub: isDark ? '#9AA5AD' : '#5E6670',
+    chip: isDark ? '#1A1A1A' : '#F5F7F8',
   };
 
   const loadFeed = useCallback(async () => {
-    setIsLoading(true);
     setFeedError(false);
-    try {
-      const res = await getDiscoveryFeed();
-      setFeedOfferings(extractItems(res.data));
-    } catch (error) {
-      console.error('Failed to load discovery feed:', error);
-      setFeedOfferings(null);
+    const [feedRes, productsRes] = await Promise.allSettled([
+      getDiscoveryFeed(),
+      getProducts({ limit: 20 }),
+      loadLocalProductPhotos(),
+    ]);
+    if (feedRes.status === 'fulfilled') setFeed(extractList<DiscoveryOffering>(feedRes.value.data));
+    else {
+      console.error('Failed to load discovery feed:', feedRes.reason);
+      setFeed(null);
       setFeedError(true);
-    } finally {
-      setIsLoading(false);
     }
+    if (productsRes.status === 'fulfilled') setListings(toListings(extractList<any>(productsRes.value.data)));
   }, []);
 
   const loadNearYou = useCallback(async () => {
-    setIsLoading(true);
     setNearYouError(false);
     try {
       const res = await getNearYou();
-      setNearYouOfferings(extractItems(res.data));
+      setNearYou(extractList<DiscoveryOffering>(res.data));
     } catch (error) {
       console.error('Failed to load near-you offerings:', error);
-      setNearYouOfferings(null);
+      setNearYou(null);
       setNearYouError(true);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadFeed();
+    loadFeed().finally(() => setIsLoading(false));
   }, [loadFeed]);
 
   useEffect(() => {
-    getUnreadNotificationCount()
-      .then((res) => setUnreadNotifications(res.data?.count ?? 0))
-      .catch((error) => console.error('Failed to load unread notification count:', error));
-  }, []);
+    if (activeTab === 'Near you' && nearYou === null && !nearYouError) loadNearYou();
+  }, [activeTab, nearYou, nearYouError, loadNearYou]);
 
   useEffect(() => {
-    if (activeTab === 'Near You' && nearYouOfferings === null) {
-      loadNearYou();
-    }
-  }, [activeTab, nearYouOfferings, loadNearYou]);
+    getUnreadNotificationCount()
+      .then((res) => setUnread(res.data?.count ?? 0))
+      .catch((error) => console.error('Failed to load unread notification count:', error));
+    AsyncStorage.getItem(DISMISSED_KEY)
+      .then((raw) => setDismissed(raw ? JSON.parse(raw) : []))
+      .catch(() => {});
+  }, []);
 
-  // Convert offerings to SwipeableCardStack format
-  const creativesForSwipe: CreativeData[] = useMemo(() => {
-    if (activeTab === 'Near You') {
-      return (nearYouOfferings ?? []).map(mapOfferingToCreativeData);
-    }
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.allSettled([loadFeed(), activeTab === 'Near you' ? loadNearYou() : Promise.resolve()]);
+    setIsRefreshing(false);
+  }, [loadFeed, loadNearYou, activeTab]);
 
-    const items = (feedOfferings ?? []).map(mapOfferingToCreativeData);
-    if (activeTab === 'Trending') {
-      return [...items].sort((a, b) => b.rating * b.reviews - a.rating * a.reviews);
-    }
-    return items;
-  }, [feedOfferings, nearYouOfferings, activeTab]);
-
-  const currentError = activeTab === 'Near You' ? nearYouError : feedError;
-  const handleRetry = activeTab === 'Near You' ? loadNearYou : loadFeed;
-
-  const handleSwipeLeft = (item: CreativeData) => {
-    swipeOffering(item.id, 'pass').catch((error) => console.error('Swipe (pass) failed:', error));
+  const dismiss = (id: string) => {
+    const next = [...dismissed, id];
+    setDismissed(next);
+    AsyncStorage.setItem(DISMISSED_KEY, JSON.stringify(next)).catch(() => {});
   };
 
-  const handleSwipeRight = (item: CreativeData) => {
-    swipeOffering(item.id, 'like').catch((error) => console.error('Swipe (like) failed:', error));
-    // Navigate to profile — carries the creator's real id/name through
-    // since there's no endpoint to look it up again from just the offering.
+  const openCreative = (item: CreativeData) => {
     router.push({
       pathname: '/profile/[id]',
       params: {
@@ -150,236 +163,162 @@ export default function DiscoverScreen() {
     } as any);
   };
 
-  // The heart animates as feedback, so there is no "Saved!" alert; a second
-  // tap un-saves, like every other heart in the app.
-  const handleSave = (item: CreativeData) => toggleFavorite(item);
+  // What the list shows: a pinned From Wami card, then creatives and
+  // listings taking turns, with a second From Wami card further down.
+  const items: FeedItem[] = useMemo(() => {
+    const cards = WAMI_CARDS.filter((c) => !dismissed.includes(c.id));
+    let creatives: CreativeData[];
+    if (activeTab === 'Near you') creatives = (nearYou ?? []).map(mapOfferingToCreativeData);
+    else {
+      creatives = (feed ?? []).map(mapOfferingToCreativeData);
+      if (activeTab === 'Trending') creatives.sort((a, b) => b.rating * b.reviews - a.rating * a.reviews);
+    }
+    const shop = activeTab === 'For you' ? listings : [];
 
-  const handleLocationPress = () => {
-    // Navigate to location picker
-    router.push('/location-picker' as any);
+    const out: FeedItem[] = [];
+    if (cards[0]) out.push({ kind: 'wami', key: `wami-${cards[0].id}`, card: cards[0] });
+    let c = 0;
+    let l = 0;
+    while (c < creatives.length || l < shop.length) {
+      if (c < creatives.length) out.push({ kind: 'creative', key: `c-${creatives[c].id}`, data: creatives[c++] });
+      if (l < shop.length) out.push({ kind: 'listing', key: `l-${shop[l].id}`, data: shop[l++] });
+      if (cards[1] && out.length === 5) out.push({ kind: 'wami', key: `wami-${cards[1].id}`, card: cards[1] });
+    }
+    if (cards[1] && !out.some((i) => i.kind === 'wami' && i.card.id === cards[1].id) && out.length >= 1) {
+      out.push({ kind: 'wami', key: `wami-${cards[1].id}`, card: cards[1] });
+    }
+    return out;
+  }, [activeTab, feed, nearYou, listings, dismissed]);
+
+  const hasContent = items.some((i) => i.kind !== 'wami');
+  const currentError = activeTab === 'Near you' ? nearYouError : feedError && listings.length === 0;
+  const retry = activeTab === 'Near you' ? loadNearYou : loadFeed;
+
+  const renderItem = ({ item }: { item: FeedItem }) => {
+    if (item.kind === 'wami') {
+      return (
+        <WamiFeedCard
+          card={item.card}
+          onPress={() => router.push(item.card.route as any)}
+          onDismiss={() => dismiss(item.card.id)}
+        />
+      );
+    }
+    if (item.kind === 'creative') {
+      const Card = item.data.image ? PostFeedCard : CreativeFeedCard;
+      return (
+        <Card
+          item={item.data}
+          saved={isFavorite(item.data.id)}
+          onSave={() => toggleFavorite(item.data)}
+          onOpen={() => openCreative(item.data)}
+        />
+      );
+    }
+    return <ListingFeedCard item={item.data} onOpen={() => router.push(`/product-detail/${item.data.id}` as any)} />;
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={[styles.container, { backgroundColor: tc.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Header Area */}
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: themeColors.headerBg }]}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.locationContainer} onPress={handleLocationPress}>
-            <Ionicons name="location" size={18} color={Colors.light.primary} />
-            <Text style={[styles.locationText, { color: themeColors.text }]}>
+          <TouchableOpacity style={styles.location} onPress={() => router.push('/location-picker' as any)}>
+            <Ionicons name="location" size={18} color={Colors.light.primary} accent="#FFA000" />
+            <Text style={[styles.locationText, { color: tc.text }]}>
               {city}, {region.name}
             </Text>
-            <Ionicons name="chevron-down" size={16} color={themeColors.subText} />
+            <Ionicons name="chevron-down" size={16} color={tc.sub} />
           </TouchableOpacity>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.shopButton}
-              onPress={() => router.push('/explore-map' as any)}
-              accessibilityLabel="Explore on the map"
-            >
-              <Ionicons name="map" size={24} color={themeColors.text} />
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/explore-map' as any)} accessibilityLabel="Explore on the map">
+              <Ionicons name="map" size={24} color={tc.text} />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.shopButton} 
-              onPress={() => router.push('/products-listing' as any)}
-            >
-              <Ionicons name="basket" size={24} color={themeColors.text} />
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/products-listing' as any)} accessibilityLabel="Shop">
+              <Ionicons name="basket" size={24} color={tc.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/notifications' as any)}>
-              <Ionicons name="notifications" size={24} color={themeColors.text} />
-              {unreadNotifications > 0 && <View style={styles.notificationBadge} />}
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/notifications' as any)} accessibilityLabel="Notifications">
+              <Ionicons name="notifications" size={24} color={tc.text} />
+              {unread > 0 && <View style={styles.badge} />}
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Custom Tab Bar */}
-        <View style={styles.tabContainer}>
-          {TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tabItem,
-                activeTab === tab && styles.tabItemActive,
-              ]}
-              onPress={() => setActiveTab(tab)}
-            >
-              {activeTab === tab && <Ionicons name="checkmark-circle" size={16} color="#0F1419" style={styles.tabIcon} />}
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab && styles.tabTextActive,
-                ]}
+        <View style={styles.tabRow}>
+          {TABS.map((tab) => {
+            const active = tab === activeTab;
+            return (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tab, { backgroundColor: active ? Colors.light.primary : tc.chip }]}
+                onPress={() => setActiveTab(tab)}
               >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text style={[styles.tabText, { color: active ? '#0F1419' : tc.sub }]}>{tab}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity style={styles.swipeBtn} onPress={() => router.push('/swipe' as any)} accessibilityLabel="Swipe through creatives">
+            <Ionicons name="albums" size={18} color={Colors.light.primary} accent="#FFA000" />
+            <Text style={styles.swipeText}>Swipe</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Main Content Area - Swipeable Cards Only */}
-      <View style={styles.mainContent}>
-        <View style={styles.cardStackContainer}>
-          {isLoading ? (
-            <View style={styles.emptyState}>
-              <ActivityIndicator color={Colors.light.primary} size="large" />
-            </View>
-          ) : currentError ? (
-            <EmptyState
-              icon="cloud-offline-outline"
-              title="Oops, we can't find anything"
-              message="Something went wrong while loading creatives. Please check your connection and try again."
-              onRetry={handleRetry}
-            />
-          ) : creativesForSwipe.length > 0 ? (
-            <SwipeableCardStack
-              data={creativesForSwipe}
-              onSwipeLeft={handleSwipeLeft}
-              onSwipeRight={handleSwipeRight}
-              onSave={handleSave}
-              isSaved={(item) => isFavorite(item.id)}
-            />
-          ) : (
-            <EmptyState
-              icon="location-outline"
-              title="No creatives nearby"
-              message="Try changing your location to discover more creatives"
-              onRetry={handleLocationPress}
-              retryLabel="Change Location"
-            />
-          )}
+      {isLoading ? (
+        <View style={styles.center}>
+          <ActivityIndicator color={Colors.light.primary} size="large" />
         </View>
-      </View>
+      ) : currentError ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Oops, we can't find anything"
+          message="Something went wrong while loading. Please check your connection and try again."
+          onRetry={retry}
+        />
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(i) => i.key}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={{ height: 14 }} />}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 120 }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />}
+          ListFooterComponent={
+            !hasContent ? (
+              <EmptyState
+                icon="location-outline"
+                title="No creatives nearby"
+                message="Try changing your location to discover more creatives"
+                onRetry={() => router.push('/location-picker' as any)}
+                retryLabel="Change location"
+              />
+            ) : null
+          }
+        />
+      )}
 
-      {/* Bottom Home Indicator Spacer */}
-      <View style={{ height: insets.bottom }} />
-
-      {/* Onboarding Guidance */}
       <AppGuidance />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-header: {
-  paddingBottom: 8,   // was 0
-  paddingHorizontal: 16,
-},
-topBar: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 8,   // was 16
-  marginTop: 4,      // was 10
-},
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  notificationButton: {
-    position: 'relative',
-    padding: 4,
-  },
-  walletButton: {
-    padding: 4,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#FF3B30',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  shopButton: {
-    padding: 4,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-
-  },
-  tabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  tabItemActive: {
-    backgroundColor: Colors.light.primary,
-    borderColor: Colors.light.primary,
-  },
-  tabIcon: {
-    marginRight: 6,
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  tabTextActive: {
-    color: '#0F1419',
-  },
-mainContent: {
-  flex: 1,
-  paddingHorizontal: 16,
-  paddingTop: 16,
-
-},
-  cardStackContainer: {
-    flex: 1,
-    marginBottom: 8,
-
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  changeLocationButton: {
-    backgroundColor: Colors.light.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 9,
-    borderRadius: 10,
-  },
-  changeLocationText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  container: { flex: 1 },
+  header: { paddingHorizontal: 16, paddingBottom: 10 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
+  location: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  locationText: { fontSize: 16, fontWeight: '700' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  iconBtn: { padding: 4, position: 'relative' },
+  badge: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' },
+  tabRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tab: { paddingHorizontal: 14, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  tabText: { fontSize: 14, fontWeight: '700' },
+  swipeBtn: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 6 },
+  swipeText: { fontSize: 14, fontWeight: '700', color: Colors.light.primary },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: 16, paddingTop: 6 },
 });

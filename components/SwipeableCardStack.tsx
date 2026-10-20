@@ -67,6 +67,9 @@ export interface CreativeData {
   creatorId?: string;
   creatorName?: string;
   creatorUsername?: string;
+  /** The creator's avatar and the post's caption, for the Home feed's post card. */
+  creatorImage?: string;
+  caption?: string;
 }
 
 interface SwipeableCardStackProps {
