@@ -4,8 +4,67 @@
     {
       "name": "wami-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web", "--port", "8090"],
+      "runtimeArgs": [
+        "expo",
+        "start",
+        "--web",
+        "--port",
+        "8090"
+      ],
       "port": 8090
+    },
+    {
+      "name": "wami-landing",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/HP/Desktop/joinwami/wami-landing",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3100"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "examboard-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/HP/Desktop/sterling/exam-board-api",
+        "run",
+        "dev"
+      ],
+      "port": 7000
+    },
+    {
+      "name": "examboard-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/HP/Desktop/sterling/exam-board-frontend",
+        "run",
+        "start-dev"
+      ],
+      "env": {
+        "BROWSER": "none"
+      },
+      "port": 3000
+    },
+    {
+      "name": "lseb-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:/Users/HP/Desktop/sterling/lseb-admin",
+        "start"
+      ],
+      "env": {
+        "BROWSER": "none",
+        "PORT": "3001"
+      },
+      "port": 3001
     }
   ]
 }
