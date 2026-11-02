@@ -109,14 +109,10 @@ export default function QuoteRequestModal({
       // A quote is created against a booking, so we open a (negotiating)
       // booking first, then attach the buyer's proposed quote to it.
       const bookingRes = await createBooking({
-        offering_id: offeringId,
-        creative_id: creative.id,
+        listing_id: offeringId,
+        scheduled_at: new Date(`${preferredDate || today}T09:00:00`).toISOString(),
         project_title: selectedService,
-        project_details: description,
-        start_date: preferredDate || today,
-        end_date: preferredDate || today,
-        total_amount: budgetAmount,
-        currency: 'NGN',
+        notes: description,
       });
       const bookingId = String(bookingRes.data?.id ?? `booking_${Date.now()}`);
 

@@ -38,7 +38,8 @@ const deactivateAccount = async (
 const deleteAccount = async (
   data: AccountActionRequest
 ): Promise<ApiResponse<{ message: string }>> => {
-  return apiClient.delete(API_ENDPOINTS.PROFILE.DELETE, { body: data });
+  // The API wants the word DELETE as well as the password.
+  return apiClient.delete(API_ENDPOINTS.PROFILE.DELETE, { body: { ...data, confirmation: 'DELETE' } });
 };
 
 // Upload profile image

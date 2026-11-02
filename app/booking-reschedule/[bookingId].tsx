@@ -92,7 +92,11 @@ export default function BookingRescheduleScreen() {
     setIsSubmitting(true);
     try {
       const apiDateTime = toApiDateTime(selectedDate, selectedTime);
-      await rescheduleBooking(bookingId, { start_date: apiDateTime, end_date: apiDateTime });
+      await rescheduleBooking(bookingId, {
+        scheduled_at: new Date(apiDateTime.replace(' ', 'T')).toISOString(),
+        start_date: apiDateTime,
+        end_date: apiDateTime,
+      });
       Alert.alert('Booking Rescheduled', `Your booking has been moved to ${selectedDate}${selectedTime ? ` at ${selectedTime}` : ''}.`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -128,7 +132,7 @@ export default function BookingRescheduleScreen() {
               <Text style={[styles.cardLabel, { color: tc.sub }]}>Booking</Text>
               <Text style={[styles.projectTitle, { color: tc.text }]}>{booking.project_title}</Text>
               <Text style={[styles.currentDate, { color: tc.sub }]}>
-                Currently: {booking.start_date}{booking.end_date && booking.end_date !== booking.start_date ? ` – ${booking.end_date}` : ''}
+                Currently: {booking.scheduled_at ?? booking.start_date}
               </Text>
             </View>
           )}

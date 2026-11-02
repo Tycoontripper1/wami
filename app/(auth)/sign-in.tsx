@@ -1,3 +1,4 @@
+import { consumeReturnTo } from '@/utils/authReturn';
 import WamiLoader from '@/components/WamiLoader';
 import AuthHeader from '@/components/AuthHeader';
 import { consolidateOnboardingData } from '@/services/api/onboardingUtils';
@@ -65,6 +66,11 @@ export default function SignInScreen() {
       }
       
       // Check if user wants to skip success screen
+      const back = consumeReturnTo();
+      if (back) {
+        router.replace(back as any);
+        return;
+      }
       const dontShowSuccess = await authService.getDontShowSuccess();
       if (dontShowSuccess) {
         router.replace('/(tabs)');

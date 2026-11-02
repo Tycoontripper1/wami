@@ -130,6 +130,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { Illo } from '@/constants/Illustration';
 import { Ionicons } from '@/components/FlatIcon';
+import { useAuthGate } from '@/hooks/useAuthGate';
 import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -138,7 +139,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const POST_OPTIONS: { key: string; label: string; icon: keyof typeof Ionicons.glyphMap; route: string }[] = [
   { key: 'service', label: 'Add a Service', icon: 'briefcase-outline', route: '/add-service' },
   { key: 'product', label: 'List a Product', icon: 'pricetag-outline', route: '/(tabs)/sell' },
-  { key: 'post', label: 'Share a Post', icon: 'image-outline', route: '/share-post' },
 ];
 
 function PostOptionsModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -218,6 +218,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [showPostModal, setShowPostModal] = useState(false);
+  const { gate } = useAuthGate();
 
   return (
     <>
@@ -278,7 +279,7 @@ export default function TabLayout() {
         listeners={() => ({
           tabPress: (e) => {
             e.preventDefault();
-            setShowPostModal(true);
+            gate('Create an account to list what you make.', () => setShowPostModal(true));
           },
         })}
       />

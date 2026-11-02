@@ -2,6 +2,7 @@ import { CreativeData } from '@/components/SwipeableCardStack';
 import { saveOffering, unsaveOffering } from '@/services/api/discoveryService';
 import { addFavorite, removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
+import { useAuthGate } from '@/hooks/useAuthGate';
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -13,6 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 export function useFavorites() {
   const dispatch = useDispatch();
   const items = useSelector((state: RootState) => state.favorites.items);
+  const { gate } = useAuthGate();
 
   const isFavorite = useCallback(
     (id: string | number) => items.some((fav) => String(fav.id) === String(id)),
@@ -21,16 +23,18 @@ export function useFavorites() {
 
   const toggle = useCallback(
     (item: CreativeData) => {
-      const id = String(item.id);
-      if (items.some((fav) => String(fav.id) === id)) {
-        dispatch(removeFavorite(id));
-        unsaveOffering(id).catch((error) => console.error('Failed to unsave offering:', error));
-      } else {
-        dispatch(addFavorite({ ...item, id }));
-        saveOffering(id).catch((error) => console.error('Failed to save offering:', error));
-      }
+      gate('Sign in to save the things you like and find them again later.', () => {
+        const id = String(item.id);
+        if (items.some((fav) => String(fav.id) === id)) {
+          dispatch(removeFavorite(id));
+          unsaveOffering(id).catch((error) => console.error('Failed to unsave offering:', error));
+        } else {
+          dispatch(addFavorite({ ...item, id }));
+          saveOffering(id).catch((error) => console.error('Failed to save offering:', error));
+        }
+      });
     },
-    [items, dispatch],
+    [items, dispatch, gate],
   );
 
   return { isFavorite, toggle };

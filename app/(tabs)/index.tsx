@@ -12,12 +12,14 @@ import { Ionicons } from '@/components/FlatIcon';
 import type { CreativeData } from '@/components/SwipeableCardStack';
 import Colors from '@/constants/Colors';
 import { WAMI_CARDS, WamiCard } from '@/constants/WamiCards';
+import { useAuthGate } from '@/hooks/useAuthGate';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useLocation } from '@/hooks/useLocationData';
 import { DiscoveryOffering, getDiscoveryFeed, getNearYou } from '@/services/api/discoveryService';
 import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
 import { getProducts } from '@/services/api/productsService';
 import { extractList } from '@/utils/extractList';
+import { openCreator } from '@/utils/openCreator';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { mapOfferingToCreativeData } from '@/utils/mapOffering';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,6 +77,7 @@ export default function HomeScreen() {
   const isDark = useColorScheme() === 'dark';
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
   const { region, city } = useLocation();
+  const { signedIn, gate } = useAuthGate();
 
   const [activeTab, setActiveTab] = useState<Tab>('For you');
   const [feed, setFeed] = useState<DiscoveryOffering[] | null>(null);
@@ -131,9 +134,16 @@ export default function HomeScreen() {
   }, [activeTab, nearYou, nearYouError, loadNearYou]);
 
   useEffect(() => {
+    if (!signedIn) {
+      setUnread(0);
+      return;
+    }
     getUnreadNotificationCount()
       .then((res) => setUnread(res.data?.count ?? 0))
       .catch((error) => console.error('Failed to load unread notification count:', error));
+  }, [signedIn]);
+
+  useEffect(() => {
     AsyncStorage.getItem(DISMISSED_KEY)
       .then((raw) => setDismissed(raw ? JSON.parse(raw) : []))
       .catch(() => {});
@@ -152,15 +162,7 @@ export default function HomeScreen() {
   };
 
   const openCreative = (item: CreativeData) => {
-    router.push({
-      pathname: '/profile/[id]',
-      params: {
-        id: item.id,
-        creatorId: item.creatorId ?? '',
-        creatorName: item.creatorName ?? '',
-        creatorUsername: item.creatorUsername ?? '',
-      },
-    } as any);
+    openCreator(router, item);
   };
 
   // What the list shows: a pinned From Wami card, then creatives and
@@ -239,7 +241,7 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/products-listing' as any)} accessibilityLabel="Shop">
               <Ionicons name="basket" size={24} color={tc.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/notifications' as any)} accessibilityLabel="Notifications">
+            <TouchableOpacity style={styles.iconBtn} onPress={() => gate('Sign in to see your notifications.', () => router.push('/notifications' as any))} accessibilityLabel="Notifications">
               <Ionicons name="notifications" size={24} color={tc.text} />
               {unread > 0 && <View style={styles.badge} />}
             </TouchableOpacity>

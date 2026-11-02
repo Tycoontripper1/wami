@@ -8,11 +8,16 @@ import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
 import { ApiResponse, PaginatedResponse } from './types';
 
+// requested, accepted, declined, expired, paid, in_progress, completed.
+// The old names (pending, confirmed, active) are still accepted on the way in
+// and may still come back on older rows.
 export type ApiBookingStatus =
-  | 'pending'
-  | 'confirmed'
+  | 'requested'
+  | 'accepted'
+  | 'declined'
+  | 'expired'
+  | 'paid'
   | 'in_progress'
-  | 'dispatched'
   | 'completed'
   | 'cancelled'
   | string;
@@ -45,17 +50,13 @@ export interface ApiBooking {
 }
 
 export interface CreateBookingPayload {
-  offering_id: string | number;
-  // Required by the real backend (422 "The creative id field is required."
-  // without it, confirmed live 2026-10-03) but absent from the collection's
-  // sample body entirely.
-  creative_id: string | number;
+  // The id on a row from /products or /creators/:id/listings. The creative
+  // and the price come from the listing, so neither is sent.
+  listing_id: string | number;
+  /** ISO 8601 date and time the buyer wants. */
+  scheduled_at: string;
   project_title: string;
-  project_details: string;
-  start_date: string;
-  end_date: string;
-  total_amount: number;
-  currency: string;
+  notes?: string;
 }
 
 export interface AddMilestonePayload {
@@ -86,21 +87,24 @@ export const createBooking = async (
   return apiClient.post(API_ENDPOINTS.BOOKINGS.CREATE, payload);
 };
 
-// PUT /bookings/:id/status  { status } — PUT, not PATCH, per backend
-// (confirmed by the backend team 2026-10-12). This is also how a booking is
-// cancelled: there is no /bookings/:id/cancel route (404s live).
-export const updateBookingStatus = async (
+export type BookingAction = 'accept' | 'decline' | 'start' | 'complete' | 'cancel' | 'release' | 'dispute';
+
+// POST /bookings/:id/<action>. The creative accepts, declines, starts and
+// completes; the buyer releases the held money; either side cancels or disputes.
+export const bookingAction = async (
   id: string | number,
-  status: ApiBookingStatus
+  action: BookingAction,
+  body?: { reason?: string }
 ): Promise<ApiResponse<ApiBooking>> => {
-  return apiClient.put(API_ENDPOINTS.BOOKINGS.STATUS(id), { status });
+  return apiClient.post(API_ENDPOINTS.BOOKINGS.ACTION(id, action), body);
 };
 
-// PUT /bookings/:id/status  { status: "cancelled" }
+// POST /bookings/:id/cancel  { reason }. Either side; returns anything held.
 export const cancelBooking = async (
-  id: string | number
+  id: string | number,
+  reason?: string
 ): Promise<ApiResponse<ApiBooking>> => {
-  return updateBookingStatus(id, 'cancelled');
+  return bookingAction(id, 'cancel', reason ? { reason } : undefined);
 };
 
 // POST /bookings/:id/milestones  { title, amount, due_date }
@@ -120,8 +124,10 @@ export const releaseMilestone = async (
 };
 
 export interface RescheduleBookingPayload {
-  start_date: string;
-  end_date: string;
+  /** The new date and time. start_date and end_date are sent too until the backend names the field. */
+  scheduled_at: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 // POST /bookings/:id/reschedule  { start_date, end_date }
@@ -138,4 +144,22 @@ export const getBookingsCalendar = async (params: {
   to: string;
 }): Promise<ApiResponse<ApiBooking[]>> => {
   return apiClient.get(API_ENDPOINTS.BOOKINGS.CALENDAR, { params });
+};
+
+// Rows from before the state machine was settled can still say pending,
+// confirmed or active; read them as the current names.
+const LEGACY_STATUS: Record<string, string> = { pending: 'requested', confirmed: 'accepted', active: 'in_progress' };
+
+export const normaliseStatus = (status?: string): string => {
+  const key = String(status ?? 'requested').toLowerCase();
+  return LEGACY_STATUS[key] ?? key;
+};
+
+/** Which side of a booking the signed-in person is on. */
+export const bookingRole = (booking: ApiBooking, myId?: string | number): 'creative' | 'buyer' => {
+  const said = String(booking.viewer_role ?? booking.role ?? '').toLowerCase();
+  if (said === 'creative' || said === 'seller') return 'creative';
+  if (said === 'buyer' || said === 'client' || said === 'customer') return 'buyer';
+  const creativeId = booking.creative_id ?? booking.creative?.id ?? booking.creator_id ?? booking.creator?.id;
+  return myId !== undefined && creativeId !== undefined && String(creativeId) === String(myId) ? 'creative' : 'buyer';
 };

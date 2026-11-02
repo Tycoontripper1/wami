@@ -19,7 +19,12 @@
       }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.b_laj.wami",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "enableProguardInReleaseBuilds": true,
@@ -32,7 +37,13 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.b_laj.wami"
+      "package": "com.b_laj.wami",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -44,7 +55,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Show creatives near you."
+          "locationWhenInUsePermission": "Wami uses your location to show creatives and listings near you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wami needs your photos so you can add pictures to your listings and profile.",
+          "cameraPermission": "Wami needs the camera so you can take photos of what you make."
         }
       ],
       "expo-notifications",

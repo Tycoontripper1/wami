@@ -9,6 +9,7 @@ import { CITY_COORDS, CITY_NOTES, COUNTRY_TONE, COUNTRY_VIEW } from '@/data/regi
 import { useLocation } from '@/hooks/useLocationData';
 import { DiscoveryOffering, getDiscoveryFeed, getNearYou } from '@/services/api/discoveryService';
 import { extractList } from '@/utils/extractList';
+import { openCreator } from '@/utils/openCreator';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -223,15 +224,7 @@ export default function ExploreMapScreen() {
   };
 
   const openProfile = (p: Place) => {
-    router.push({
-      pathname: '/profile/[id]',
-      params: {
-        id: p.id,
-        creatorId: p.creatorId ?? '',
-        creatorName: p.creatorName ?? '',
-        creatorUsername: p.creatorUsername ?? '',
-      },
-    } as any);
+    openCreator(router, p);
   };
 
   // Frame everything that is showing whenever the filter changes.

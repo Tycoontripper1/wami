@@ -2,8 +2,12 @@ import Colors from '@/constants/Colors';
 import {
     ApiBooking,
     ApiMilestone,
+    BookingAction,
+    bookingAction,
+    bookingRole,
     cancelBooking,
     getBookingById,
+    normaliseStatus,
     releaseMilestone,
 } from '@/services/api/bookingsService';
 import { cancelBooking as cancelLocalBooking } from '@/store/bookingsSlice';
@@ -22,22 +26,31 @@ import {
 import { Alert } from '@/components/AppAlert';
 import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '@/store/store';
 
 const STATUS_STEPS: { status: string; label: string }[] = [
-  { status: 'pending', label: 'Booking Requested' },
-  { status: 'confirmed', label: 'Confirmed' },
-  { status: 'in_progress', label: 'In Progress' },
+  { status: 'requested', label: 'Requested' },
+  { status: 'accepted', label: 'Accepted' },
+  { status: 'paid', label: 'Paid, held by Wami' },
+  { status: 'in_progress', label: 'In progress' },
   { status: 'completed', label: 'Completed' },
 ];
 
 const STATUS_INDEX: Record<string, number> = {
-  pending: 0,
-  confirmed: 1,
-  in_progress: 2,
-  dispatched: 2,
-  completed: 3,
-  cancelled: -1,
+  requested: 0,
+  accepted: 1,
+  paid: 2,
+  in_progress: 3,
+  completed: 4,
+};
+
+// Ends that are not on the happy path, and what to tell people.
+const ENDED: Record<string, string> = {
+  cancelled: 'This booking was cancelled.',
+  declined: 'The creative declined this request.',
+  expired: 'This request ran out of time before it was answered.',
+  disputed: 'A dispute is open. The money is frozen until it is settled.',
 };
 
 // The API returns ISO timestamps ("2026-11-01T00:00:00.000000Z"); show "1 Nov 2026".
@@ -63,6 +76,8 @@ export default function ServiceTrackingScreen() {
   const [releasingId, setReleasingId] = useState<string | number | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const dispatch = useDispatch();
+  const myId = useSelector((st: RootState) => (st.auth.user as any)?.id);
+  const [acting, setActing] = useState<BookingAction | null>(null);
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -92,34 +107,36 @@ export default function ServiceTrackingScreen() {
     load();
   }, [load]);
 
-  // PUT /bookings/:id/status {status: 'cancelled'} — there is no
-  // /cancel route; this is the backend's real cancel mechanism.
-  const handleCancelBooking = () => {
-    Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking? This can\'t be undone.',
-      [
-        { text: 'Keep Booking', style: 'cancel' },
-        {
-          text: 'Cancel Booking',
-          style: 'destructive',
-          onPress: async () => {
-            setIsCancelling(true);
-            try {
-              await cancelBooking(bookingId);
-              dispatch(cancelLocalBooking(String(bookingId)));
-              await load();
-            } catch (error) {
-              console.error('Failed to cancel booking:', error);
-              Alert.alert("Couldn't Cancel", 'Something went wrong while cancelling this booking. Please try again.');
-            } finally {
-              setIsCancelling(false);
-            }
-          },
-        },
-      ]
-    );
+  // The server decides what is allowed; a refused move comes back as a
+  // plain-language message.
+  const run = async (action: BookingAction, body?: { reason?: string }) => {
+    setActing(action);
+    try {
+      await bookingAction(bookingId, action, body);
+      if (action === 'cancel') dispatch(cancelLocalBooking(String(bookingId)));
+      await load();
+    } catch (error: any) {
+      console.error(`Booking ${action} failed:`, error);
+      Alert.alert("That didn't go through", error?.message ?? 'Please try again.');
+    } finally {
+      setActing(null);
+    }
   };
+
+  const confirmAction = (action: BookingAction, title: string, message: string, label: string, destructive = false) =>
+    Alert.alert(title, message, [
+      { text: 'Not now', style: 'cancel' },
+      { text: label, style: destructive ? 'destructive' : 'default', onPress: () => run(action) },
+    ]);
+
+  const handleCancelBooking = () =>
+    confirmAction(
+      'cancel',
+      'Cancel this booking?',
+      'This cannot be undone. Anything already paid is returned to the buyer.',
+      'Cancel booking',
+      true
+    );
 
   const handleReleaseMilestone = (milestone: ApiMilestone) => {
     Alert.alert(
@@ -168,8 +185,13 @@ export default function ServiceTrackingScreen() {
     );
   }
 
-  const currentStatusIndex = STATUS_INDEX[booking.status] ?? 0;
-  const isCancelled = booking.status === 'cancelled';
+  const status = normaliseStatus(booking.status);
+  const role = bookingRole(booking, myId);
+  const currentStatusIndex = STATUS_INDEX[status] ?? 0;
+  const endedNote = ENDED[status];
+  const when = booking.scheduled_at ?? booking.start_date;
+  const amount = Number(booking.total_amount ?? booking.amount ?? booking.price ?? 0);
+  const busy = acting !== null;
   const milestones = booking.milestones ?? [];
 
   return (
@@ -195,22 +217,22 @@ export default function ServiceTrackingScreen() {
           <Text style={[styles.cardLabel, { color: tc.sub }]}>Booking Details</Text>
           <Text style={[styles.serviceTitle, { color: tc.text }]}>{booking.project_title}</Text>
           <Text style={[styles.servicePrice, { color: Colors.light.primary }]}>
-            ₦{Number(booking.total_amount).toLocaleString()} {booking.currency}
+            {amount > 0 ? `₦${amount.toLocaleString()}` : 'Price set by the creative'}
           </Text>
-          {!!booking.project_details && (
-            <Text style={[styles.projectDetails, { color: tc.sub }]}>{booking.project_details}</Text>
+          {!!(booking.notes ?? booking.project_details) && (
+            <Text style={[styles.projectDetails, { color: tc.sub }]}>{booking.notes ?? booking.project_details}</Text>
           )}
           <View style={[styles.divider, { backgroundColor: tc.border, marginVertical: 12 }]} />
           <View style={styles.escrowRow}>
             <Ionicons name="calendar" size={16} color={tc.sub} />
             <Text style={[styles.escrowText, { color: tc.sub }]}>
-              {formatBookingDate(booking.start_date)}{booking.end_date && booking.end_date !== booking.start_date ? ` – ${formatBookingDate(booking.end_date)}` : ''}
+              {formatBookingDate(when)}{when && String(when).includes('T') ? ` · ${new Date(when).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}` : ''}
             </Text>
           </View>
         </View>
 
         {/* Timeline */}
-        {!isCancelled ? (
+        {!endedNote ? (
           <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <Text style={[styles.cardLabel, { color: tc.sub, marginBottom: 16 }]}>Status</Text>
             {STATUS_STEPS.map((step, index) => {
@@ -234,7 +256,7 @@ export default function ServiceTrackingScreen() {
         ) : (
           <View style={[styles.infoBanner, { backgroundColor: '#FF3B3015', borderColor: '#FF3B30' }]}>
             <Ionicons name="close-circle" size={20} color="#FF3B30" />
-            <Text style={[styles.infoText, { color: tc.text }]}>This booking was cancelled.</Text>
+            <Text style={[styles.infoText, { color: tc.text }]}>{endedNote}</Text>
           </View>
         )}
 
@@ -275,38 +297,103 @@ export default function ServiceTrackingScreen() {
           </View>
         )}
 
-        {booking.status === 'pending' && (
+        {status === 'requested' && (
           <View style={[styles.infoBanner, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
             <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
             <Text style={[styles.infoText, { color: tc.text }]}>
-              Waiting for the creative to confirm this booking.
+              {role === 'creative' ? 'A buyer is waiting for your answer.' : 'Waiting for the creative to answer your request.'}
             </Text>
           </View>
         )}
 
-        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+        {status === 'accepted' && role === 'buyer' && (
+          <View style={[styles.infoBanner, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
+            <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
+            <Text style={[styles.infoText, { color: tc.text }]}>
+              Accepted. Once you pay, Wami holds the money until the work is done.
+            </Text>
+          </View>
+        )}
+
+        {status === 'requested' && role === 'creative' && (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={[styles.primaryBtn, { flex: 1 }, busy && { opacity: 0.6 }]}
+              onPress={() => run('accept')}
+              disabled={busy}
+            >
+              {acting === 'accept' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Accept</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.rescheduleBtn, { flex: 1, borderColor: tc.border }, busy && { opacity: 0.6 }]}
+              onPress={() => confirmAction('decline', 'Decline this request?', 'The buyer will be told.', 'Decline', true)}
+              disabled={busy}
+            >
+              <Text style={[styles.rescheduleBtnText, { color: tc.text }]}>Decline</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {status === 'paid' && role === 'creative' && (
+          <TouchableOpacity style={[styles.primaryBtn, busy && { opacity: 0.6 }]} onPress={() => run('start')} disabled={busy}>
+            {acting === 'start' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Start the work</Text>}
+          </TouchableOpacity>
+        )}
+
+        {status === 'in_progress' && role === 'creative' && (
+          <TouchableOpacity
+            style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+            onPress={() => confirmAction('complete', 'Mark the work done?', 'The buyer is asked to release the money.', 'Mark done')}
+            disabled={busy}
+          >
+            {acting === 'complete' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Mark work done</Text>}
+          </TouchableOpacity>
+        )}
+
+        {(status === 'in_progress' || status === 'completed') && role === 'buyer' && booking.money_released !== true && (
+          <TouchableOpacity
+            style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+            onPress={() => confirmAction('release', 'Release the money?', 'Only do this when you are happy with the work. It pays the creative.', 'Release')}
+            disabled={busy}
+          >
+            {acting === 'release' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Release payment</Text>}
+          </TouchableOpacity>
+        )}
+
+        {['requested', 'accepted', 'paid'].includes(status) && (
           <TouchableOpacity
             style={[styles.rescheduleBtn, { borderColor: tc.border }]}
             onPress={() => router.push(`/booking-reschedule/${booking.id}` as any)}
           >
             <Ionicons name="calendar-outline" size={18} color={Colors.light.primary} />
-            <Text style={[styles.rescheduleBtnText, { color: Colors.light.primary }]}>Reschedule Booking</Text>
+            <Text style={[styles.rescheduleBtnText, { color: Colors.light.primary }]}>Change the date</Text>
           </TouchableOpacity>
         )}
 
-        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+        {['paid', 'in_progress', 'completed'].includes(status) && (
           <TouchableOpacity
-            style={[styles.rescheduleBtn, { borderColor: '#FF3B30' }, isCancelling && { opacity: 0.6 }]}
-            onPress={handleCancelBooking}
-            disabled={isCancelling}
+            style={[styles.rescheduleBtn, { borderColor: tc.border }]}
+            onPress={() => confirmAction('dispute', 'Raise a dispute?', 'This freezes the money while we look into it.', 'Raise dispute', true)}
+            disabled={busy}
           >
-            {isCancelling ? (
+            <Ionicons name="flag" size={18} color={tc.sub} />
+            <Text style={[styles.rescheduleBtnText, { color: tc.sub }]}>Something is wrong</Text>
+          </TouchableOpacity>
+        )}
+
+        {['requested', 'accepted', 'paid'].includes(status) && (
+          <TouchableOpacity
+            style={[styles.rescheduleBtn, { borderColor: '#FF3B30' }, busy && { opacity: 0.6 }]}
+            onPress={handleCancelBooking}
+            disabled={busy}
+          >
+            {acting === 'cancel' ? (
               <ActivityIndicator size="small" color="#FF3B30" />
             ) : (
               <Ionicons name="close-circle-outline" size={18} color="#FF3B30" />
             )}
             <Text style={[styles.rescheduleBtnText, { color: '#FF3B30' }]}>
-              {isCancelling ? 'Cancelling…' : 'Cancel Booking'}
+              {acting === 'cancel' ? 'Cancelling…' : 'Cancel booking'}
             </Text>
           </TouchableOpacity>
         )}
@@ -362,5 +449,7 @@ const styles = StyleSheet.create({
   backBtnCentered: {
     backgroundColor: Colors.light.primary, paddingHorizontal: 32, paddingVertical: 13, borderRadius: 12,
   },
+  primaryBtn: { height: 48, borderRadius: 12, backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center' },
+  primaryBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
   backBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
 });

@@ -8,6 +8,7 @@ import { removeFavorite } from '@/store/favoritesSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
+import { openCreator } from '@/utils/openCreator';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -107,15 +108,7 @@ export default function FavouritesScreen() {
   const renderSavedItem = ({ item }: { item: typeof favorites[0] }) => (
     <TouchableOpacity
       style={[styles.savedCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}
-      onPress={() => router.push({
-        pathname: '/profile/[id]',
-        params: {
-          id: item.id,
-          creatorId: item.creatorId ?? '',
-          creatorName: item.creatorName ?? '',
-          creatorUsername: item.creatorUsername ?? '',
-        },
-      } as any)}
+      onPress={() => openCreator(router, item)}
     >
       {item.image ? (
         <Image source={item.image} style={styles.savedImage} resizeMode="cover" />

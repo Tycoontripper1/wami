@@ -148,9 +148,8 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string | number) => `/bookings/${id}`,
     UPDATE: (id: string) => `/bookings/${id}`,
     COMPLETE: (id: string) => `/bookings/${id}/complete`,
-    // No CANCEL route — /bookings/:id/cancel 404s live (confirmed
-    // 2026-10-03). Cancelling is PUT STATUS(id) with {status: 'cancelled'}
-    // (backend-confirmed 2026-10-12) — see bookingsService.cancelBooking.
+    // accept, decline, start, complete, cancel, release, dispute
+    ACTION: (id: string | number, action: string) => `/bookings/${id}/${action}`,
     STATUS: (id: string | number) => `/bookings/${id}/status`,
     MILESTONES: (id: string | number) => `/bookings/${id}/milestones`,
     RELEASE_MILESTONE: (bookingId: string | number, milestoneId: string | number) =>
@@ -211,6 +210,26 @@ export const API_ENDPOINTS = {
   },
 
   // Notifications
+  CREATORS_PUBLIC: {
+    LIST: '/creators',
+    BY_ID: (id: string | number) => `/creators/${id}`,
+    LISTINGS: (id: string | number) => `/creators/${id}/listings`,
+    REVIEWS: (id: string | number) => `/creators/${id}/reviews`,
+    FOLLOW: (id: string | number) => `/creators/${id}/follow`,
+    FOLLOWING: '/me/following',
+  },
+
+  LOCATIONS: {
+    CITIES: '/locations/cities',
+    MAP_PLACES: '/map/places',
+  },
+
+  SAFETY: {
+    BLOCKS: '/blocks',
+    BLOCK_BY_ID: (id: string | number) => `/blocks/${id}`,
+    REPORTS: '/reports',
+  },
+
   NOTIFICATIONS: {
     LIST: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

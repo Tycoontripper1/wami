@@ -8,6 +8,7 @@ import { DiscoveryOffering, getDiscoveryFeed, getNearYou, swipeOffering } from '
 import { extractList } from '@/utils/extractList';
 import { mapOfferingToCreativeData } from '@/utils/mapOffering';
 import { useRouter } from 'expo-router';
+import { openCreator } from '@/utils/openCreator';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StatusBar, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,15 +65,7 @@ export default function SwipeScreen() {
 
   const handleSwipeRight = (item: CreativeData) => {
     swipeOffering(item.id, 'like').catch((error) => console.error('Swipe (like) failed:', error));
-    router.push({
-      pathname: '/profile/[id]',
-      params: {
-        id: item.id,
-        creatorId: item.creatorId ?? '',
-        creatorName: item.creatorName ?? '',
-        creatorUsername: item.creatorUsername ?? '',
-      },
-    } as any);
+    openCreator(router, item);
   };
 
   return (

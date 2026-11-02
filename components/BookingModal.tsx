@@ -19,10 +19,11 @@ import { useDispatch } from 'react-redux';
 interface BookingModalProps {
   visible: boolean;
   onClose: () => void;
-  // The real offering being booked (POST /bookings' offering_id) — distinct
-  // from the creative who owns it (its creative_id). Conflating these two
-  // was confirmed live 2026-10-03 to make every booking fail.
-  offeringId: string;
+  // The listing being booked (POST /bookings' listing_id). The creative and
+  // the price come from the listing on the server.
+  listingId: string;
+  /** What the listing costs, for the summary. The server decides the real amount. */
+  price?: number;
   creative: {
     id: string;
     name: string;
@@ -34,7 +35,6 @@ interface BookingModalProps {
 }
 
 const PROJECT_TYPES = ['Photoshoot', 'Event', 'Branding', 'Custom Project'];
-const BUDGET_RANGES = ['₦20,000 – ₦50,000', '₦50,000 – ₦100,000', '₦100,000 – ₦250,000', '₦250,000+'];
 
 const TIME_SLOTS = [
   '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
@@ -58,13 +58,18 @@ const generateDates = () => {
 };
 
 const STEP_LABELS = ['Project', 'Schedule', 'Summary', 'Done'];
-const PAYMENT_METHODS = [
-  { key: 'card', label: 'Debit / Credit Card', icon: 'card' as const },
-  { key: 'wallet', label: 'Wami Wallet', icon: 'wallet' as const },
-  { key: 'bank_transfer', label: 'Bank Transfer', icon: 'swap-horizontal' as const },
-];
 
-export default function BookingModal({ visible, onClose, offeringId, creative, onViewBooking, onMessage }: BookingModalProps) {
+// "02:00 PM" on 2026-11-05 as a moment in time, the way the API wants it.
+const toScheduledAt = (date: string, time: string) => {
+  const [hm, ap] = time.split(' ');
+  let [h, m] = hm.split(':').map(Number);
+  if (ap === 'PM' && h < 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  const [y, mo, d] = date.split('-').map(Number);
+  return new Date(y, mo - 1, d, h, m).toISOString();
+};
+
+export default function BookingModal({ visible, onClose, listingId, price, creative, onViewBooking, onMessage }: BookingModalProps) {
   const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -74,15 +79,10 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
   // Step 1
   const [projectType, setProjectType] = useState<string | null>(null);
   const [description, setDescription] = useState('');
-  const [budgetRange, setBudgetRange] = useState<string | null>(null);
-  const [milestonePayment, setMilestonePayment] = useState(false);
 
   // Step 2
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-
-  // Step 3
-  const [paymentMethod, setPaymentMethod] = useState('card');
 
   // Result
   const [bookingRef, setBookingRef] = useState<string | null>(null);
@@ -98,22 +98,12 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
     border: isDark ? '#333' : '#e0e0e0',
   };
 
-  // Mock base price derived from budget range for fee breakdown
-  const basePrice = budgetRange
-    ? parseInt(budgetRange.replace(/[^\d]/g, '').slice(0, 6) || '50000', 10) || 50000
-    : 50000;
-  const wamiFee = Math.round(basePrice * 0.18);
-  const total = basePrice + wamiFee;
-
   const resetAndClose = () => {
     setStep(1);
     setProjectType(null);
     setDescription('');
-    setBudgetRange(null);
-    setMilestonePayment(false);
     setSelectedDate(null);
     setSelectedTime(null);
-    setPaymentMethod('card');
     setBookingRef(null);
     onClose();
   };
@@ -125,14 +115,10 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
     setIsSubmitting(true);
     try {
       const apiBooking = await createBooking({
-        offering_id: offeringId,
-        creative_id: creative.id,
+        listing_id: listingId,
+        scheduled_at: toScheduledAt(selectedDate!, selectedTime!),
         project_title: `${projectType} with ${creative.name}`,
-        project_details: description.trim(),
-        start_date: selectedDate!,
-        end_date: selectedDate!,
-        total_amount: total,
-        currency: 'NGN',
+        notes: description.trim() || undefined,
       });
 
       const ref = String(apiBooking.data?.id ?? `WB-${Date.now().toString().slice(-8)}`);
@@ -152,15 +138,15 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
       dispatch(addBooking(booking));
       setBookingRef(ref);
       goNext();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create booking:', error);
-      Alert.alert("Couldn't Book", 'Something went wrong while creating your booking. Please try again.');
+      Alert.alert("Couldn't send your request", error?.message ?? 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const step1Valid = projectType && description.trim().length > 0 && budgetRange;
+  const step1Valid = projectType && description.trim().length > 0;
   const step2Valid = selectedDate && selectedTime;
 
   return (
@@ -173,7 +159,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
               <Ionicons name={step === 1 ? 'close' : 'arrow-back'} size={24} color={themeColors.text} />
             </TouchableOpacity>
             <Text style={[styles.title, { color: themeColors.text }]}>
-              {step < 4 ? `Step ${step} of 3` : 'Booking Confirmed'}
+              {step < 4 ? `Step ${step} of 3` : 'Request sent'}
             </Text>
             <TouchableOpacity onPress={resetAndClose} style={styles.closeButton}>
               {step < 4 && <Ionicons name="close" size={24} color={themeColors.text} />}
@@ -242,42 +228,6 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                   numberOfLines={3}
                 />
 
-                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Budget Range</Text>
-                <View style={styles.chipsColumn}>
-                  {BUDGET_RANGES.map((range) => (
-                    <TouchableOpacity
-                      key={range}
-                      style={[
-                        styles.budgetOption,
-                        {
-                          backgroundColor: budgetRange === range ? Colors.light.primary + '15' : themeColors.cardBg,
-                          borderColor: budgetRange === range ? Colors.light.primary : themeColors.border,
-                        },
-                      ]}
-                      onPress={() => setBudgetRange(range)}
-                    >
-                      <View style={[styles.radioOuter, { borderColor: budgetRange === range ? Colors.light.primary : themeColors.border }]}>
-                        {budgetRange === range && <View style={styles.radioInner} />}
-                      </View>
-                      <Text style={{ color: themeColors.text, fontSize: 14, fontWeight: '500' }}>{range}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.milestoneToggle, { backgroundColor: themeColors.cardBg }]}
-                  onPress={() => setMilestonePayment((v) => !v)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.milestoneTitle, { color: themeColors.text }]}>Pay in Milestones</Text>
-                    <Text style={[styles.milestoneSub, { color: themeColors.subText }]}>
-                      Split payment across project stages instead of paying upfront
-                    </Text>
-                  </View>
-                  <View style={[styles.switchTrack, { backgroundColor: milestonePayment ? Colors.light.primary : themeColors.border }]}>
-                    <View style={[styles.switchThumb, milestonePayment && styles.switchThumbOn]} />
-                  </View>
-                </TouchableOpacity>
               </>
             )}
 
@@ -325,7 +275,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
               </>
             )}
 
-            {/* STEP 3 — Order summary + payment */}
+            {/* STEP 3 — Summary */}
             {step === 3 && (
               <>
                 <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Order Summary</Text>
@@ -339,41 +289,20 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                     <Text style={{ color: themeColors.text, fontSize: 14, fontWeight: '600' }}>{selectedDate} · {selectedTime}</Text>
                   </View>
                   <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-                  <View style={styles.summaryRow}>
-                    <Text style={{ color: themeColors.subText, fontSize: 14 }}>Service Cost</Text>
-                    <Text style={{ color: themeColors.text, fontSize: 14, fontWeight: '600' }}>₦{basePrice.toLocaleString()}</Text>
-                  </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={{ color: themeColors.subText, fontSize: 14 }}>Wami Fee (18%)</Text>
-                    <Text style={{ color: themeColors.text, fontSize: 14, fontWeight: '600' }}>₦{wamiFee.toLocaleString()}</Text>
-                  </View>
-                  <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
-                  <View style={styles.summaryRow}>
-                    <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '700' }}>Total</Text>
-                    <Text style={{ color: Colors.light.primary, fontSize: 18, fontWeight: '800' }}>₦{total.toLocaleString()}</Text>
-                  </View>
+                  {price ? (
+                    <>
+                      <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+                      <View style={styles.summaryRow}>
+                        <Text style={{ color: themeColors.text, fontSize: 16, fontWeight: '700' }}>Price</Text>
+                        <Text style={{ color: Colors.light.primary, fontSize: 18, fontWeight: '800' }}>₦{price.toLocaleString()}</Text>
+                      </View>
+                    </>
+                  ) : null}
                 </View>
 
-                <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Payment Method</Text>
-                {PAYMENT_METHODS.map((m) => (
-                  <TouchableOpacity
-                    key={m.key}
-                    style={[
-                      styles.paymentOption,
-                      {
-                        backgroundColor: paymentMethod === m.key ? Colors.light.primary + '15' : themeColors.cardBg,
-                        borderColor: paymentMethod === m.key ? Colors.light.primary : themeColors.border,
-                      },
-                    ]}
-                    onPress={() => setPaymentMethod(m.key)}
-                  >
-                    <Ionicons name={m.icon} size={20} color={paymentMethod === m.key ? Colors.light.primary : themeColors.subText} />
-                    <Text style={{ color: themeColors.text, fontSize: 14, fontWeight: '500', flex: 1, marginLeft: 12 }}>{m.label}</Text>
-                    <View style={[styles.radioOuter, { borderColor: paymentMethod === m.key ? Colors.light.primary : themeColors.border }]}>
-                      {paymentMethod === m.key && <View style={styles.radioInner} />}
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                <Text style={{ color: themeColors.subText, fontSize: 14, lineHeight: 21 }}>
+                  {creative.name} gets your request first. You pay once they accept, and Wami holds the money until the work is done.
+                </Text>
               </>
             )}
 
@@ -383,9 +312,9 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
                 <View style={styles.successIconWrap}>
                   <Ionicons name="checkmark-circle" size={72} color={Colors.light.primary} />
                 </View>
-                <Text style={[styles.successTitle, { color: themeColors.text }]}>Booking Confirmed!</Text>
+                <Text style={[styles.successTitle, { color: themeColors.text }]}>Request sent!</Text>
                 <Text style={[styles.successSub, { color: themeColors.subText }]}>
-                  Your booking with {creative.name} has been confirmed.
+                  {creative.name} will look at it and reply. You will see it in your bookings.
                 </Text>
                 <View style={[styles.refCard, { backgroundColor: themeColors.cardBg }]}>
                   <Text style={{ color: themeColors.subText, fontSize: 12 }}>Booking Reference</Text>
@@ -415,7 +344,7 @@ export default function BookingModal({ visible, onClose, offeringId, creative, o
               {isSubmitting ? (
                 <ActivityIndicator color="#0F1419" />
               ) : (
-                <Text style={styles.bookButtonText}>Confirm Booking</Text>
+                <Text style={styles.bookButtonText}>Send request</Text>
               )}
             </TouchableOpacity>
           )}
@@ -460,16 +389,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12, marginTop: 4 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   chip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1 },
-  chipsColumn: { gap: 10, marginBottom: 20 },
-  budgetOption: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 1.5 },
-  radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.light.primary },
-  milestoneToggle: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, gap: 12, marginBottom: 20 },
-  milestoneTitle: { fontSize: 15, fontWeight: '600' },
-  milestoneSub: { fontSize: 12, marginTop: 2 },
-  switchTrack: { width: 46, height: 26, borderRadius: 13, padding: 3, justifyContent: 'center' },
-  switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
-  switchThumbOn: { alignSelf: 'flex-end' },
   datesContainer: { marginBottom: 24 },
   dateCard: { alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 16, marginRight: 10, minWidth: 70 },
   dateDay: { fontSize: 12, fontWeight: '500', marginBottom: 4 },
@@ -481,7 +400,6 @@ const styles = StyleSheet.create({
   summaryCard: { borderRadius: 16, padding: 16, gap: 10, marginBottom: 24 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   divider: { height: 1 },
-  paymentOption: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 1.5, marginBottom: 10 },
   successContainer: { alignItems: 'center', paddingVertical: 20 },
   successIconWrap: { marginBottom: 16 },
   successTitle: { fontSize: 22, fontWeight: '700', marginBottom: 8 },

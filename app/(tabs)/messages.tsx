@@ -18,6 +18,9 @@ import {
 } from 'react-native';
 import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GuestPrompt from '@/components/GuestPrompt';
+import type { RootState } from '@/store/store';
+import { useSelector } from 'react-redux';
 
 // The collection's conversation shape is unconfirmed beyond `id` — map
 // defensively, the same way discoveryService's DiscoveryOffering does.
@@ -41,8 +44,13 @@ export default function MessagesScreen() {
   const [conversations, setConversations] = useState<ApiConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const signedIn = useSelector((s: RootState) => s.auth.isAuthenticated);
 
   const load = useCallback(async () => {
+    if (!signedIn) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setHasError(false);
     try {
@@ -55,7 +63,7 @@ export default function MessagesScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [signedIn]);
 
   // Refresh whenever the tab regains focus, so a conversation just opened
   // (and its unread count/last message) stays current without a manual pull.
@@ -73,6 +81,18 @@ export default function MessagesScreen() {
     inputBg: isDark ? '#1A1A1A' : '#F5F5F5',
     border: isDark ? '#333' : '#E0E0E0',
   };
+
+  if (!signedIn) {
+    return (
+      <View style={{ flex: 1, backgroundColor: themeColors.background, paddingTop: insets.top }}>
+        <GuestPrompt
+          illustration="chat"
+          title="Your chats live here"
+          message="Sign in to message creatives, ask questions and agree the details before you book."
+        />
+      </View>
+    );
+  }
 
   const filteredConversations = conversations.filter((c) =>
     displayName(c).toLowerCase().includes(searchQuery.toLowerCase())

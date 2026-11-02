@@ -157,6 +157,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="profile/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="creator/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="booking-history" options={{ headerShown: false }} />
           <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="creative-dashboard" options={{ headerShown: false }} />
@@ -164,6 +165,10 @@ function RootLayoutNav() {
           <Stack.Screen name="location-picker" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="explore-map" options={{ headerShown: false }} />
           <Stack.Screen name="swipe" options={{ headerShown: false }} />
+          <Stack.Screen name="support" options={{ headerShown: false }} />
+          <Stack.Screen name="about" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy" options={{ headerShown: false }} />
+          <Stack.Screen name="blocked" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="checkout/index" options={{ headerShown: false }} />
           <Stack.Screen name="checkout/success" options={{ headerShown: false, gestureEnabled: false }} />
@@ -184,7 +189,6 @@ function RootLayoutNav() {
           <Stack.Screen name="wallet/payment-methods" options={{ headerShown: false }} />
           <Stack.Screen name="wallet/withdraw" options={{ headerShown: false }} />
           <Stack.Screen name="add-service" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="share-post" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="delivery/arrange/[orderId]" options={{ headerShown: false }} />
           <Stack.Screen name="delivery/waiting/[orderId]" options={{ headerShown: false }} />
           <Stack.Screen name="delivery/compare/[orderId]" options={{ headerShown: false }} />

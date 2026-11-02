@@ -1,7 +1,7 @@
 import { extractList } from '@/utils/extractList';
 import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import Colors from '@/constants/Colors';
-import { ApiBooking, getBookings } from '@/services/api/bookingsService';
+import { ApiBooking, getBookings, normaliseStatus } from '@/services/api/bookingsService';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
@@ -20,12 +20,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  pending: { label: 'Pending', color: '#FF9500', icon: 'time' },
-  confirmed: { label: 'Confirmed', color: Colors.light.primary, icon: 'checkmark-circle' },
+  requested: { label: 'Requested', color: '#FF9500', icon: 'time' },
+  accepted: { label: 'Accepted', color: Colors.light.primary, icon: 'checkmark-circle' },
+  paid: { label: 'Paid', color: Colors.light.primary, icon: 'shield-checkmark' },
   in_progress: { label: 'In Progress', color: Colors.light.primary, icon: 'construct' },
-  dispatched: { label: 'In Progress', color: Colors.light.primary, icon: 'construct' },
   completed: { label: 'Completed', color: '#4CD964', icon: 'checkmark-circle' },
+  declined: { label: 'Declined', color: '#8E8E93', icon: 'close-circle' },
+  expired: { label: 'Expired', color: '#8E8E93', icon: 'time' },
   cancelled: { label: 'Cancelled', color: '#8E8E93', icon: 'close-circle' },
+  disputed: { label: 'Disputed', color: '#E5533F', icon: 'flag' },
 };
 
 export default function BookingHistoryScreen() {
@@ -72,7 +75,7 @@ export default function BookingHistoryScreen() {
     end_date: b.date,
     total_amount: 0,
     currency: 'NGN',
-    status: b.status,
+    status: b.status === 'pending' ? 'requested' : b.status,
     created_at: b.createdAt,
   } as ApiBooking));
 
@@ -87,7 +90,7 @@ export default function BookingHistoryScreen() {
   };
 
   const renderBooking = ({ item }: { item: ApiBooking }) => {
-    const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+    const status = STATUS_CONFIG[normaliseStatus(item.status)] || STATUS_CONFIG.requested;
     const creativeName = localNameById.get(String(item.id)) ?? 'Booking';
 
     return (

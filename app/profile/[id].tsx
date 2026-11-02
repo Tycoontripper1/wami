@@ -1,3 +1,4 @@
+import { useAuthGate } from '@/hooks/useAuthGate';
 import { extractList } from '@/utils/extractList';
 import AnimatedHeart from '@/components/AnimatedHeart';
 import BookingModal from '@/components/BookingModal';
@@ -69,6 +70,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
+  const { gate } = useAuthGate();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -180,7 +182,7 @@ export default function ProfileScreen() {
       Alert.alert("Can't Book", "We don't have this creative's info — try opening their profile from the feed again.");
       return;
     }
-    setShowBookingModal(true);
+    gate('Sign in to book, so the creative knows who is asking and you can follow the booking.', () => setShowBookingModal(true));
   };
 
   const handleOpenQuote = () => {
@@ -188,7 +190,7 @@ export default function ProfileScreen() {
       Alert.alert("Can't Request a Quote", "We don't have this creative's info — try opening their profile from the feed again.");
       return;
     }
-    setShowQuoteModal(true);
+    gate('Sign in to ask for a quote.', () => setShowQuoteModal(true));
   };
 
   // POST /v1/reviews — gated server-side by "you must have booked this
@@ -500,7 +502,8 @@ export default function ProfileScreen() {
           <BookingModal
             visible={showBookingModal}
             onClose={() => setShowBookingModal(false)}
-            offeringId={String(id)}
+            listingId={String(id)}
+            price={Number((offering as any).price) || undefined}
             creative={{
               id: creatorId,
               name: creatorName ?? 'Creative',

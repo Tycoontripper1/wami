@@ -42,9 +42,8 @@ const GREEN = '#2BA84A';
 type Status = 'live' | 'draft' | 'soldout';
 
 interface MyItem {
-  /** The listing (offering) id, as the "my items" endpoint returns it. */
+  /** The listing id; /products/:id takes it for edit and delete. */
   id: string;
-  /** The id /products/:id knows this listing by, when it can be matched. */
   productId: string;
   name: string;
   category: string;
@@ -54,18 +53,11 @@ interface MyItem {
   stock?: number;
 }
 
-// The "my items" list returns listings (offerings); edit and delete live on
-// /products/:id, which uses a different id. The same listing shows up in
-// /products with its own id, so match it by title, price and creation minute.
+// Every row now carries listing_id, and /products/:id takes it, so a listing
+// from "my items" and its row in /products line up on one id.
 function matchProduct(offering: any, products: any[]): any | undefined {
-  const created = String(offering.created_at ?? '').slice(0, 16);
-  return products.find(
-    (p) =>
-      p.source !== 'manual' &&
-      p.title === offering.title &&
-      Number(p.price) === Number(offering.price) &&
-      String(p.created_at ?? '').slice(0, 16) === created
-  );
+  const id = String(offering.listing_id ?? offering.id ?? offering.offering_id);
+  return products.find((p) => String(p.listing_id ?? p.id) === id);
 }
 
 function toItem(offering: DiscoveryOffering, products: any[]): MyItem {
@@ -73,10 +65,10 @@ function toItem(offering: DiscoveryOffering, products: any[]): MyItem {
   const stock = match?.stock;
   const soldOut = match?.sold_out === true || stock === 0;
   const isDraft = offering.status === 'draft';
-  const id = String(offering.id ?? offering.offering_id);
+  const id = String(offering.listing_id ?? offering.id ?? offering.offering_id);
   return {
     id,
-    productId: match ? String(match.id) : id,
+    productId: id,
     name: offering.name || offering.title || 'Untitled',
     category: offering.category || '',
     price: Number(offering.price) || 0,

@@ -100,6 +100,10 @@ export default function WelcomeScreen() {
           >
             <Text style={[styles.secondaryText, { color: theme.text }]}>I already have an account</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.browse} onPress={() => router.replace('/(tabs)' as any)} activeOpacity={0.7}>
+            <Text style={[styles.browseText, { color: theme.sub }]}>Browse first</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -107,6 +111,8 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  browse: { alignItems: 'center', paddingVertical: 8 },
+  browseText: { fontSize: 15, fontWeight: '700' },
   container: {
     flex: 1,
   },

@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GuestPrompt from '@/components/GuestPrompt';
 import { useDispatch, useSelector } from 'react-redux';
 
 export default function ProfileScreen() {
@@ -47,7 +48,10 @@ export default function ProfileScreen() {
 
 
 
+  const signedIn = useSelector((state: RootState) => state.auth.isAuthenticated);
+
   useEffect(() => {
+    if (!signedIn) return;
     fetchProfile();
     getBookings({ page: 1 })
       .then((res) => {
@@ -55,7 +59,7 @@ export default function ProfileScreen() {
         setBookingsCount(typeof data?.total === 'number' ? data.total : extractList(data).length);
       })
       .catch((error) => console.error('Error fetching booking count:', error));
-  }, []);
+  }, [signedIn]);
 
   const fetchProfile = async () => {
     try {
@@ -134,6 +138,27 @@ export default function ProfileScreen() {
       ],
     },
   ];
+
+  if (!signedIn) {
+    return (
+      <View style={[styles.container, { backgroundColor: themeColors.background, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <GuestPrompt
+          illustration="town"
+          title="Make Wami yours"
+          message="Sign in to save creatives, book and buy, and keep your orders and chats in one place."
+        />
+        <View style={{ alignItems: 'center', paddingBottom: insets.bottom + 110, gap: 14 }}>
+          <TouchableOpacity onPress={() => router.push('/support' as any)}>
+            <Text style={{ color: Colors.light.primary, fontWeight: '700', fontSize: 15 }}>Help & Support</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/about' as any)}>
+            <Text style={{ color: themeColors.subText, fontWeight: '600', fontSize: 14 }}>About Wami</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
