@@ -89,6 +89,8 @@ export interface CreateProductPayload {
   category: string;
   stock: number;
   status: 'draft' | 'published';
+  /** Ids from POST /media; the first is the cover photo. */
+  media_ids?: string[];
 }
 
 export type UpdateProductPayload = Partial<CreateProductPayload>;
@@ -105,8 +107,8 @@ export const updateProduct = async (
   id: string,
   payload: UpdateProductPayload
 ): Promise<ApiResponse<Product>> => {
-  // The route allows GET, HEAD, PUT and DELETE; PATCH answers 405.
-  return apiClient.put(API_ENDPOINTS.PRODUCTS.UPDATE(id), payload);
+  // PATCH changes only the fields sent; PUT would replace the whole listing.
+  return apiClient.patch(API_ENDPOINTS.PRODUCTS.UPDATE(id), payload);
 };
 
 // Delete a product listing

@@ -3,7 +3,7 @@ import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import PhotoUploadRequirements from '@/components/sell/PhotoUploadRequirements';
 import Colors from '@/constants/Colors';
 import { createProduct } from '@/services/api/productsService';
-import { rememberProductPhoto } from '@/utils/localProductPhotos';
+import { uploadImages } from '@/services/api/mediaService';
 import { Ionicons } from '@/components/FlatIcon';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -78,13 +78,18 @@ export default function SellScreen() {
       return;
     }
 
-    // The backend has no product-image upload yet (a file sent with the create
-    // request is ignored; media_url only takes a link), so the first photo is
-    // remembered on this device against the new listing. See
-    // utils/localProductPhotos.ts.
     setIsListing(true);
     try {
-      const created: any = await createProduct({
+      // Photos go up first; the listing then carries their ids.
+      let mediaIds: string[] = [];
+      try {
+        mediaIds = await uploadImages(photos);
+      } catch (error: any) {
+        console.error('Photo upload failed:', error);
+        Alert.alert("Couldn't upload your photos", error?.message ?? 'Check your connection and try again.');
+        return;
+      }
+      await createProduct({
         title: productName,
         description,
         price: Number(price),
@@ -92,11 +97,8 @@ export default function SellScreen() {
         category: category || 'Other',
         stock: Number(stock) || 1,
         status: 'published',
+        media_ids: mediaIds.length > 0 ? mediaIds : undefined,
       });
-      const listingId = created?.offering?.id ?? created?.data?.offering_id;
-      if (photos[0] && listingId !== undefined) {
-        await rememberProductPhoto(listingId, photos[0]);
-      }
       Alert.alert('Success', 'Your product has been listed!', [
         { text: 'View My Products', onPress: () => router.push('/my-products') },
         { text: 'OK', style: 'cancel' },

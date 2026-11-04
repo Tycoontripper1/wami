@@ -15,7 +15,8 @@ import {
   updateProduct,
 } from '@/services/api/productsService';
 import { extractList } from '@/utils/extractList';
-import { loadLocalProductPhotos, localProductPhoto, rememberProductPhoto } from '@/utils/localProductPhotos';
+import { uploadImage } from '@/services/api/mediaService';
+import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -220,9 +221,18 @@ export default function MyProductsScreen() {
     });
     if (result.canceled || !result.assets[0]?.uri) return;
     const uri = result.assets[0].uri;
-    await rememberProductPhoto(editingItem.id, uri);
-    setItems((prev) => prev.map((i) => (i.id === editingItem.id ? { ...i, image: uri } : i)));
-    setEditingItem((prev) => (prev ? { ...prev, image: uri } : prev));
+    setIsSavingEdit(true);
+    try {
+      const mediaId = await uploadImage(uri, result.assets[0].mimeType);
+      await updateProduct(editingItem.productId, { media_ids: [mediaId] });
+      setItems((prev) => prev.map((i) => (i.id === editingItem.id ? { ...i, image: uri } : i)));
+      setEditingItem((prev) => (prev ? { ...prev, image: uri } : prev));
+    } catch (error: any) {
+      console.error('Photo change failed:', error);
+      Alert.alert("Couldn't change the photo", error?.message ?? 'Please try again.');
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const toggleSelected = (id: string) => {

@@ -230,6 +230,12 @@ export const API_ENDPOINTS = {
     REPORTS: '/reports',
   },
 
+  // Photo uploads; the returned id goes into a listing's media_ids
+  MEDIA: {
+    UPLOAD: '/media',
+    BY_ID: (id: string | number) => `/media/${id}`,
+  },
+
   NOTIFICATIONS: {
     LIST: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',

@@ -21,6 +21,8 @@ export interface CreateOfferingPayload {
   price: number;
   currency: string;
   type: 'service' | 'product';
+  /** Ids from POST /media; the first is the cover photo. */
+  media_ids?: string[];
 }
 
 // GET /offerings
