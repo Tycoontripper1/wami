@@ -1,3 +1,5 @@
+import RoleBadge from '@/components/RoleBadge';
+import { roleOf } from '@/utils/accountRole';
 import Colors from '@/constants/Colors';
 import {
     ApiMessage,
@@ -29,7 +31,7 @@ import { useSelector } from 'react-redux';
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string; name?: string; avatar?: string; recipientId?: string }>();
+  const params = useLocalSearchParams<{ id: string; name?: string; avatar?: string; recipientId?: string; role?: string }>();
   const isNewConversation = params.id === 'new';
   const [conversationId, setConversationId] = useState<string | undefined>(
     isNewConversation ? undefined : params.id
@@ -178,6 +180,7 @@ export default function ChatScreen() {
         )}
         <View style={styles.headerInfo}>
           <Text style={[styles.headerName, { color: themeColors.text }]} numberOfLines={1}>{recipientName}</Text>
+          <RoleBadge role={roleOf(params.role)} small />
         </View>
       </View>
 

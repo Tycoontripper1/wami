@@ -8,6 +8,8 @@ import { RootState } from '@/store/store';
 import { extractList } from '@/utils/extractList';
 import { Ionicons } from '@/components/FlatIcon';
 import FlatIllustration from '@/components/illustrations/FlatIllustration';
+import RoleBadge from '@/components/RoleBadge';
+import { roleOf } from '@/utils/accountRole';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -194,6 +196,9 @@ export default function ProfileScreen() {
             <Text style={[styles.userName, { color: themeColors.text }]}>
               {user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name}` : 'Guest User')}
             </Text>
+            <View style={{ marginTop: 6, marginBottom: 4 }}>
+              <RoleBadge role={roleOf(user?.account_type)} />
+            </View>
             <Text style={[styles.userEmail, { color: themeColors.subText }]}>
               {user?.email || 'guest@wami.com'}
             </Text>

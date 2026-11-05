@@ -1,7 +1,11 @@
 import OnboardingButtons from '@/components/creative-onboarding/OnboardingButtons';
 import OptionCard from '@/components/creative-onboarding/OptionCard';
 import OnboardingProgress from '@/components/OnboardingProgress';
-import { setVisibility } from '@/store/creativeOnboardingSlice';
+import { Alert } from '@/components/AppAlert';
+import { consolidateOnboardingData, isUnauthenticatedError } from '@/services/api/onboardingUtils';
+import { authService } from '@/services/authService';
+import { setComplete, setVisibility } from '@/store/creativeOnboardingSlice';
+import { setSetupPending } from '@/store/onboardingSlice';
 import { RootState } from '@/store/store';
 import { ProfileVisibility } from '@/types/creativeOnboarding';
 import { useRouter } from 'expo-router';
@@ -26,6 +30,9 @@ export default function CreativeVisibilityScreen() {
   const selectedVisibility = useSelector(
     (state: RootState) => state.creativeOnboarding.visibility
   );
+  const onboarding = useSelector((state: RootState) => state.onboarding);
+  const creative = useSelector((state: RootState) => state.creativeOnboarding);
+  const [isSaving, setIsSaving] = React.useState(false);
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -37,12 +44,34 @@ export default function CreativeVisibilityScreen() {
     dispatch(setVisibility(visibility));
   };
 
-  const handleSkip = () => {
-    router.push('./creative-complete' as any);
-  };
-
-  const handleNext = () => {
-    router.push('./creative-complete' as any);
+  // This is the last question, so answering it saves the account. The "all
+  // set" screen only appears once the server has said yes.
+  const finish = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await authService.setupAccount(consolidateOnboardingData(onboarding, creative));
+      dispatch(setComplete(true));
+      router.replace('./creative-complete' as any);
+    } catch (error: any) {
+      console.error('Creative setup failed:', error);
+      if (isUnauthenticatedError(error)) {
+        dispatch(setSetupPending(true));
+        // Go first (Alert is a no-op on web), then explain over the sign-in screen.
+        router.replace('/(auth)/sign-in' as any);
+        Alert.alert(
+          'Sign in to finish',
+          'Your session has ended. Sign in and we will finish setting up your account with your answers.'
+        );
+        return;
+      }
+      Alert.alert(
+        "Couldn't save your answers",
+        error?.message || 'We could not complete your account setup. Please try again.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -76,8 +105,10 @@ export default function CreativeVisibilityScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <OnboardingButtons
-          onSkip={handleSkip}
-          onNext={handleNext}
+          onSkip={finish}
+          onNext={finish}
+          nextLabel="Finish"
+          nextLoading={isSaving}
         />
       </View>
     </View>

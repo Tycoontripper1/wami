@@ -1,3 +1,5 @@
+import RoleBadge from '@/components/RoleBadge';
+import { roleOf } from '@/utils/accountRole';
 import { extractList } from '@/utils/extractList';
 import EmptyState from '@/components/EmptyState';
 import { SkeletonRow } from '@/components/Skeleton';
@@ -107,7 +109,7 @@ export default function MessagesScreen() {
         onPress={() =>
           router.push({
             pathname: '/chat/[id]',
-            params: { id: String(item.id), name: displayName(item), avatar: avatar ?? '' },
+            params: { id: String(item.id), name: displayName(item), avatar: avatar ?? '', role: item.recipient?.account_type ?? item.account_type ?? '' },
           } as any)
         }
       >
@@ -126,6 +128,7 @@ export default function MessagesScreen() {
               {displayName(item)}
             </Text>
           </View>
+          <RoleBadge role={roleOf(item.recipient?.account_type ?? item.account_type)} small />
           <View style={styles.messageRow}>
             <Text
               style={[

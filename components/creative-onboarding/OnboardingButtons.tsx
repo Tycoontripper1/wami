@@ -1,12 +1,13 @@
 import Colors from '@/constants/Colors';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Text } from '@/components/AppText';
 
 interface OnboardingButtonsProps {
   onSkip?: () => void;
   onNext: () => void;
   nextDisabled?: boolean;
+  nextLoading?: boolean;
   nextLabel?: string;
   showSkip?: boolean;
 }
@@ -15,6 +16,7 @@ export default function OnboardingButtons({
   onSkip,
   onNext,
   nextDisabled = false,
+  nextLoading = false,
   nextLabel = 'Next',
   showSkip = true,
 }: OnboardingButtonsProps) {
@@ -32,6 +34,7 @@ export default function OnboardingButtons({
         <TouchableOpacity
           style={[styles.skipButton, { borderColor: themeColors.skipBorder }]}
           onPress={onSkip}
+          disabled={nextLoading}
         >
           <Text style={[styles.skipText, { color: themeColors.skipText }]}>Skip</Text>
         </TouchableOpacity>
@@ -43,9 +46,9 @@ export default function OnboardingButtons({
           !showSkip && styles.nextButtonFull,
         ]}
         onPress={onNext}
-        disabled={nextDisabled}
+        disabled={nextDisabled || nextLoading}
       >
-        <Text style={styles.nextText}>{nextLabel}</Text>
+        {nextLoading ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.nextText}>{nextLabel}</Text>}
       </TouchableOpacity>
     </View>
   );

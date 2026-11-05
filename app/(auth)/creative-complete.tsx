@@ -1,24 +1,16 @@
 import Colors from '@/constants/Colors';
-import { consolidateOnboardingData, isUnauthenticatedError } from '@/services/api/onboardingUtils';
-import { setSetupPending } from '@/store/onboardingSlice';
-import { authService } from '@/services/authService';
-import { setComplete } from '@/store/creativeOnboardingSlice';
-import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { Alert } from '@/components/AppAlert';
+import React from 'react';
+import { StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch, useSelector } from 'react-redux';
 
 
 
 export default function CreativeCompleteScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const dispatch = useDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -28,53 +20,10 @@ export default function CreativeCompleteScreen() {
     subText: isDark ? '#ccc' : '#666',
   };
 
-  const { onboarding, creativeOnboarding: creative } = useSelector((state: RootState) => state);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  useEffect(() => {
-    // We only call setup if not already complete in this screen
-    if (!creative.isComplete) {
-       // Do nothing, wait for user to click Get Started or auto-submit
-    }
-  }, [creative.isComplete]);
-
-  const handleGetStarted = async () => {
-    try {
-      setIsSubmitting(true);
-      
-      // Consolidate and map data
-      const setupData = consolidateOnboardingData(onboarding, creative);
-      
-      // Call API
-      await authService.setupAccount(setupData);
-      
-      // Mark as complete in state
-      dispatch(setComplete(true));
-      
-      router.replace('/(tabs)');
-    } catch (error: any) {
-      console.error('Creative setup failed:', error);
-      setIsSubmitting(false);
-
-      if (isUnauthenticatedError(error)) {
-        dispatch(setSetupPending(true));
-        // Go first (Alert is a no-op on web), then explain over the sign-in screen.
-        router.replace('/(auth)/sign-in' as any);
-        Alert.alert(
-          'Sign in to finish',
-          'Your session has ended. Sign in and we will finish setting up your account with your answers.',
-        );
-        return;
-      }
-
-      Alert.alert(
-        'Setup Failed',
-        error.message || 'We could not complete your account setup. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
+  // The account was saved on the previous screen; this is only the welcome.
+  const handleGetStarted = () => {
+    router.replace('/(tabs)');
   };
-
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -92,19 +41,9 @@ export default function CreativeCompleteScreen() {
       </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 30 }]}>
-        <TouchableOpacity 
-          style={[styles.button, isSubmitting && { opacity: 0.8 }]} 
-          onPress={handleGetStarted}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#0F1419" />
-          ) : (
-            <>
-              <Text style={styles.buttonText}>Get Started</Text>
-              <Ionicons name="arrow-forward" size={20} color="#0F1419" />
-            </>
-          )}
+        <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
+          <Text style={styles.buttonText}>Get Started</Text>
+          <Ionicons name="arrow-forward" size={20} color="#0F1419" />
         </TouchableOpacity>
       </View>
 

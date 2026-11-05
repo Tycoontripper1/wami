@@ -2,7 +2,9 @@ import { Text } from '@/components/AppText';
 import EmptyState from '@/components/EmptyState';
 import { ListingFeedCard, ListingData } from '@/components/feed/FeedCards';
 import { Ionicons } from '@/components/FlatIcon';
+import RoleBadge from '@/components/RoleBadge';
 import SafetySheet from '@/components/SafetySheet';
+import { roleOf } from '@/utils/accountRole';
 import { Alert } from '@/components/AppAlert';
 import Colors from '@/constants/Colors';
 import { useAuthGate } from '@/hooks/useAuthGate';
@@ -138,7 +140,7 @@ export default function CreatorScreen() {
       if (!creator) return;
       router.push({
         pathname: '/chat/[id]',
-        params: { id: 'new', recipientId: String(creator.id), name: creator.name, avatar: absoluteUrl(creator.avatar_url) ?? '' },
+        params: { id: 'new', recipientId: String(creator.id), name: creator.name, avatar: absoluteUrl(creator.avatar_url) ?? '', role: roleOf(creator.account_type) ?? 'creative' },
       } as any);
     });
 
@@ -199,6 +201,9 @@ export default function CreatorScreen() {
               {creator.verified ? <Ionicons name="checkmark-circle" size={20} color={Colors.light.primary} /> : null}
             </View>
             <Text style={[styles.handle, { color: t.sub }]}>@{creator.username}</Text>
+            <View style={{ marginTop: 8 }}>
+              <RoleBadge role={roleOf(creator.account_type) ?? 'creative'} />
+            </View>
             {place ? (
               <View style={styles.placeRow}>
                 <Ionicons name="location" size={15} color={Colors.light.primary} accent={ORANGE} />

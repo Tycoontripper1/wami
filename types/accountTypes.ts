@@ -38,6 +38,7 @@ export interface DiscoverSetup {
 
 export interface PromoteSetup {
   account_type: 'promote';
+  categories: number[];
   creative_categories: number[];
   offering_type: OfferingType;
   brand: BrandData;
