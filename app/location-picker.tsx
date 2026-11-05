@@ -1,11 +1,13 @@
 import Colors from '@/constants/Colors';
 import { getRegionCodes, REGIONS } from '@/data/regions';
-import { CITY_COORDS, CITY_NOTES, COUNTRY_TONE, COUNTRY_VIEW } from '@/data/regionGeo';
+import { CITY_COORDS, CITY_NOTES, COUNTRY_TONE, COUNTRY_VIEW, EXTRA_CITY_COORDS } from '@/data/regionGeo';
 import { Basemap, BasemapCredit, basemapMapType } from '@/components/maps/Basemap';
 import MapBubble, { BUBBLE_ANCHOR } from '@/components/maps/MapBubble';
 import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/components/maps/mapStyles';
-import { getNearYou } from '@/services/api/discoveryService';
+import { getCities, getMapPlaces } from '@/services/api/creatorsService';
 import { extractList } from '@/utils/extractList';
+import { bboxFor } from '@/utils/mapBox';
+import { absoluteUrl } from '@/utils/mediaUrl';
 import { setLocation } from '@/store/locationSlice';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
@@ -50,6 +52,12 @@ export default function LocationPickerScreen() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   // Creatives that carry coordinates show up on the map as photo bubbles.
   const [nearby, setNearby] = useState<NearbyCreative[]>([]);
+  // Results of searching for any place by name.
+  type FoundPlace = { key: string; title: string; subtitle: string; latitude: number; longitude: number; city: string; country: string; iso: string };
+  const [found, setFound] = useState<FoundPlace[]>([]);
+  const [searching, setSearching] = useState(false);
+  // Cities that have creatives, from the server, with how many.
+  const [apiCities, setApiCities] = useState<{ name: string; country?: string; latitude: number; longitude: number; count: number }[]>([]);
   
   // Map state
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_REGION);
@@ -92,28 +100,83 @@ export default function LocationPickerScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    getNearYou()
-      .then((res) => {
-        if (cancelled) return;
-        const list = extractList<any>(res.data)
+    const country = COUNTRY_VIEW[currentLocation.currentRegion] ?? COUNTRY_VIEW.NG;
+    Promise.allSettled([getMapPlaces({ bbox: bboxFor(country), limit: 200 }), getCities()]).then(([places, cities]) => {
+      if (cancelled) return;
+      if (places.status === 'fulfilled') {
+        const list = extractList<any>(places.value.data)
           .map((o) => ({
-            id: String(o.id ?? o.offering_id),
-            name: o.name || o.title || '',
-            role: o.role || o.category || undefined,
-            image: o.image || o.images?.[0] || o.media_url || o.thumbnail_url || undefined,
-            latitude: Number(o.location?.lat ?? o.lat),
-            longitude: Number(o.location?.lng ?? o.lng),
+            id: String(o.id),
+            name: String(o.name ?? ''),
+            role: o.role ? String(o.role) : undefined,
+            image: absoluteUrl(o.avatar_url),
+            latitude: Number(o.lat),
+            longitude: Number(o.lng),
           }))
           .filter((o) => o.name && Number.isFinite(o.latitude) && Number.isFinite(o.longitude));
-        setNearby(list.slice(0, 25));
-      })
-      .catch(() => {
-        // The map works without them; the cities are still there.
-      });
+        setNearby(list.slice(0, 40));
+      }
+      if (cities.status === 'fulfilled') {
+        setApiCities(
+          extractList<any>(cities.value.data)
+            .map((c) => ({ name: String(c.name), country: c.country ? String(c.country) : undefined, latitude: Number(c.lat), longitude: Number(c.lng), count: Number(c.creators_count ?? 0) }))
+            .filter((c) => c.name && Number.isFinite(c.latitude) && Number.isFinite(c.longitude))
+        );
+      }
+      // The map and the built-in cities work without either call.
+    });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Look a place up by name once the person pauses typing. The phone's own
+  // geocoder does this, so any city or area works, not only the ones listed.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 3) {
+      setFound([]);
+      setSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const country = REGIONS[selectedRegion]?.name;
+        const query = country && !q.includes(',') && !q.toLowerCase().includes(country.toLowerCase()) ? `${q}, ${country}` : q;
+        const hits = (await Location.geocodeAsync(query)).slice(0, 4);
+        const named = await Promise.all(
+          hits.map(async (h) => {
+            const a = (await Location.reverseGeocodeAsync({ latitude: h.latitude, longitude: h.longitude }).catch(() => []))[0];
+            const city = a?.city || a?.subregion || a?.district || a?.region || q;
+            const countryName = a?.country || '';
+            return {
+              key: `${city}|${countryName}|${h.latitude.toFixed(2)}`,
+              title: city,
+              subtitle: [a?.region && a.region !== city ? a.region : '', countryName].filter(Boolean).join(', '),
+              latitude: h.latitude,
+              longitude: h.longitude,
+              city,
+              country: countryName,
+              iso: a?.isoCountryCode || selectedRegion,
+            };
+          })
+        );
+        if (cancelled) return;
+        const seen = new Set<string>();
+        setFound(named.filter((n) => (seen.has(`${n.city}|${n.country}`) ? false : (seen.add(`${n.city}|${n.country}`), true))));
+      } catch {
+        if (!cancelled) setFound([]);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, selectedRegion]);
 
   const getCurrentLocation = async () => {
     setIsLoadingLocation(true);
@@ -198,33 +261,46 @@ export default function LocationPickerScreen() {
   };
 
   const handleConfirmLocation = () => {
-    if (selectedLocation) {
-        // Check if we support this region, otherwise default to NG or keep current if valid
-        // Ideally we should add the new region if it's not in our list, but for now fallback logic
-        const regionCode = selectedLocation.isoCountryCode || 'NG';
-        
-        // If region not supported, maybe warn? or just use what we have
-        // For this demo, let's just save it. The currency logic defaults to NG if not found.
-        
-        dispatch(setLocation({
-            region: regionCode,
-            city: selectedLocation.city || 'Unknown',
-            coordinates: {
-                lat: selectedLocation.latitude,
-                lng: selectedLocation.longitude
-            }
-        }));
-        router.back();
-    }
+    if (!selectedLocation) return;
+    dispatch(
+      setLocation({
+        region: selectedLocation.isoCountryCode || 'NG',
+        city: selectedLocation.city || 'Unknown',
+        coordinates: { lat: selectedLocation.latitude, lng: selectedLocation.longitude },
+      })
+    );
+    router.back();
   };
 
   const regionCodes = getRegionCodes();
   const selectedRegionData = REGIONS[selectedRegion];
   
-  // Filter cities based on search
-  const filteredCities = selectedRegionData?.cities.filter((city) =>
-    city.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  // The country's built-in cities plus any the server knows that the list does
+  // not, with the number of creatives in each. Busiest first, then the rest.
+  const countryName = selectedRegionData?.name.toLowerCase();
+  const serverHere = apiCities.filter((c) => !c.country || c.country.toLowerCase() === countryName);
+  const countFor = (city: string) => serverHere.find((c) => c.name.toLowerCase() === city.toLowerCase())?.count ?? 0;
+  const coordsFor = (city: string) => {
+    const known = CITY_COORDS[`${selectedRegion}:${city}`] ?? EXTRA_CITY_COORDS[`${selectedRegion}:${city}`];
+    if (known) return known;
+    const fromServer = serverHere.find((c) => c.name.toLowerCase() === city.toLowerCase());
+    return fromServer ? { latitude: fromServer.latitude, longitude: fromServer.longitude } : undefined;
+  };
+  const cityNames = (() => {
+    const names = [...(selectedRegionData?.cities ?? [])];
+    Object.keys(EXTRA_CITY_COORDS)
+      .filter((k) => k.startsWith(`${selectedRegion}:`))
+      .forEach((k) => names.push(k.split(':')[1]));
+    serverHere.forEach((c) => {
+      if (!names.some((n) => n.toLowerCase() === c.name.toLowerCase())) names.push(c.name);
+    });
+    return names.sort((a, b) => countFor(b) - countFor(a));
+  })();
+  const filteredCities = cityNames.filter((city) => city.toLowerCase().includes(searchQuery.toLowerCase()));
+  const peopleLabel = (city: string) => {
+    const n = countFor(city);
+    return n > 0 ? `${n} creative${n === 1 ? '' : 's'}` : undefined;
+  };
 
   // Filter regions based on search
   const filteredRegions = regionCodes.filter((code) => {
@@ -236,7 +312,7 @@ export default function LocationPickerScreen() {
   });
 
   const handleSelectCity = (city: string) => {
-    const coords = CITY_COORDS[`${selectedRegion}:${city}`];
+    const coords = coordsFor(city);
     if (!coords) {
       // No coordinates for this city: save the name straight away.
       dispatch(setLocation({ region: selectedRegion, city }));
@@ -251,6 +327,12 @@ export default function LocationPickerScreen() {
       isoCountryCode: selectedRegion,
     });
     mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.3, longitudeDelta: 0.3 }, 700);
+  };
+
+  const handleSelectFound = (p: FoundPlace) => {
+    setSelectedLocation({ latitude: p.latitude, longitude: p.longitude, city: p.city, country: p.country, isoCountryCode: p.iso });
+    if (REGIONS[p.iso]) setSelectedRegion(p.iso);
+    mapRef.current?.animateToRegion({ latitude: p.latitude, longitude: p.longitude, latitudeDelta: 0.15, longitudeDelta: 0.15 }, 700);
   };
 
   const handleSelectCountry = (code: string) => {
@@ -281,8 +363,8 @@ export default function LocationPickerScreen() {
         >
             <Basemap dark={isDark} />
             {/* The popular cities of the chosen country, as tappable bubbles */}
-            {(selectedRegionData?.cities ?? []).map((city) => {
-                const coords = CITY_COORDS[`${selectedRegion}:${city}`];
+            {cityNames.filter((city) => (selectedRegionData?.cities ?? []).includes(city) || countFor(city) > 0 || selectedLocation?.city === city).map((city) => {
+                const coords = coordsFor(city);
                 if (!coords) return null;
                 const isSelected = selectedLocation?.city === city && selectedLocation?.isoCountryCode === selectedRegion;
                 return (
@@ -295,7 +377,7 @@ export default function LocationPickerScreen() {
                     >
                         <MapBubble
                             title={city}
-                            subtitle={CITY_NOTES[`${selectedRegion}:${city}`]}
+                            subtitle={peopleLabel(city) ?? CITY_NOTES[`${selectedRegion}:${city}`]}
                             selected={isSelected}
                             tone={COUNTRY_TONE[selectedRegion]}
                         />
@@ -317,7 +399,7 @@ export default function LocationPickerScreen() {
 
             {/* A spot picked by tapping the map or by GPS (not one of the cities) */}
             {selectedLocation &&
-                !(selectedRegionData?.cities ?? []).some((c) => c === selectedLocation.city) && (
+                !cityNames.some((c) => c === selectedLocation.city && ((selectedRegionData?.cities ?? []).includes(c) || countFor(c) > 0)) && (
                 <Marker
                     coordinate={{
                         latitude: selectedLocation.latitude,
@@ -388,7 +470,7 @@ export default function LocationPickerScreen() {
             <Ionicons name="search" size={20} color={themeColors.subText} />
             <TextInput
                 style={[styles.searchInput, { color: themeColors.text }]}
-                placeholder="Search city manually..."
+                placeholder="Search any city or area"
                 placeholderTextColor={themeColors.subText}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -399,6 +481,32 @@ export default function LocationPickerScreen() {
                 </TouchableOpacity>
             )}
             </View>
+
+            {/* Places found by name */}
+            {searchQuery.trim().length >= 3 ? (
+              <View style={{ marginBottom: 8 }}>
+                <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>PLACES</Text>
+                {searching ? <ActivityIndicator color={Colors.light.primary} style={{ marginVertical: 12 }} /> : null}
+                {!searching && found.length === 0 ? (
+                  <Text style={{ color: themeColors.subText, fontSize: 14, marginBottom: 8 }}>
+                    We could not find that. Try the city name, or tap the map to drop a pin.
+                  </Text>
+                ) : null}
+                {found.map((p) => (
+                  <TouchableOpacity
+                    key={p.key}
+                    style={[styles.cityCard, { backgroundColor: themeColors.cardBg, borderLeftColor: 'transparent' }]}
+                    onPress={() => handleSelectFound(p)}
+                  >
+                    <Ionicons name="location" size={20} color={Colors.light.primary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.cityName, { color: themeColors.text }]}>{p.title}</Text>
+                      {p.subtitle ? <Text style={{ color: themeColors.subText, fontSize: 12, marginLeft: 12 }}>{p.subtitle}</Text> : null}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
 
             {/* Countries/Regions */}
             <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>SELECT COUNTRY</Text>
@@ -436,7 +544,7 @@ export default function LocationPickerScreen() {
 
             {/* Cities from Config */}
             <Text style={[styles.sectionTitle, { color: themeColors.subText }]}>
-            POPULAR CITIES IN {selectedRegionData?.name.toUpperCase()}
+            CITIES IN {selectedRegionData?.name.toUpperCase()}
             </Text>
             {filteredCities.map((city) => {
                 const isCurrent = city === currentLocation.currentCity && selectedRegion === currentLocation.currentRegion;
@@ -463,6 +571,9 @@ export default function LocationPickerScreen() {
                     ]}>
                     {city}
                     </Text>
+                    {peopleLabel(city) ? (
+                      <Text style={{ color: themeColors.subText, fontSize: 13, marginRight: 8 }}>{peopleLabel(city)}</Text>
+                    ) : null}
                     {isCurrent && (
                     <Ionicons name="checkmark-circle" size={20} color={Colors.light.primary} />
                     )}

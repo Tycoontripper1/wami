@@ -82,6 +82,46 @@ export const CITY_COORDS: Record<string, { latitude: number; longitude: number }
   'AU:Sydney': { latitude: -33.8688, longitude: 151.2093 },
 };
 
+/**
+ * More places to pick from, listed but not drawn as bubbles on the map (eight
+ * labelled cities already fill a country-wide view). Anything not here is found
+ * with the place search in the picker.
+ */
+export const EXTRA_CITY_COORDS: Record<string, { latitude: number; longitude: number }> = {
+  'NG:Ikeja': { latitude: 6.6018, longitude: 3.3515 },
+  'NG:Lekki': { latitude: 6.4698, longitude: 3.5852 },
+  'NG:Abeokuta': { latitude: 7.1475, longitude: 3.3619 },
+  'NG:Ilorin': { latitude: 8.4966, longitude: 4.5421 },
+  'NG:Owerri': { latitude: 5.4836, longitude: 7.0333 },
+  'NG:Uyo': { latitude: 5.0377, longitude: 7.9128 },
+  'NG:Warri': { latitude: 5.5167, longitude: 5.75 },
+  'NG:Jos': { latitude: 9.8965, longitude: 8.8583 },
+  'NG:Calabar': { latitude: 4.9757, longitude: 8.3417 },
+  'NG:Akure': { latitude: 7.2526, longitude: 5.1931 },
+  'NG:Asaba': { latitude: 6.198, longitude: 6.7338 },
+  'NG:Maiduguri': { latitude: 11.8333, longitude: 13.15 },
+  'NG:Sokoto': { latitude: 13.0059, longitude: 5.2476 },
+  'NG:Yola': { latitude: 9.2035, longitude: 12.4954 },
+  'NG:Abakaliki': { latitude: 6.3249, longitude: 8.1137 },
+  'NG:Awka': { latitude: 6.2107, longitude: 7.0719 },
+  'NG:Lokoja': { latitude: 7.8023, longitude: 6.7333 },
+  'NG:Makurdi': { latitude: 7.7337, longitude: 8.5214 },
+  'NG:Minna': { latitude: 9.6139, longitude: 6.5569 },
+  'NG:Osogbo': { latitude: 7.7827, longitude: 4.5418 },
+  'NG:Umuahia': { latitude: 5.5265, longitude: 7.4906 },
+  'NG:Bauchi': { latitude: 10.3158, longitude: 9.8442 },
+  'NG:Gombe': { latitude: 10.2897, longitude: 11.1673 },
+  'NG:Katsina': { latitude: 12.9908, longitude: 7.6018 },
+  'NG:Jalingo': { latitude: 8.8937, longitude: 11.3596 },
+  'NG:Birnin Kebbi': { latitude: 12.4539, longitude: 4.1975 },
+  'NG:Lafia': { latitude: 8.4939, longitude: 8.5153 },
+  'NG:Dutse': { latitude: 11.7561, longitude: 9.3389 },
+  'NG:Damaturu': { latitude: 11.747, longitude: 11.9609 },
+  'NG:Yenagoa': { latitude: 4.9267, longitude: 6.2676 },
+  'NG:Ado Ekiti': { latitude: 7.6211, longitude: 5.2214 },
+  'NG:Zaria': { latitude: 11.0855, longitude: 7.7199 },
+};
+
 /** A short factual line shown under a city's name on the map (state or role). */
 export const CITY_NOTES: Record<string, string> = {
   'NG:Lagos': 'commercial capital',

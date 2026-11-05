@@ -7,8 +7,10 @@ import { DARK_MAP_STYLE, LIGHT_MAP_STYLE } from '@/components/maps/mapStyles';
 import Colors from '@/constants/Colors';
 import { CITY_COORDS, CITY_NOTES, COUNTRY_TONE, COUNTRY_VIEW } from '@/data/regionGeo';
 import { useLocation } from '@/hooks/useLocationData';
-import { DiscoveryOffering, getDiscoveryFeed, getNearYou } from '@/services/api/discoveryService';
+import { getCities, getMapPlaces } from '@/services/api/creatorsService';
 import { extractList } from '@/utils/extractList';
+import { absoluteUrl } from '@/utils/mediaUrl';
+import { bboxFor } from '@/utils/mapBox';
 import { openCreator } from '@/utils/openCreator';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -46,61 +48,29 @@ type Place = {
   tags: string[];
 };
 
-// A stable pseudo-random spread so items sharing a city don't sit on one point.
-function spread(id: string, radius = 0.035) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  const angle = ((h >>> 0) % 360) * (Math.PI / 180);
-  const dist = radius * (0.35 + (((h >>> 9) & 0xff) / 255) * 0.65);
-  return { dLat: Math.sin(angle) * dist, dLng: Math.cos(angle) * dist };
-}
-
-// City centre by name, from any supported country.
-const CITY_BY_NAME: Record<string, { latitude: number; longitude: number }> = {};
-Object.entries(CITY_COORDS).forEach(([key, coords]) => {
-  CITY_BY_NAME[key.split(':')[1].toLowerCase()] = coords;
-});
-
-function toPlace(o: DiscoveryOffering): Place | null {
-  const id = String(o.id ?? o.offering_id ?? '');
-  const name = String(o.name || o.title || '').trim();
-  if (!id || !name) return null;
-
-  const lat = Number(o.location?.lat ?? o.lat);
-  const lng = Number(o.location?.lng ?? o.lng);
-  const city = o.location?.city ? String(o.location.city) : undefined;
-
-  let latitude: number;
-  let longitude: number;
-  let approximate = false;
-  if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
-    latitude = lat;
-    longitude = lng;
-  } else {
-    const centre = city ? CITY_BY_NAME[city.toLowerCase()] : undefined;
-    if (!centre) return null;
-    const { dLat, dLng } = spread(id);
-    latitude = centre.latitude + dLat;
-    longitude = centre.longitude + dLng;
-    approximate = true;
-  }
-
-  const category = String(o.category || o.role || '').trim();
+// GET /map/places returns people with their own coordinates, already blurred
+// to about 500 m by the server, so every pin is placed where the API says.
+function toPlace(row: any): Place | null {
+  const id = String(row?.id ?? '');
+  const name = String(row?.name ?? '').trim();
+  const latitude = Number(row?.lat);
+  const longitude = Number(row?.lng);
+  if (!id || !name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  const role = String(row?.role ?? '').trim();
   return {
     id,
     name,
-    role: String(o.role || o.category || '').trim(),
-    category,
-    image: o.media_url || o.thumbnail_url || o.image || o.images?.[0] || undefined,
-    city,
-    distance: typeof o.distance_km === 'number' ? `${o.distance_km.toFixed(1)} km away` : undefined,
+    role,
+    category: role,
+    image: absoluteUrl(row?.avatar_url),
+    city: row?.city ? String(row.city) : undefined,
     latitude,
     longitude,
-    approximate,
-    creatorId: o.creator?.id !== undefined ? String(o.creator.id) : undefined,
-    creatorName: o.creator?.name,
-    creatorUsername: o.creator?.username,
-    tags: Array.isArray(o.tags) ? o.tags.map(String) : [],
+    approximate: false,
+    creatorId: id,
+    creatorName: name,
+    creatorUsername: row?.username ? String(row.username) : undefined,
+    tags: [],
   };
 }
 
@@ -112,6 +82,7 @@ export default function ExploreMapScreen() {
   const { city, regionCode, coordinates } = useLocation();
 
   const [places, setPlaces] = useState<Place[]>([]);
+  const [apiCities, setApiCities] = useState<{ name: string; latitude: number; longitude: number; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState('');
@@ -134,25 +105,32 @@ export default function ExploreMapScreen() {
     setLoading(true);
     setFailed(false);
     try {
-      const [near, feed] = await Promise.allSettled([getNearYou(), getDiscoveryFeed()]);
-      if (near.status === 'rejected' && feed.status === 'rejected') {
+      const country = COUNTRY_VIEW[regionCode] ?? COUNTRY_VIEW.NG;
+      const [mapRes, cityRes] = await Promise.allSettled([
+        getMapPlaces({ bbox: bboxFor(country), limit: 200 }),
+        getCities(),
+      ]);
+      if (mapRes.status === 'rejected') {
         setFailed(true);
         return;
       }
-      const raw: DiscoveryOffering[] = [
-        ...(near.status === 'fulfilled' ? extractList<DiscoveryOffering>(near.value.data) : []),
-        ...(feed.status === 'fulfilled' ? extractList<DiscoveryOffering>(feed.value.data) : []),
-      ];
       const seen = new Set<string>();
       const next: Place[] = [];
-      raw.forEach((o) => {
-        const p = toPlace(o);
+      extractList<any>(mapRes.value.data).forEach((row) => {
+        const p = toPlace(row);
         if (p && !seen.has(p.id)) {
           seen.add(p.id);
           next.push(p);
         }
       });
       setPlaces(next);
+      if (cityRes.status === 'fulfilled') {
+        setApiCities(
+          extractList<any>(cityRes.value.data)
+            .map((c) => ({ name: String(c.name), latitude: Number(c.lat), longitude: Number(c.lng), count: Number(c.creators_count ?? 0) }))
+            .filter((c) => Number.isFinite(c.latitude) && Number.isFinite(c.longitude))
+        );
+      }
     } catch {
       setFailed(true);
     } finally {
@@ -200,13 +178,17 @@ export default function ExploreMapScreen() {
   // The country's cities are always on the map as bubbles; tapping one flies there.
   const cityBubbles = useMemo(
     () =>
-      Object.entries(CITY_COORDS)
+      apiCities.length > 0
+        ? apiCities.map((c) => ({ name: c.name, key: `${regionCode}:${c.name}`, latitude: c.latitude, longitude: c.longitude }))
+        : Object.entries(CITY_COORDS)
         .filter(([key]) => key.startsWith(`${regionCode}:`))
         .map(([key, coords]) => ({ name: key.split(':')[1], key, ...coords })),
-    [regionCode]
+    [regionCode, apiCities]
   );
 
-  const cityCount = (name: string) => places.filter((p) => p.city?.toLowerCase() === name.toLowerCase()).length;
+  const cityCount = (name: string) =>
+    apiCities.find((c) => c.name.toLowerCase() === name.toLowerCase())?.count ??
+    places.filter((p) => p.city?.toLowerCase() === name.toLowerCase()).length;
 
   const selectCity = (name: string, coords: { latitude: number; longitude: number }) => {
     setSelectedId(null);
