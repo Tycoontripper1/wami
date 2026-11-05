@@ -1,3 +1,4 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import WamiLoader from '@/components/WamiLoader';
 import Colors from '@/constants/Colors';
 import { requestPayout } from '@/services/api/sellerService';
@@ -40,7 +41,7 @@ export default function WithdrawScreen() {
   };
 
   const handleWithdraw = async () => {
-    const numericAmount = parseFloat(amount);
+    const numericAmount = parseAmount(amount);
     if (!numericAmount || numericAmount <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount to withdraw.');
       return;
@@ -103,7 +104,7 @@ export default function WithdrawScreen() {
         <TextInput
           style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.text, borderColor: themeColors.border }]}
           value={amount}
-          onChangeText={setAmount}
+          onChangeText={(t) => setAmount(formatAmountInput(t, { decimals: true }))}
           keyboardType="numeric"
           placeholder="e.g. 20000"
           placeholderTextColor={themeColors.subText}

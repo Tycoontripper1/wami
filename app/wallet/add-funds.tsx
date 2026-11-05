@@ -1,3 +1,4 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import Colors from '@/constants/Colors';
 import { useLocation } from '@/hooks/useLocationData';
 import { RootState } from '@/store/store';
@@ -49,11 +50,11 @@ export default function AddFundsScreen() {
   const isNigeria = region.code === 'NG';
 
   const handlePresetSelect = (value: number) => {
-    setAmount(value.toString());
+    setAmount(formatAmountInput(value.toString()));
   };
 
   const handleAddFunds = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!amount || parseAmount(amount) <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
@@ -103,7 +104,7 @@ export default function AddFundsScreen() {
               <TextInput
                 style={[styles.amountInput, { color: themeColors.text }]}
                 value={amount}
-                onChangeText={setAmount}
+                onChangeText={(t) => setAmount(formatAmountInput(t, { decimals: true }))}
                 keyboardType="numeric"
                 placeholder="0.00"
                 placeholderTextColor={themeColors.subText}
@@ -122,11 +123,11 @@ export default function AddFundsScreen() {
                     styles.presetButton,
                     {
                       backgroundColor:
-                        amount === preset.toString()
+                        parseAmount(amount) === preset
                           ? Colors.light.primary
                           : themeColors.cardBg,
                       borderColor:
-                        amount === preset.toString()
+                        parseAmount(amount) === preset
                           ? Colors.light.primary
                           : themeColors.border,
                     },
@@ -139,7 +140,7 @@ export default function AddFundsScreen() {
                       styles.presetText,
                       {
                         color:
-                          amount === preset.toString() ? '#0F1419' : themeColors.text,
+                          parseAmount(amount) === preset ? '#0F1419' : themeColors.text,
                       },
                     ]}
                   >

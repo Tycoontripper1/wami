@@ -1,3 +1,4 @@
+import { absoluteUrl } from '@/utils/mediaUrl';
 import type { CreativeData } from '@/components/SwipeableCardStack';
 import type { DiscoveryOffering } from '@/services/api/discoveryService';
 
@@ -25,6 +26,6 @@ export const mapOfferingToCreativeData = (offering: DiscoveryOffering): Creative
   creatorId: offering.creator?.id !== undefined ? String(offering.creator.id) : undefined,
   creatorName: offering.creator?.name,
   creatorUsername: offering.creator?.username,
-  creatorImage: offering.creator?.profile_image || undefined,
+  creatorImage: absoluteUrl(offering.creator?.profile_image),
   caption: (typeof offering.description === 'string' ? offering.description.trim() : '') || undefined,
 });

@@ -1,3 +1,4 @@
+import { absoluteUrl } from '@/utils/mediaUrl';
 import Colors from '@/constants/Colors';
 import { INSTAGRAM_IMPORT_ENABLED } from '@/constants/Features';
 import { getBookings } from '@/services/api/bookingsService';
@@ -181,8 +182,8 @@ export default function ProfileScreen() {
         {/* Profile Card */}
         <TouchableOpacity style={[styles.profileCard, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/edit-profile')}>
           <View style={styles.avatarContainer}>
-            {(user?.profile_image || user?.avatar) ? (
-              <Image source={{ uri: user?.profile_image || user?.avatar }} style={styles.avatar} />
+            {absoluteUrl(user?.profile_image || user?.avatar) ? (
+              <Image source={{ uri: absoluteUrl(user?.profile_image || user?.avatar) }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Ionicons name="person" size={40} color={themeColors.subText} />

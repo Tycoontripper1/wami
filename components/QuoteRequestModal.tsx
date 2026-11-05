@@ -1,3 +1,4 @@
+import { formatAmountInput } from '@/utils/money';
 import Colors from '@/constants/Colors';
 import { createBooking } from '@/services/api/bookingsService';
 import { createQuote } from '@/services/api/quotesService';
@@ -224,7 +225,7 @@ export default function QuoteRequestModal({
                 placeholder="Enter your budget"
                 placeholderTextColor={themeColors.subText}
                 value={budget}
-                onChangeText={setBudget}
+                onChangeText={(t) => setBudget(formatAmountInput(t))}
                 keyboardType="numeric"
               />
             </View>

@@ -5,7 +5,7 @@ import PillButton from '@/components/PillButton';
 import Colors from '@/constants/Colors';
 import { toggleInterest } from '@/store/onboardingSlice';
 import { RootState } from '@/store/store';
-import { INTEREST_OPTIONS } from '@/types/onboarding';
+import { useCategories } from '@/hooks/useCategories';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
@@ -17,6 +17,7 @@ export default function OnboardingInterestsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
+  const categories = useCategories();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -65,7 +66,7 @@ export default function OnboardingInterestsScreen() {
           </View>
 
           <View style={styles.interestsContainer}>
-            {INTEREST_OPTIONS.map((interest) => (
+            {categories.map(({ name: interest }) => (
               <PillButton
                 key={interest}
                 label={interest}

@@ -1,3 +1,4 @@
+import { absoluteUrl } from '@/utils/mediaUrl';
 import WamiLoader from '@/components/WamiLoader';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
@@ -162,8 +163,8 @@ export default function EditProfileScreen() {
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
-            {(user?.profile_image || user?.avatar) ? (
-              <Image source={{ uri: user?.profile_image || user?.avatar }} style={styles.avatar} />
+            {absoluteUrl(user?.profile_image || user?.avatar) ? (
+              <Image source={{ uri: absoluteUrl(user?.profile_image || user?.avatar) }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Ionicons name="person" size={50} color={themeColors.subText} />

@@ -1,3 +1,4 @@
+import { formatAmountInput } from '@/utils/money';
 import Colors from '@/constants/Colors';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
@@ -42,8 +43,8 @@ export default function CreativeDashboardScreen() {
   });
 
   // Pricing state
-  const [minPrice, setMinPrice] = useState('25000');
-  const [maxPrice, setMaxPrice] = useState('100000');
+  const [minPrice, setMinPrice] = useState('25,000');
+  const [maxPrice, setMaxPrice] = useState('100,000');
   const [instantBooking, setInstantBooking] = useState(true);
   const [autoAcceptQuotes, setAutoAcceptQuotes] = useState(false);
 
@@ -103,7 +104,7 @@ export default function CreativeDashboardScreen() {
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
                   value={minPrice}
-                  onChangeText={setMinPrice}
+                  onChangeText={(t) => setMinPrice(formatAmountInput(t))}
                   keyboardType="numeric"
                   placeholder="0"
                   placeholderTextColor={themeColors.subText}
@@ -120,7 +121,7 @@ export default function CreativeDashboardScreen() {
                 <TextInput
                   style={[styles.input, { color: themeColors.text }]}
                   value={maxPrice}
-                  onChangeText={setMaxPrice}
+                  onChangeText={(t) => setMaxPrice(formatAmountInput(t))}
                   keyboardType="numeric"
                   placeholder="0"
                   placeholderTextColor={themeColors.subText}

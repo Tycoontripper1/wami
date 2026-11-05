@@ -1,3 +1,4 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import WamiLoader from '@/components/WamiLoader';
 import EmptyState from '@/components/EmptyState';
 import { Ionicons } from '@/components/FlatIcon';
@@ -15,6 +16,7 @@ import {
   updateProduct,
 } from '@/services/api/productsService';
 import { extractList } from '@/utils/extractList';
+import CategoryPicker from '@/components/CategoryPicker';
 import { uploadImage } from '@/services/api/mediaService';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import * as ImagePicker from 'expo-image-picker';
@@ -100,6 +102,7 @@ export default function MyProductsScreen() {
   const [editingItem, setEditingItem] = useState<MyItem | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
+  const [editCategory, setEditCategory] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -173,16 +176,18 @@ export default function MyProductsScreen() {
 
   const openEdit = (item: MyItem) => {
     setEditingItem(item);
-    setEditPrice(String(item.price));
+    setEditPrice(formatAmountInput(String(item.price)));
     setEditStock(item.stock !== undefined ? String(item.stock) : '');
+    setEditCategory(item.category);
   };
 
   const handleSaveEdit = async () => {
     if (!editingItem) return;
     setIsSavingEdit(true);
     try {
-      const payload: { price?: number; stock?: number } = {};
-      if (editPrice.trim()) payload.price = Number(editPrice);
+      const payload: { price?: number; stock?: number; category?: string } = {};
+      if (editCategory && editCategory !== editingItem.category) payload.category = editCategory;
+      if (editPrice.trim()) payload.price = parseAmount(editPrice);
       if (editStock.trim()) payload.stock = Number(editStock);
       await updateProduct(editingItem.productId, payload);
       setItems((prev) =>
@@ -191,6 +196,7 @@ export default function MyProductsScreen() {
             ? {
                 ...i,
                 price: payload.price ?? i.price,
+                category: payload.category ?? i.category,
                 stock: payload.stock ?? i.stock,
                 status: payload.stock === 0 ? 'soldout' : i.status === 'soldout' ? 'live' : i.status,
               }
@@ -481,10 +487,11 @@ export default function MyProductsScreen() {
               </View>
             </View>
 
+            <CategoryPicker value={editCategory} onChange={setEditCategory} />
             <FloatingLabelInput
               label="Price (₦)"
               value={editPrice}
-              onChangeText={setEditPrice}
+              onChangeText={(t) => setEditPrice(formatAmountInput(t))}
               keyboardType="numeric"
             />
             <FloatingLabelInput

@@ -1,4 +1,6 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import WamiLoader from '@/components/WamiLoader';
+import CategoryPicker from '@/components/CategoryPicker';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import Colors from '@/constants/Colors';
 import { uploadImages } from '@/services/api/mediaService';
@@ -33,6 +35,7 @@ export default function AddServiceScreen() {
   const [serviceName, setServiceName] = useState('');
   const [description, setDescription] = useState('');
   const [startingPrice, setStartingPrice] = useState('');
+  const [category, setCategory] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
 
@@ -80,9 +83,10 @@ export default function AddServiceScreen() {
       await createOffering({
         title: serviceName,
         description,
-        price: Number(startingPrice),
+        price: parseAmount(startingPrice),
         currency: 'NGN',
         type: 'service',
+        category: category || 'Others',
         media_ids: mediaIds.length > 0 ? mediaIds : undefined,
       });
       Alert.alert('Service Added', 'Your service has been listed successfully.', [
@@ -154,11 +158,12 @@ export default function AddServiceScreen() {
           numberOfLines={4}
           containerStyle={{ marginBottom: 20 }}
         />
+        <CategoryPicker value={category} onChange={setCategory} />
         <FloatingLabelInput
           label="Starting price (₦) *"
           placeholder="e.g. 25000"
           value={startingPrice}
-          onChangeText={setStartingPrice}
+          onChangeText={(t) => setStartingPrice(formatAmountInput(t))}
           keyboardType="numeric"
         />
 

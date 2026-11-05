@@ -1,5 +1,6 @@
 import Colors from '@/constants/Colors';
-import { CREATIVE_CATEGORIES, CreativeCategory } from '@/types/creativeOnboarding';
+import { useCategories } from '@/hooks/useCategories';
+import { CreativeCategory } from '@/types/creativeOnboarding';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Text } from '@/components/AppText';
@@ -12,6 +13,7 @@ interface CategorySelectorProps {
 export default function CategorySelector({ selected, onToggle }: CategorySelectorProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const categories = useCategories();
 
   const themeColors = {
     pillBg: isDark ? '#1A1A1A' : '#F5F5F5',
@@ -21,7 +23,8 @@ export default function CategorySelector({ selected, onToggle }: CategorySelecto
 
   return (
     <View style={styles.container}>
-      {CREATIVE_CATEGORIES.map((category) => {
+      {categories.map(({ name }) => {
+        const category = name as CreativeCategory;
         const isSelected = selected.includes(category);
         return (
           <TouchableOpacity

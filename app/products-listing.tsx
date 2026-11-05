@@ -1,3 +1,4 @@
+import { ApiCategory, FALLBACK_CATEGORIES, getCategories } from '@/services/api/categoriesService';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { extractList } from '@/utils/extractList';
 import AnimatedHeart from '@/components/AnimatedHeart';
@@ -47,18 +48,6 @@ const mapApiProductToProduct = (p: any): Product => ({
   size: p.size,
 });
 
-const CATEGORIES = [
-  { name: 'Beauty', icon: 'sparkles-outline' as const },
-  { name: 'Fashion', icon: 'shirt-outline' as const },
-  { name: 'Kids', icon: 'happy-outline' as const },
-  { name: 'Mens', icon: 'man-outline' as const },
-  { name: 'Womens', icon: 'woman-outline' as const },
-  { name: 'Electronics', icon: 'phone-portrait-outline' as const },
-  { name: 'Art', icon: 'color-palette-outline' as const },
-  { name: 'Food', icon: 'restaurant-outline' as const },
-];
-
-const FILTER_CHIPS = ['All', 'Shoes', 'Clothing', 'Bags', 'Accessories', 'Beauty'];
 
 export default function ProductsListingScreen() {
   const router = useRouter();
@@ -66,8 +55,12 @@ export default function ProductsListingScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState(params.search || '');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(params.category || null);
-  const [selectedFilter, setSelectedFilter] = useState('All');
+  const [selectedFilter, setSelectedFilter] = useState(params.category || 'All');
+  const [categories, setCategories] = useState<ApiCategory[]>(FALLBACK_CATEGORIES);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
 
   const [products, setProducts] = useState<Product[]>([]);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
@@ -114,11 +107,10 @@ export default function ProductsListingScreen() {
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || p.category === selectedCategory;
-      const matchesFilter = selectedFilter === 'All' || p.category === selectedFilter;
-      return matchesSearch && matchesCategory && matchesFilter;
+      const matchesFilter = selectedFilter === 'All' || p.category.toLowerCase() === selectedFilter.toLowerCase();
+      return matchesSearch && matchesFilter;
     });
-  }, [products, searchQuery, selectedCategory, selectedFilter]);
+  }, [products, searchQuery, selectedFilter]);
 
   const renderProductItem = ({ item }: { item: Product }) => {
     const soldOut = item.status !== 'Active';
@@ -203,40 +195,9 @@ export default function ProductsListingScreen() {
         />
       </View>
 
-      {/* Category Circles */}
+      {/* Category pills, from the list Wami keeps */}
       <FlatList
-        data={CATEGORIES}
-        horizontal
-        style={{ flexGrow: 0 }}
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(c) => c.name}
-        contentContainerStyle={styles.categoriesRow}
-        renderItem={({ item }) => {
-          const selected = selectedCategory === item.name;
-          return (
-            <TouchableOpacity
-              style={styles.categoryItem}
-              onPress={() => setSelectedCategory(selected ? null : item.name)}
-            >
-              <View
-                style={[
-                  styles.categoryCircle,
-                  { backgroundColor: selected ? Colors.light.primary : themeColors.pillBg },
-                ]}
-              >
-                <Ionicons name={item.icon} size={22} color={selected ? '#0F1419' : themeColors.subText} />
-              </View>
-              <Text style={[styles.categoryLabel, { color: selected ? Colors.light.primary : themeColors.subText }]}>
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        }}
-      />
-
-      {/* Filter Chips */}
-      <FlatList
-        data={FILTER_CHIPS}
+        data={['All', ...categories.map((c) => c.name)]}
         horizontal
         style={{ flexGrow: 0 }}
         showsHorizontalScrollIndicator={false}

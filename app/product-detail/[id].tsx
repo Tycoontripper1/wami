@@ -1,3 +1,4 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { getOfferingById } from '@/services/api/offeringsService';
 import EmptyState from '@/components/EmptyState';
@@ -47,8 +48,11 @@ const mapApiProductToDetail = (p: any): ProductDetail => ({
   // Confirmed live 2026-09-29.
   price: Number(p.price) || 0,
   category: p.category || '',
-  image: p.thumbnail_url || p.media_url || p.image || p.images?.[0] || localProductPhoto(p.id),
-  images: p.images,
+  // The full-size photo, not the 320px thumbnail the lists use.
+  image: p.media_url || p.thumbnail_url || p.image || p.images?.[0] || localProductPhoto(p.id),
+  images: Array.isArray(p.images)
+    ? p.images.map((i: any) => (typeof i === 'string' ? i : i?.url ?? i?.media_url)).filter(Boolean)
+    : undefined,
   status: p.stock === 0 ? 'Sold' : (p.status === 'published' ? 'Active' : p.status || 'Active'),
   condition: p.condition || undefined,
   size: p.size,
@@ -118,7 +122,7 @@ export default function ProductDetailScreen() {
     }
     Alert.alert(
       'Offer Sent! 🎉',
-      `Your offer of ₦${Number(offerPrice).toLocaleString()} has been sent to the seller. They typically respond within 24 hours, or may counter with a different price.`,
+      `Your offer of ₦${parseAmount(offerPrice).toLocaleString()} has been sent to the seller. They typically respond within 24 hours, or may counter with a different price.`,
       [{ text: 'OK', onPress: () => { setShowOfferInput(false); setOfferPrice(''); } }]
     );
   };
@@ -303,7 +307,7 @@ export default function ProductDetailScreen() {
                   placeholderTextColor={themeColors.subText}
                   keyboardType="numeric"
                   value={offerPrice}
-                  onChangeText={setOfferPrice}
+                  onChangeText={(t) => setOfferPrice(formatAmountInput(t))}
                 />
               </View>
               <Text style={[styles.offerCounterNote, { color: themeColors.subText }]}>
@@ -394,9 +398,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     position: 'relative',
   },
+  // Pixel sizes: a percentage width collapses to nothing inside a horizontal
+  // ScrollView, which is why the photo never showed.
   productImage: {
-    width: '100%',
-    height: '100%',
+    width: width,
+    height: width,
   },
   statusBadge: {
     position: 'absolute',

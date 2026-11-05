@@ -1,3 +1,4 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import { extractList } from '@/utils/extractList';
 import SalesChart, { SalesChartPoint } from '@/components/analytics/SalesChart';
 import Colors from '@/constants/Colors';
@@ -326,15 +327,15 @@ export default function WalletScreen() {
               <Text style={[styles.amountLabel, { color: themeColors.subText }]}>Enter Amount</Text>
               <View style={[styles.amountInputBox, { backgroundColor: themeColors.cardBg }]}>
                 <Text style={[styles.currencyPrefix, { color: themeColors.text }]}>{currencySymbol}</Text>
-                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={fundAmount} onChangeText={setFundAmount} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
+                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={fundAmount} onChangeText={(t) => setFundAmount(formatAmountInput(t, { decimals: true }))} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
               </View>
             </View>
             <View style={styles.presetsSection}>
               <Text style={[styles.presetsLabel, { color: themeColors.subText }]}>Quick Select</Text>
               <View style={styles.presetsGrid}>
                 {presetAmounts.map((amount) => (
-                  <TouchableOpacity key={amount} style={[styles.presetBtn, { backgroundColor: fundAmount === amount.toString() ? Colors.light.primary : themeColors.cardBg }]} onPress={() => setFundAmount(amount.toString())}>
-                    <Text style={[styles.presetText, { color: fundAmount === amount.toString() ? '#0F1419' : themeColors.text }]}>{currencySymbol}{amount.toLocaleString()}</Text>
+                  <TouchableOpacity key={amount} style={[styles.presetBtn, { backgroundColor: parseAmount(fundAmount) === amount ? Colors.light.primary : themeColors.cardBg }]} onPress={() => setFundAmount(formatAmountInput(amount.toString()))}>
+                    <Text style={[styles.presetText, { color: parseAmount(fundAmount) === amount ? '#0F1419' : themeColors.text }]}>{currencySymbol}{amount.toLocaleString()}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -404,12 +405,12 @@ export default function WalletScreen() {
               <Text style={[styles.amountLabel, { color: themeColors.subText }]}>Amount</Text>
               <View style={[styles.amountInputBox, { backgroundColor: themeColors.cardBg }]}>
                 <Text style={[styles.currencyPrefix, { color: themeColors.text }]}>{currencySymbol}</Text>
-                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={transferAmount} onChangeText={setTransferAmount} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
+                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={transferAmount} onChangeText={(t) => setTransferAmount(formatAmountInput(t, { decimals: true }))} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
               </View>
             </View>
           </ScrollView>
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: transferAmount && transferRecipient && parseFloat(transferAmount) <= balance ? Colors.light.primary : themeColors.border }]} onPress={handleTransfer} disabled={!transferAmount || !transferRecipient || parseFloat(transferAmount) > balance}>
+            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: transferAmount && transferRecipient && parseAmount(transferAmount) <= balance ? Colors.light.primary : themeColors.border }]} onPress={handleTransfer} disabled={!transferAmount || !transferRecipient || parseAmount(transferAmount) > balance}>
               <Text style={styles.confirmBtnText}>Send Money</Text>
               <Ionicons name="send" size={20} color="#fff" />
             </TouchableOpacity>

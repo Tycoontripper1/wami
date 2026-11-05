@@ -1,3 +1,4 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import Colors from '@/constants/Colors';
 import { respondToQuote } from '@/services/api/quotesService';
 import { Ionicons } from '@/components/FlatIcon';
@@ -93,7 +94,7 @@ export default function QuoteReceivedScreen() {
     }
     setStatus('countered');
     setShowCounterModal(false);
-    Alert.alert('Counter Offer Sent', `Your counter offer of ₦${Number(counterAmount).toLocaleString()} has been sent to ${creativeName}.`);
+    Alert.alert('Counter Offer Sent', `Your counter offer of ₦${parseAmount(counterAmount).toLocaleString()} has been sent to ${creativeName}.`);
   };
 
   return (
@@ -176,7 +177,7 @@ export default function QuoteReceivedScreen() {
                 placeholderTextColor={tc.sub}
                 keyboardType="numeric"
                 value={counterAmount}
-                onChangeText={setCounterAmount}
+                onChangeText={(t) => setCounterAmount(formatAmountInput(t))}
               />
             </View>
             <TouchableOpacity style={styles.sendBtn} onPress={handleSendCounter}>

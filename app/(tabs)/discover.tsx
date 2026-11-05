@@ -4,10 +4,11 @@ import { CreativeData } from '@/components/SwipeableCardStack';
 import { useFavorites } from '@/hooks/useFavorites';
 import { SkeletonCard } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
+import { ApiCategory, FALLBACK_CATEGORIES, getCategories } from '@/services/api/categoriesService';
 import { getProducts } from '@/services/api/productsService';
 import { Ionicons } from '@/components/FlatIcon';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -68,15 +69,6 @@ const mapProduct = (p: any): ShopProduct => ({
   officialStore: p.officialStore,
   inStock: p.stock === undefined || p.stock > 0,
 });
-
-const CATEGORIES: { name: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { name: 'Fashion', icon: 'shirt-outline' },
-  { name: 'Beauty', icon: 'sparkles-outline' },
-  { name: 'Accessories', icon: 'watch-outline' },
-  { name: 'Art', icon: 'color-palette-outline' },
-  { name: 'Photography', icon: 'camera-outline' },
-  { name: 'Digital', icon: 'phone-portrait-outline' },
-];
 
 const ProductCard = React.memo(function ProductCard({
   product,
@@ -169,6 +161,11 @@ export default function DiscoverScreen() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [categories, setCategories] = useState<ApiCategory[]>(FALLBACK_CATEGORIES);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
 
   const themeColors = {
@@ -180,8 +177,11 @@ export default function DiscoverScreen() {
     border: isDark ? '#2C2C2E' : '#EFEFEF',
   };
 
+  const hasLoaded = useRef(false);
+
   const loadShop = useCallback(async () => {
-    setIsLoading(true);
+    // Skeletons only on the first load; later refreshes happen quietly.
+    if (!hasLoaded.current) setIsLoading(true);
     setHasError(false);
     try {
       // There is no /products/featured (or any "featured" flag) anywhere in
@@ -197,6 +197,7 @@ export default function DiscoverScreen() {
       const items = dedupeById(published.map(mapProduct));
       setProducts(items);
       setFeatured(items.slice(0, 6));
+      hasLoaded.current = true;
     } catch (error) {
       console.error('Failed to load shop:', error);
       setFeatured([]);
@@ -207,9 +208,12 @@ export default function DiscoverScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadShop();
-  }, [loadShop]);
+  // Reload when the tab is shown again, so new listings and photos appear.
+  useFocusEffect(
+    useCallback(() => {
+      loadShop();
+    }, [loadShop])
+  );
 
   const toggleSave = (product: ShopProduct) => {
     const asOffering: CreativeData = {
@@ -259,14 +263,18 @@ export default function DiscoverScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesRow}
         >
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <TouchableOpacity
-              key={cat.name}
+              key={cat.id}
               style={styles.categoryItem}
               onPress={() => goToListing({ category: cat.name })}
             >
               <View style={[styles.categoryCircle, { backgroundColor: themeColors.inputBg }]}>
-                <Ionicons name={cat.icon} size={22} color={Colors.light.primary} />
+                {cat.icon ? (
+                  <Text style={{ fontSize: 22 }}>{cat.icon}</Text>
+                ) : (
+                  <Ionicons name="bag" size={22} color={Colors.light.primary} />
+                )}
               </View>
               <Text style={[styles.categoryLabel, { color: themeColors.text }]}>{cat.name}</Text>
             </TouchableOpacity>

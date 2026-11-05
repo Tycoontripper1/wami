@@ -1,4 +1,6 @@
+import { formatAmountInput, parseAmount } from '@/utils/money';
 import WamiLoader from '@/components/WamiLoader';
+import CategoryPicker from '@/components/CategoryPicker';
 import { FloatingLabelInput } from '@/components/FloatingLabelInput';
 import PhotoUploadRequirements from '@/components/sell/PhotoUploadRequirements';
 import Colors from '@/constants/Colors';
@@ -11,6 +13,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -78,6 +81,7 @@ export default function SellScreen() {
       return;
     }
 
+    Keyboard.dismiss();
     setIsListing(true);
     try {
       // Photos go up first; the listing then carries their ids.
@@ -92,9 +96,9 @@ export default function SellScreen() {
       await createProduct({
         title: productName,
         description,
-        price: Number(price),
+        price: parseAmount(price),
         currency: 'NGN',
-        category: category || 'Other',
+        category: category || 'Others',
         stock: Number(stock) || 1,
         status: 'published',
         media_ids: mediaIds.length > 0 ? mediaIds : undefined,
@@ -184,19 +188,14 @@ export default function SellScreen() {
             placeholder="e.g. Handmade Ceramic Vase"
           />
 
-          <FloatingLabelInput
-            label="Category"
-            value={category}
-            onChangeText={setCategory}
-            placeholder="e.g. Home Decor"
-          />
+          <CategoryPicker value={category} onChange={setCategory} />
 
           <View style={styles.row}>
             <View style={{ flex: 1, marginRight: 8 }}>
               <FloatingLabelInput
                 label="Price (₦) *"
                 value={price}
-                onChangeText={setPrice}
+                onChangeText={(t) => setPrice(formatAmountInput(t))}
                 keyboardType="numeric"
                 placeholder="0.00"
               />
@@ -205,7 +204,7 @@ export default function SellScreen() {
               <FloatingLabelInput
                 label="Delivery Fee (₦)"
                 value={deliveryFee}
-                onChangeText={setDeliveryFee}
+                onChangeText={(t) => setDeliveryFee(formatAmountInput(t))}
                 keyboardType="numeric"
                 placeholder="0.00"
               />

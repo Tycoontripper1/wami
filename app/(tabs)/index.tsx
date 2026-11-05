@@ -23,7 +23,7 @@ import { openCreator } from '@/utils/openCreator';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { mapOfferingToCreativeData } from '@/utils/mapOffering';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -125,9 +125,13 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadFeed().finally(() => setIsLoading(false));
-  }, [loadFeed]);
+  // Reload whenever Home comes back into view, so something just listed (or a
+  // photo just changed) shows up without a pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      loadFeed().finally(() => setIsLoading(false));
+    }, [loadFeed])
+  );
 
   useEffect(() => {
     if (activeTab === 'Near you' && nearYou === null && !nearYouError) loadNearYou();

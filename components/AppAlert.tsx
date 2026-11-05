@@ -2,7 +2,7 @@ import { Text } from '@/components/AppText';
 import AnimatedCheck from '@/components/AnimatedCheck';
 import { Illo } from '@/constants/Illustration';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Platform, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Animated, Easing, Keyboard, Modal, Platform, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { FullWindowOverlay } from 'react-native-screens';
 
 /* Wami's own message dialog, in place of the phone's native alert. `Alert` has
@@ -52,6 +52,8 @@ function inferKind(title: string, buttons: DialogButton[]): DialogKind {
 
 export const Alert = {
   alert(title: string, message?: string, buttons?: DialogButton[], options?: DialogOptions) {
+    // A raised keyboard sits above the dialog on iPhone and hides its buttons.
+    Keyboard.dismiss();
     const list = buttons && buttons.length > 0 ? buttons : [{ text: 'OK' }];
     queue.push({
       title,

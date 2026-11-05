@@ -245,7 +245,7 @@ export default function ProfileScreen() {
     return { average, total: totalCount, breakdown };
   }, [reviewsList]);
 
-  const offeringImage = offering?.thumbnail_url || offering?.media_url || offering?.image || offering?.images?.[0];
+  const offeringImage = offering?.media_url || offering?.thumbnail_url || offering?.image || offering?.images?.[0];
   // /products/:id and /offerings/:id both return price as a string
   // ("50000.00", a Laravel decimal cast) — coerce it. Confirmed live
   // 2026-10-03 (see app/checkout/index.tsx's matching fix).
