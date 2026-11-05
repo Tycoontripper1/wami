@@ -45,6 +45,8 @@ export default function LocationPickerScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const mapRef = useRef<MapView>(null);
+  // A tap on a bubble can also reach the map's own tap handler; that echo is ignored.
+  const lastBubbleTap = useRef(0);
   
   const currentLocation = useSelector((state: RootState) => state.location);
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +109,7 @@ export default function LocationPickerScreen() {
         const list = extractList<any>(places.value.data)
           .map((o) => ({
             id: String(o.id),
-            name: String(o.name ?? ''),
+            name: o.username ? `@${o.username}` : String(o.name ?? ''),
             role: o.role ? String(o.role) : undefined,
             image: absoluteUrl(o.avatar_url),
             latitude: Number(o.lat),
@@ -231,6 +233,7 @@ export default function LocationPickerScreen() {
   };
 
   const handleMapPress = async (e: any) => {
+    if (e?.nativeEvent?.action === 'marker-press' || Date.now() - lastBubbleTap.current < 500) return;
     const { latitude, longitude } = e.nativeEvent.coordinate;
     setIsLoadingLocation(true);
     
@@ -372,7 +375,11 @@ export default function LocationPickerScreen() {
                         key={`city-${city}`}
                         coordinate={coords}
                         anchor={BUBBLE_ANCHOR}
-                        onPress={() => handleSelectCity(city)}
+                        onPress={(e: any) => {
+                            e?.stopPropagation?.();
+                            lastBubbleTap.current = Date.now();
+                            handleSelectCity(city);
+                        }}
                         zIndex={isSelected ? 3 : 1}
                     >
                         <MapBubble

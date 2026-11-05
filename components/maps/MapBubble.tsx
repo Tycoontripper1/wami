@@ -7,7 +7,7 @@ import { Image, StyleSheet, View } from 'react-native';
 // A fixed-size map marker: a white round bubble with an icon (or a photo) and a
 // two-line label beside it. The size is fixed so `BUBBLE_ANCHOR` pins the
 // circle's centre exactly on the coordinate.
-export const BUBBLE_W = 168;
+export const BUBBLE_W = 200;
 export const BUBBLE_H = 48;
 export const BUBBLE_ANCHOR = { x: 24 / BUBBLE_W, y: 0.5 };
 
@@ -52,8 +52,6 @@ export default function MapBubble({ title, subtitle, image, selected, tone }: Pr
   );
 }
 
-const SHADOW = { textShadowColor: '#FFFFFF', textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } as const;
-
 const styles = StyleSheet.create({
   wrap: {
     width: BUBBLE_W,
@@ -80,19 +78,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   label: {
-    marginLeft: 8,
-    width: BUBBLE_W - 56,
+    marginLeft: 6,
+    maxWidth: BUBBLE_W - 56,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.94)',
   },
   title: {
     fontSize: 13,
     fontWeight: '700',
     color: '#0F1419',
-    ...SHADOW,
   },
   subtitle: {
     fontSize: 11,
-    fontStyle: 'italic',
     color: '#5E6670',
-    ...SHADOW,
   },
 });

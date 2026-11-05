@@ -33,6 +33,8 @@ const INK = '#0F1419';
 type Place = {
   id: string;
   name: string;
+  /** What the map shows: @username, or the name when there is none. */
+  label: string;
   role: string;
   category: string;
   image?: string;
@@ -57,9 +59,11 @@ function toPlace(row: any): Place | null {
   const longitude = Number(row?.lng);
   if (!id || !name || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
   const role = String(row?.role ?? '').trim();
+  const username = row?.username ? String(row.username) : undefined;
   return {
     id,
     name,
+    label: username ? `@${username}` : name,
     role,
     category: role,
     image: absoluteUrl(row?.avatar_url),
@@ -69,7 +73,7 @@ function toPlace(row: any): Place | null {
     approximate: false,
     creatorId: id,
     creatorName: name,
-    creatorUsername: row?.username ? String(row.username) : undefined,
+    creatorUsername: username,
     tags: [],
   };
 }
@@ -79,6 +83,10 @@ export default function ExploreMapScreen() {
   const router = useRouter();
   const isDark = useColorScheme() === 'dark';
   const mapRef = useRef<any>(null);
+  // On phones a tap on a bubble can also reach the map's own tap handler,
+  // which would clear the selection straight away. A map tap that lands just
+  // after a bubble tap is that echo and is ignored.
+  const lastBubbleTap = useRef(0);
   const { city, regionCode, coordinates } = useLocation();
 
   const [places, setPlaces] = useState<Place[]>([]);
@@ -158,7 +166,7 @@ export default function ExploreMapScreen() {
     return places.filter((p) => {
       if (category && p.category !== category) return false;
       if (!q) return true;
-      return [p.name, p.role, p.category, p.city ?? '', ...p.tags].some((s) => s.toLowerCase().includes(q));
+      return [p.name, p.label, p.role, p.category, p.city ?? '', ...p.tags].some((s) => s.toLowerCase().includes(q));
     });
   }, [places, category, query]);
 
@@ -197,6 +205,11 @@ export default function ExploreMapScreen() {
   };
 
   const select = (p: Place) => {
+    // Tapping the bubble that is already selected goes to the profile.
+    if (p.id === selectedId) {
+      openProfile(p);
+      return;
+    }
     setSelectedCity(null);
     setSelectedId(p.id);
     mapRef.current?.animateToRegion?.(
@@ -206,7 +219,11 @@ export default function ExploreMapScreen() {
   };
 
   const openProfile = (p: Place) => {
-    openCreator(router, p);
+    try {
+      openCreator(router, p);
+    } catch (error) {
+      console.error('Could not open the creator page:', error);
+    }
   };
 
   // Frame everything that is showing whenever the filter changes.
@@ -233,7 +250,8 @@ export default function ExploreMapScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         initialRegion={startRegion}
-        onPress={() => {
+        onPress={(e: any) => {
+          if (e?.nativeEvent?.action === 'marker-press' || Date.now() - lastBubbleTap.current < 500) return;
           setSelectedId(null);
           setSelectedCity(null);
           Keyboard.dismiss();
@@ -253,7 +271,11 @@ export default function ExploreMapScreen() {
             coordinate={{ latitude: c.latitude, longitude: c.longitude }}
             anchor={BUBBLE_ANCHOR}
             zIndex={c.name === selectedCity ? 4 : 0}
-            onPress={() => selectCity(c.name, c)}
+            onPress={(e: any) => {
+              e?.stopPropagation?.();
+              lastBubbleTap.current = Date.now();
+              selectCity(c.name, c);
+            }}
           >
             <MapBubble
               title={c.name}
@@ -270,9 +292,13 @@ export default function ExploreMapScreen() {
             coordinate={{ latitude: p.latitude, longitude: p.longitude }}
             anchor={BUBBLE_ANCHOR}
             zIndex={p.id === selectedId ? 5 : 1}
-            onPress={() => select(p)}
+            onPress={(e: any) => {
+              e?.stopPropagation?.();
+              lastBubbleTap.current = Date.now();
+              select(p);
+            }}
           >
-            <MapBubble title={p.name} subtitle={p.role} image={p.image} selected={p.id === selectedId} tone={tone} />
+            <MapBubble title={p.label} subtitle={p.role} image={p.image} selected={p.id === selectedId} tone={tone} />
           </Marker>
         ))}
       </MapView>
@@ -366,7 +392,7 @@ export default function ExploreMapScreen() {
         ) : null}
 
         {selected ? (
-          <View style={[styles.card, { backgroundColor: sheetBg }]}>
+          <TouchableOpacity style={[styles.card, { backgroundColor: sheetBg }]} activeOpacity={0.9} onPress={() => openProfile(selected)} accessibilityRole="button" accessibilityLabel={`Open ${selected.label}`}>
             {selected.image ? (
               <Image source={{ uri: selected.image }} style={styles.cardImage} />
             ) : (
@@ -376,22 +402,20 @@ export default function ExploreMapScreen() {
             )}
             <View style={styles.cardBody}>
               <Text style={[styles.cardTitle, { color: sheetText }]} numberOfLines={1}>
-                {selected.name}
+                {selected.label}
               </Text>
-              {selected.role ? (
-                <Text style={[styles.cardSub, { color: sheetSub }]} numberOfLines={1}>
-                  {selected.role}
-                </Text>
-              ) : null}
+              <Text style={[styles.cardSub, { color: sheetSub }]} numberOfLines={1}>
+                {[selected.role, selected.label !== selected.name ? selected.name : ''].filter(Boolean).join(' · ') || ' '}
+              </Text>
               <Text style={[styles.cardMeta, { color: sheetSub }]} numberOfLines={1}>
                 {[selected.city, selected.distance].filter(Boolean).join(' · ') || ' '}
                 {selected.approximate ? '  ·  area' : ''}
               </Text>
             </View>
-            <TouchableOpacity style={styles.viewButton} onPress={() => openProfile(selected)}>
+            <View style={styles.viewButton}>
               <Text style={styles.viewButtonText}>View</Text>
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
         ) : null}
 
         {categories.length > 0 ? (
@@ -490,7 +514,7 @@ const styles = StyleSheet.create({
     ...SHADOW,
   },
   noticeText: { fontSize: 14, fontWeight: '600', color: INK },
-  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, gap: 12 },
+  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, gap: 12, zIndex: 20, elevation: 20 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
