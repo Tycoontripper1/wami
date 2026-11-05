@@ -1,30 +1,17 @@
+import { File } from 'expo-file-system';
 import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
 
 // POST /media — multipart { file, kind: 'image' }. Max 10 MB; JPEG, PNG, WebP or HEIC.
 // The id that comes back is what a listing wants in media_ids.
 
-const MIME_BY_EXT: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-  heic: 'image/heic',
-  heif: 'image/heic',
-};
-
-const extensionOf = (uri: string) => (uri.split('?')[0].split('.').pop() ?? '').toLowerCase();
-
 /** Uploads one picked photo and returns its media id. */
-export const uploadImage = async (uri: string, mimeType?: string | null): Promise<string> => {
-  const ext = extensionOf(uri);
-  const type = mimeType || MIME_BY_EXT[ext] || 'image/jpeg';
-  const name = `photo.${MIME_BY_EXT[ext] ? ext : type.split('/')[1] || 'jpg'}`;
-
+export const uploadImage = async (uri: string, _mimeType?: string | null): Promise<string> => {
   const form = new FormData();
-  // React Native's FormData takes { uri, name, type } in place of a Blob.
-  // @ts-ignore
-  form.append('file', { uri, name, type });
+  // Expo's fetch only sends a Blob or File as a file part (the old
+  // { uri, name, type } object is rejected), and File reads the picked
+  // photo from disk with its name and type taken from the path.
+  form.append('file', new File(uri) as any);
   form.append('kind', 'image');
 
   const res: any = await apiClient.post(API_ENDPOINTS.MEDIA.UPLOAD, form, { timeout: 60000 });

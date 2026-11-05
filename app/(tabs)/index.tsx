@@ -297,7 +297,7 @@ export default function HomeScreen() {
                 onRetry={() => router.push('/location-picker' as any)}
                 retryLabel="Change location"
               />
-            ) : null
+            ) : undefined
           }
         />
       )}

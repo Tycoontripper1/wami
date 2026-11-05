@@ -2,7 +2,8 @@ import { DialogHost } from '@/components/AppAlert';
 import { AppSplashScreen } from '@/components/AppSplashScreen';
 import { useColorScheme } from '@/components/useColorScheme';
 import { apiClient } from '@/services/api/client';
-import { profileService } from '@/services/api/profileService';
+import { Alert } from '@/components/AppAlert';
+import { isSessionExpired } from '@/utils/session';
 import { authService } from '@/services/authService';
 import { signOut } from '@/store/authSlice';
 import { store } from '@/store/store';
@@ -19,7 +20,7 @@ import {
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import 'react-native-reanimated';
 import { Provider, useDispatch } from 'react-redux';
@@ -31,7 +32,7 @@ import { Provider, useDispatch } from 'react-redux';
 // whatever authenticated GET is lightest (profile) and lets the existing
 // 401 handler below do the actual sign-out. 5 minutes is a guess, not a
 // confirmed value; tighten or loosen once backend confirms token lifetime.
-const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const SESSION_CHECK_INTERVAL_MS = 60 * 1000;
 
 export {
     // Catch any errors thrown by the Layout component.
@@ -104,29 +105,29 @@ export default function RootLayout() {
  */
 function ExpiredSessionHandler() {
   const dispatch = useDispatch();
-  const isSigningOut = useRef(false);
 
   useEffect(() => {
+    // One place that ends an expired session: clear what is stored, clear the
+    // Redux user, tell the person why, and send them to sign in. It only runs
+    // while someone is signed in, so a burst of failing requests signs out
+    // once, and the next sign-in is protected again.
     const expireSession = () => {
-      if (isSigningOut.current) return; // avoid double sign-out races
-      isSigningOut.current = true;
+      if (!store.getState().auth.isAuthenticated) return;
       void authService.signOut(); // clears the cached user/token from AsyncStorage
       dispatch(signOut());
+      Alert.alert('Session expired', 'For your security you have been signed out. Sign in again to carry on.');
       router.replace('/(auth)/sign-in');
     };
 
     // Reactive: the backend rejected a request we sent a token with.
     apiClient.setUnauthorizedHandler(expireSession);
 
-    // Proactive: periodically (and whenever the app returns to the
-    // foreground) ping a lightweight authenticated endpoint purely to
-    // validate the token. A 401 here is caught by the handler above; any
-    // other failure (network blip, unrelated 500) is ignored so we don't
-    // sign the user out for a reason that has nothing to do with their
-    // session.
-    const checkSession = () => {
-      if (!apiClient.getAuthToken() || isSigningOut.current) return;
-      profileService.getProfile().catch(() => {});
+    // Proactive: check every minute, and the moment the app comes back to the
+    // foreground, so an expired session ends straight away instead of on the
+    // next tap. Network blips and 500s are ignored; only a dead token counts.
+    const checkSession = async () => {
+      if (!store.getState().auth.isAuthenticated) return;
+      if (await isSessionExpired()) expireSession();
     };
 
     const interval = setInterval(checkSession, SESSION_CHECK_INTERVAL_MS);

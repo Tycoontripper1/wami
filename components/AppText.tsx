@@ -37,13 +37,13 @@ function withFigtree(style: TextProps['style']): TextProps['style'] {
   return [style, { fontFamily: family, fontWeight: 'normal' }] as TextProps['style'];
 }
 
-export function Text(props: TextProps & { ref?: React.Ref<RNText> }) {
+export function Text(props: TextProps & { ref?: React.Ref<React.ComponentRef<typeof RNText>> }) {
   return <RNText {...props} style={withFigtree(props.style)} />;
 }
 
 // Screens type their refs as `TextInput`, so the name is also the instance type.
-export type TextInput = RNTextInput;
+export type TextInput = React.ComponentRef<typeof RNTextInput>;
 
-export function TextInput(props: TextInputProps & { ref?: React.Ref<RNTextInput> }) {
+export function TextInput(props: TextInputProps & { ref?: React.Ref<TextInput> }) {
   return <RNTextInput {...props} style={withFigtree(props.style) as TextInputProps['style']} />;
 }

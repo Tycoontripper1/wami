@@ -322,7 +322,9 @@ export default function ProfileScreen() {
         visible={showLogout}
         transparent
         animationType="fade"
-        onRequestClose={() => !loggingOut && setShowLogout(false)}
+        onRequestClose={() => {
+          if (!loggingOut) setShowLogout(false);
+        }}
       >
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: isDark ? '#1A1A1A' : '#fff' }]}>

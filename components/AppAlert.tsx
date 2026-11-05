@@ -229,7 +229,9 @@ export function DialogHost() {
   // overlay in the window itself always sits on top.
   if (Platform.OS === 'ios') return <FullWindowOverlay>{content}</FullWindowOverlay>;
   return (
-    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={() => dismissable && close(current.onDismiss)}>
+    <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={() => {
+      if (dismissable) close(current.onDismiss);
+    }}>
       {content}
     </Modal>
   );

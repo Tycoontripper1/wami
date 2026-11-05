@@ -60,7 +60,7 @@ export function AppSplashScreen({ onReady }: AppSplashScreenProps) {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <StatusBar barStyle="light-content" backgroundColor={backgroundColor} />
+      <StatusBar barStyle="light-content" />
       <AnimatedWAMILogo
         size="large"
         variant="full"

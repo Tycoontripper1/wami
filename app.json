@@ -7,35 +7,19 @@
     "icon": "./assets/images/icon.png",
     "scheme": "wami",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/wami-splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#00BCD4",
-      "dark": {
-        "image": "./assets/images/wami-splash.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#0F1419"
-      }
-    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.b_laj.wami",
+      "bundleIdentifier": "com.joinwami.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "enableProguardInReleaseBuilds": true,
-      "enableShrinkResources": true,
-      "enableDangerousExperimentalLeanBuilds": true,
-      "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.b_laj.wami",
       "permissions": [
@@ -67,10 +51,31 @@
       ],
       "expo-notifications",
       "expo-font",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/wami-splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#00BCD4",
+          "imageWidth": 200,
+          "dark": {
+            "image": "./assets/images/wami-splash.png",
+            "backgroundColor": "#0F1419"
+          }
+        }
+      ],
       "expo-status-bar",
       "expo-web-browser",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,4 +1,5 @@
 import { User } from '@/store/authSlice';
+import { File } from 'expo-file-system';
 import {
     AccountActionRequest,
     UpdatePasswordRequest,
@@ -47,13 +48,8 @@ const uploadProfileImage = async (
   imageUri: string
 ): Promise<ApiResponse<{ profile_image: string }>> => {
   const formData = new FormData();
-  
-  // @ts-ignore
-  formData.append('image', {
-    uri: imageUri,
-    type: 'image/jpeg',
-    name: 'profile.jpg',
-  });
+  // A File, not a { uri } object: Expo's fetch no longer accepts the latter.
+  formData.append('image', new File(imageUri) as any);
 
   return apiClient.post(API_ENDPOINTS.PROFILE.IMAGE, formData, {
     headers: {
