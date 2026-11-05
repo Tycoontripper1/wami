@@ -122,7 +122,7 @@ export default function ProfileScreen() {
         { icon: 'bag', label: 'My Orders', route: '/orders' },
         { icon: 'time', label: 'Booking History', route: '/booking-history' },
         { icon: 'bookmark', label: 'Saved', route: '/favourites' },
-        { icon: 'card', label: 'Payment Methods', route: '/payment-methods' },
+        { icon: 'location', label: 'Saved Addresses', route: '/addresses' },
       ],
     },
     {

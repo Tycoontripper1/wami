@@ -3,7 +3,6 @@ import { Ionicons } from '@/components/FlatIcon';
 import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
 import { orderToneColors } from '@/constants/OrderTones';
-import { PAYMENTS_ENABLED } from '@/constants/Payments';
 import {
   ApiOrderRecord,
   describeOrderStatus,
@@ -147,11 +146,15 @@ export default function OrderDetailScreen() {
           </View>
           <Text style={[styles.meta, { color: tc.sub }]}>Placed on {placed}</Text>
           {awaitingPayment ? (
-            <Text style={[styles.note, { color: tc.text }]}>
-              {PAYMENTS_ENABLED
-                ? 'This order is waiting for payment.'
-                : "Payments aren't switched on yet, so this order is waiting to be paid. We'll let you know when you can complete it."}
-            </Text>
+            <>
+              <Text style={[styles.note, { color: tc.text }]}>This order is waiting for payment.</Text>
+              <TouchableOpacity
+                style={{ height: 44, borderRadius: 10, backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center', marginTop: 12 }}
+                onPress={() => router.push(`/checkout?orderId=${order.id}` as any)}
+              >
+                <Text style={{ color: '#0F1419', fontSize: 15, fontWeight: '700' }}>Pay now</Text>
+              </TouchableOpacity>
+            </>
           ) : null}
         </View>
 

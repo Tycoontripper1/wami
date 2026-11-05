@@ -1,777 +1,389 @@
-import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
+import { Alert } from '@/components/AppAlert';
+import { Text } from '@/components/AppText';
+import { AddressSheet, Destination, PhoneSheet } from '@/components/checkout/CheckoutSheets';
+import { Ionicons } from '@/components/FlatIcon';
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
-import { PAYMENT_CANCEL_URL, PAYMENT_SUCCESS_URL, PAYMENTS_ENABLED, PAYSTACK_PUBLIC_KEY } from '@/constants/Payments';
-import { addCartItem, placeOrder } from '@/services/api/ordersService';
+import {
+  CartLine,
+  describePaymentStatus,
+  getCartLines,
+  getOrderById,
+  placeOrder,
+  toAmount,
+} from '@/services/api/ordersService';
 import { initializePayment, verifyPayment } from '@/services/api/paymentsService';
-import { getProductById } from '@/services/api/productsService';
-import { addProductOrder } from '@/store/paymentSlice';
-import { RootState } from '@/store/store';
-import { PaymentMethodType, ShippingOption, buildOrderTimeline, formatCurrency } from '@/types/payment';
-import { Ionicons } from '@/components/FlatIcon';
+import type { RootState } from '@/store/store';
+import { SavedAddress, loadAddresses } from '@/utils/addressBook';
+import { absoluteUrl } from '@/utils/mediaUrl';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
-import { PaystackProvider, usePaystack } from 'react-native-paystack-webview';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
+  Image,
+  Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
-  useColorScheme,
   View,
+  useColorScheme,
 } from 'react-native';
-import { Alert } from '@/components/AppAlert';
-import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 
-interface CheckoutProduct {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  image: string;
-  sellerName?: string;
-}
+type Phase = 'form' | 'awaiting';
 
-// The real backend's product fields (title, thumbnail_url/media_url) differ
-// from the local mock shape (name, images[]) — normalize both here. Mirrors
-// app/product-detail/[id].tsx's mapApiProductToDetail.
-const mapApiProductToCheckout = (p: any): CheckoutProduct => ({
-  id: String(p.id),
-  name: p.title || p.name || 'Untitled',
-  // /products/:id returns price as a string ("50000.00", a Laravel decimal
-  // cast) while /products (list) returns it as a number — coerce either way,
-  // confirmed live 2026-09-29 (a raw string here broke `total` into string
-  // concatenation, e.g. "50000.00" + 1500 + 2000 -> "50000.0015002000").
-  price: Number(p.price) || 0,
-  category: p.category || '',
-  image: p.image || p.images?.[0] || p.thumbnail_url || p.media_url || localProductPhoto(p.id),
-  sellerName: p.creator?.name || p.sellerName || p.seller?.name,
-});
+const PAID = ['paid', 'success', 'successful'];
 
-const SHIPPING_OPTIONS = {
-  pickup: { label: 'Pick-up', duration: '3-5 days', fee: 0 },
-  express: { label: 'Express', duration: '1-2 days', fee: 2000 },
-};
-
-const PAYMENT_METHODS: { key: PaymentMethodType; label: string; icon: string; description: string }[] = [
-  { key: 'card', label: 'Debit / Credit Card', icon: 'card', description: 'Visa, Mastercard, Verve' },
-  { key: 'bank_transfer', label: 'Bank Transfer', icon: 'swap-horizontal', description: 'Transfer directly from your bank' },
-  { key: 'wallet', label: 'Wami Wallet', icon: 'wallet', description: 'Pay from your Wami balance' },
-];
-
+/* Checkout runs off the cart. Pay places the order (once), asks the server to
+   start the payment, and opens the gateway's own page. The money side is the
+   server's: when the person comes back we ask it whether the payment landed,
+   and only a paid order reaches the success screen. */
 export default function CheckoutScreen() {
-  return (
-    <PaystackProvider publicKey={PAYSTACK_PUBLIC_KEY}>
-      <CheckoutContent />
-    </PaystackProvider>
-  );
-}
-
-function CheckoutContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const dispatch = useDispatch();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const params = useLocalSearchParams();
-  const productId = params.productId as string;
-  const user = useSelector((state: RootState) => state.auth.user);
-  const walletBalance = useSelector((state: RootState) => state.wallet?.balances?.NGN ?? 0);
+  const isDark = useColorScheme() === 'dark';
+  const params = useLocalSearchParams<{ orderId?: string }>();
+  const user = useSelector((s: RootState) => s.auth.user) as any;
 
-  const [product, setProduct] = useState<CheckoutProduct | null>(null);
-  const [isLoadingProduct, setIsLoadingProduct] = useState(true);
-  const [productError, setProductError] = useState(false);
+  const [lines, setLines] = useState<CartLine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  const loadProduct = useCallback(async () => {
-    setIsLoadingProduct(true);
-    setProductError(false);
-    try {
-      await loadLocalProductPhotos();
-      const res = await getProductById(productId);
-      setProduct(mapApiProductToCheckout(res.data));
-    } catch (error) {
-      console.error('Failed to load product for checkout:', error);
-      setProduct(null);
-      setProductError(true);
-    } finally {
-      setIsLoadingProduct(false);
-    }
-  }, [productId]);
+  // The phone on the account is used by default and can be changed per order.
+  const accountPhone: string = user?.phone ?? '';
+  const [phone, setPhone] = useState(accountPhone);
 
-  useEffect(() => {
-    loadProduct();
-  }, [loadProduct]);
+  // Saved addresses live on this phone. `destination` is where this order goes.
+  const [saved, setSaved] = useState<SavedAddress[]>([]);
+  const [destination, setDestination] = useState<Destination | null>(null);
+  const [showAddress, setShowAddress] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
 
-  // Form state
-  const [shippingOption, setShippingOption] = useState<ShippingOption>('express');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('card');
-  const [country, setCountry] = useState('Nigeria');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState(user?.email || '');
-  const [showAddressSheet, setShowAddressSheet] = useState(false);
-  const [showContactSheet, setShowContactSheet] = useState(false);
-  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentFailed, setPaymentFailed] = useState(false);
-  const [failureMessage, setFailureMessage] = useState<string | null>(null);
-  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-  const [bankDetails, setBankDetails] = useState<{ bank?: string; accountNumber?: string; accountName?: string } | null>(null);
-  const { popup } = usePaystack();
+  // An order that exists but is not paid yet. Coming from "Pay now" on an
+  // order sets it straight away; otherwise it is created on the first Pay.
+  const [orderId, setOrderId] = useState<string | null>(params.orderId ? String(params.orderId) : null);
+  const [orderTotal, setOrderTotal] = useState<number | null>(null);
+  const reference = useRef<string | null>(null);
 
-  const tc = {
+  const [phase, setPhase] = useState<Phase>('form');
+  const [busy, setBusy] = useState(false);
+  const checking = useRef(false);
+
+  const t = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
     card: isDark ? '#1C1C1E' : '#FFFFFF',
     text: isDark ? '#FFFFFF' : '#0A0A0A',
     sub: isDark ? '#8E8E93' : '#6B7280',
     border: isDark ? '#2C2C2E' : '#E5E7EB',
-    input: isDark ? '#2C2C2E' : '#F3F4F6',
   };
 
-  const deliveryFee = SHIPPING_OPTIONS[shippingOption].fee;
-  const serviceFee = Math.round((product?.price ?? 0) * 0.03);
-  const total = (product?.price ?? 0) + serviceFee + deliveryFee;
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadFailed(false);
+    try {
+      if (params.orderId) {
+        const order = await getOrderById(params.orderId);
+        setOrderTotal(toAmount(order.total));
+        setLines(
+          (order.items ?? []).map((i) => ({
+            id: String(i.id),
+            productId: String(i.product_id),
+            name: i.product?.title ?? 'Item',
+            price: toAmount(i.unit_price),
+            quantity: i.quantity,
+            image: absoluteUrl(i.product?.thumbnail_url || i.product?.media_url),
+          }))
+        );
+      } else {
+        setLines(await getCartLines());
+      }
+    } catch (error) {
+      console.error('Failed to load checkout:', error);
+      setLoadFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [params.orderId]);
 
-  const isAddressComplete = address.trim().length > 0 && city.trim().length > 0;
-  const isContactComplete = phone.trim().length > 0 && email.trim().length > 0;
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  // Creates the order the first time this is called for the current
-  // checkout attempt, and reuses it on any retry so we don't spam duplicate
-  // orders. POST /orders 400s with "Cart is empty." unless something was
-  // added to the cart first — confirmed live 2026-09-29 — so this adds the
-  // single product this screen was opened for before placing the order.
-  const placeOrderIfNeeded = async (): Promise<string> => {
-    if (pendingOrderId) return pendingOrderId;
-    if (!product) throw new Error('Product failed to load.');
-    await addCartItem({ product_id: product.id, quantity: 1 });
-    const orderRes = await placeOrder({
-      shipping_address: { line1: address, city, country },
+  useEffect(() => {
+    loadAddresses(user?.id).then((list) => {
+      setSaved(list);
+      const first = list.find((a) => a.isDefault) ?? list[0];
+      if (first) {
+        setDestination({ id: first.id, label: first.label, line1: first.line1, city: first.city });
+        if (first.phone) setPhone(first.phone);
+      }
     });
-    const orderId = String((orderRes.data as any)?.id ?? '');
-    if (!orderId) throw new Error('Order was created but returned no id.');
-    setPendingOrderId(orderId);
-    return orderId;
-  };
+  }, [user?.id]);
 
-  const handlePay = async () => {
-    // Guard before ANY network call: placeOrderIfNeeded() creates a cart
-    // item and a real order, which can't be paid while payments are off.
-    if (!PAYMENTS_ENABLED) {
-      Alert.alert('Payments Coming Soon', "We're finishing setting up payments. You'll be able to complete your purchase very soon.");
-      return;
-    }
+  const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+  const total = orderTotal ?? subtotal;
+  const needsAddress = !orderId && !destination;
+  const needsPhone = !orderId && phone.trim().length === 0;
 
-    if (!isAddressComplete) {
-      Alert.alert('Missing Info', 'Please add a shipping address.');
-      return;
-    }
-    if (!isContactComplete) {
-      Alert.alert('Missing Info', 'Please add your contact information.');
-      return;
-    }
-
-    if (paymentMethod === 'wallet' && walletBalance < total) {
-      Alert.alert('Insufficient Balance', `Your wallet balance (₦${walletBalance.toLocaleString()}) is less than the total (₦${total.toLocaleString()}). Please top up or choose another payment method.`);
-      return;
-    }
-
-    if (paymentMethod === 'bank_transfer') {
-      setIsProcessing(true);
-      setPaymentFailed(false);
-      setFailureMessage(null);
+  /** Ask the server whether this order is paid. Returns true and moves on if it is. */
+  const checkPayment = useCallback(
+    async (quiet = false): Promise<boolean> => {
+      if (!orderId || checking.current) return false;
+      checking.current = true;
+      setBusy(true);
       try {
-        const orderId = await placeOrderIfNeeded();
-        const initRes = await initializePayment({
-          order_id: orderId,
-          gateway: 'paystack',
-          payment_method: 'bank_transfer',
-          success_url: PAYMENT_SUCCESS_URL,
-          cancel_url: PAYMENT_CANCEL_URL,
-        });
-        // The transfer destination must come from the backend — never a
-        // hardcoded account. The response shape is unconfirmed (no request
-        // has ever succeeded), so read the likely fields defensively; the
-        // sheet only renders rows for fields actually present.
-        const d: any = initRes.data ?? {};
-        const acct = d.bank_account ?? d.bank ?? d.account ?? d;
-        setBankDetails({
-          bank: acct?.bank_name ?? acct?.bank,
-          accountNumber: acct?.account_number ?? acct?.accountNumber,
-          accountName: acct?.account_name ?? acct?.accountName,
-        });
-        setIsProcessing(false);
-        setShowPaymentSheet(true);
+        // The gateway's webhook is the source of truth; verify is the fallback
+        // for when it has not arrived. A refusal here only means "not yet".
+        if (reference.current) {
+          await verifyPayment({ order_id: orderId, reference: reference.current }).catch(() => {});
+        }
+        const order = await getOrderById(orderId);
+        if (PAID.includes(String(order.payment_status ?? '').toLowerCase())) {
+          router.replace(`/checkout/success?orderId=${orderId}&trackingNumber=${encodeURIComponent(`WM-${String(orderId).padStart(6, '0')}`)}` as any);
+          return true;
+        }
+        if (!quiet) {
+          const status = describePaymentStatus(String(order.payment_status ?? 'pending')).label;
+          Alert.alert('Not paid yet', `We have not received your payment (${status}). If you have just paid, give it a moment and check again.`);
+        }
+        return false;
       } catch (error: any) {
-        setIsProcessing(false);
-        setPaymentFailed(true);
-        setFailureMessage(error?.message ?? "We couldn't start this order. Please try again.");
+        if (!quiet) Alert.alert("Couldn't check your payment", error?.message ?? 'Please try again.');
+        return false;
+      } finally {
+        checking.current = false;
+        setBusy(false);
       }
+    },
+    [orderId, router]
+  );
+
+  // Coming back from the payment page: look at the order straight away.
+  useEffect(() => {
+    if (phase !== 'awaiting') return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void checkPayment(true);
+    });
+    return () => sub.remove();
+  }, [phase, checkPayment]);
+
+  const pay = async () => {
+    if (busy) return;
+    Keyboard.dismiss();
+    if (!orderId && lines.length === 0) {
+      Alert.alert('Your cart is empty', 'Add something before you check out.');
+      return;
+    }
+    if (needsAddress) {
+      setShowAddress(true);
+      return;
+    }
+    if (needsPhone) {
+      setShowPhone(true);
       return;
     }
 
-    processOrder();
-  };
-
-  // Drives payment for card/wallet. Bank transfer is handled separately by
-  // handlePay + confirmBankTransfer, since it needs to show account details
-  // and wait for the user before verifying anything.
-  const processOrder = async () => {
-    setIsProcessing(true);
-    setPaymentFailed(false);
-    setFailureMessage(null);
-
+    setBusy(true);
     try {
-      const orderId = await placeOrderIfNeeded();
-
-      if (paymentMethod === 'card') {
-        await initializePayment({
-          order_id: orderId,
-          gateway: 'paystack',
-          payment_method: 'card',
-          success_url: PAYMENT_SUCCESS_URL,
-          cancel_url: PAYMENT_CANCEL_URL,
-        });
-        if (!PAYSTACK_PUBLIC_KEY) {
-          throw new Error('Card payments are not configured yet — the Paystack public key is missing. Please choose Bank Transfer or Wallet for now.');
-        }
-        popup.checkout({
-          email,
-          amount: total * 100, // kobo
-          onSuccess: async (data) => {
-            try {
-              await verifyPayment({ order_id: orderId, gateway: 'paystack', reference: (data as any)?.reference ?? (data as any)?.transactionRef ?? orderId });
-              finalizeLocalOrder(orderId);
-            } catch (verifyError: any) {
-              setIsProcessing(false);
-              setPaymentFailed(true);
-              setFailureMessage(verifyError?.message ?? 'We could not verify your payment. Please contact support before retrying.');
-            }
-          },
-          onCancel: () => {
-            setIsProcessing(false);
-          },
-        });
-        return;
+      // The order is created once; paying again after a cancelled attempt reuses it.
+      let id = orderId;
+      if (!id) {
+        const res = await placeOrder({ shipping_address: { line1: destination!.line1, city: destination!.city, country: 'Nigeria', phone: phone.trim() } });
+        id = String((res.data as any)?.id ?? (res.data as any)?.order?.id ?? '');
+        if (!id) throw new Error('The order was created but we did not get its number back.');
+        setOrderId(id);
+        setOrderTotal(toAmount((res.data as any)?.total ?? (res.data as any)?.order?.total) || null);
       }
 
-      // Wallet — no dedicated "pay from wallet" endpoint exists in the
-      // collection at all (only the seller-side wallet is documented). Best
-      // effort: reuse initialize/verify with payment_method: 'wallet' and
-      // surface whatever the backend says. See docs/API-AUDIT-02… §2.3/§3.9.
-      await initializePayment({
-        order_id: orderId,
-        gateway: 'paystack',
-        payment_method: 'wallet',
-        success_url: PAYMENT_SUCCESS_URL,
-        cancel_url: PAYMENT_CANCEL_URL,
-      });
-      await verifyPayment({ order_id: orderId, gateway: 'paystack', reference: orderId });
-      finalizeLocalOrder(orderId);
+      const init = await initializePayment({ order_id: id });
+      const body: any = init.data ?? {};
+      const url: string | undefined = body.authorization_url ?? body.data?.authorization_url;
+      reference.current = body.reference ?? body.data?.reference ?? null;
+      if (!url) throw new Error('The payment page did not open. Please try again.');
+
+      setPhase('awaiting');
+      setBusy(false);
+      await WebBrowser.openBrowserAsync(url);
+      // iOS resolves when the page is closed; Android may resolve at once, and
+      // the app coming back to the foreground covers that case.
+      void checkPayment(true);
     } catch (error: any) {
-      setIsProcessing(false);
-      setPaymentFailed(true);
-      setFailureMessage(error?.message ?? "We couldn't process your payment. Please check your details or try a different payment method.");
+      console.error('Checkout failed:', error);
+      setBusy(false);
+      Alert.alert("Couldn't start your payment", error?.message ?? 'Please try again.');
     }
   };
 
-  // Confirmed a bank transfer — verify against the backend for real instead
-  // of assuming success.
-  const confirmBankTransfer = async () => {
-    if (!pendingOrderId) return;
-    setShowPaymentSheet(false);
-    setIsProcessing(true);
-    try {
-      await verifyPayment({ order_id: pendingOrderId, gateway: 'paystack', reference: pendingOrderId });
-      finalizeLocalOrder(pendingOrderId);
-    } catch (error: any) {
-      setIsProcessing(false);
-      setPaymentFailed(true);
-      setFailureMessage(error?.message ?? "We couldn't confirm your transfer yet. If you've already sent the money, please try again in a moment.");
-    }
-  };
-
-  // Mirrors the confirmed order into local Redux so order-tracking /
-  // order-history keep working today — the backend is now the source of
-  // truth (see placeOrder above); this local copy is just for the screens
-  // that still read from Redux (see docs/API-AUDIT-02… §3.2).
-  const finalizeLocalOrder = (orderId: string) => {
-    if (!product) return;
-    const trackingNumber = `LGS-${orderId.slice(-6).toUpperCase()}`;
-    dispatch(addProductOrder({
-      id: orderId,
-      customerId: String(user?.id ?? 'guest'),
-      productId: product.id,
-      productName: product.name,
-      productImage: product.image,
-      sellerName: product.sellerName || 'Seller',
-      price: product.price,
-      serviceFee,
-      deliveryFee,
-      total,
-      currency: 'NGN',
-      shippingOption,
-      shippingAddress: { country, address, city },
-      contactInfo: { phoneNumber: phone, email },
-      paymentMethod,
-      paymentStatus: 'completed' as const,
-      orderStatus: 'packed' as const,
-      trackingNumber,
-      estimatedDelivery: new Date(Date.now() + (shippingOption === 'express' ? 2 : 5) * 86400000).toLocaleDateString('en-NG', { weekday: 'long', month: 'long', day: 'numeric' }),
-      timeline: buildOrderTimeline('packed'),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-    setIsProcessing(false);
-    router.replace(`/checkout/success?orderId=${orderId}&trackingNumber=${trackingNumber}`);
-  };
-
-  if (isLoadingProduct) {
+  if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <View style={[styles.container, styles.center, { backgroundColor: t.bg }]}>
         <ActivityIndicator size="large" color={Colors.light.primary} />
       </View>
     );
   }
 
-  if (productError || !product) {
+  if (loadFailed) {
     return (
-      <View style={[styles.container, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <EmptyState
-          icon="alert-circle-outline"
-          title="Couldn't Load Product"
-          message="We couldn't load this item. Please check your connection and try again."
-          onRetry={loadProduct}
-          retryLabel="Try Again"
-        />
-      </View>
-    );
-  }
-
-  if (paymentFailed) {
-    return (
-      <View style={[styles.container, { backgroundColor: tc.bg, paddingTop: insets.top }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <EmptyState
-          icon="close-circle-outline"
-          title="Payment Failed"
-          message={failureMessage ?? "We couldn't process your payment. Please check your details or try a different payment method."}
-          onRetry={paymentMethod === 'bank_transfer' && pendingOrderId ? confirmBankTransfer : processOrder}
-          retryLabel="Try Again"
-        />
-        <TouchableOpacity style={styles.goBackBtn} onPress={() => setPaymentFailed(false)}>
-          <Text style={[styles.goBackBtnText, { color: tc.sub }]}>Go Back</Text>
-        </TouchableOpacity>
+      <View style={[styles.container, { backgroundColor: t.bg, paddingTop: insets.top }]}>
+        <EmptyState icon="cloud-offline-outline" title="We couldn't open checkout" message="Check your connection and try again." onRetry={load} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: tc.bg }]}>
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: t.bg }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: tc.card, borderBottomColor: tc.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={tc.text} />
+      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: t.card, borderBottomColor: t.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.back} accessibilityLabel="Back">
+          <Ionicons name="arrow-back" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: tc.text }]}>Payment</Text>
-        <View style={{ width: 40 }} />
+        <Text style={[styles.title, { color: t.text }]}>Checkout</Text>
+        <View style={styles.back} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {/* What you are buying */}
+        <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
+          <Text style={[styles.label, { color: t.sub }]}>Your order</Text>
+          {lines.length === 0 ? (
+            <Text style={{ color: t.sub, marginTop: 8 }}>Nothing here yet.</Text>
+          ) : (
+            lines.map((l) => (
+              <View key={l.id} style={styles.item}>
+                {l.image ? (
+                  <Image source={{ uri: l.image }} style={styles.thumb} />
+                ) : (
+                  <View style={[styles.thumb, styles.thumbEmpty]}>
+                    <Ionicons name="bag" size={22} color={Colors.light.primary} accent="#FFA000" />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.itemName, { color: t.text }]} numberOfLines={2}>{l.name}</Text>
+                  <Text style={{ color: t.sub, fontSize: 13, marginTop: 2 }}>Qty {l.quantity}</Text>
+                </View>
+                <Text style={[styles.itemPrice, { color: t.text }]}>₦{(l.price * l.quantity).toLocaleString()}</Text>
+              </View>
+            ))
+          )}
+          <View style={[styles.divider, { backgroundColor: t.border }]} />
+          <View style={styles.row}>
+            <Text style={{ color: t.sub, fontSize: 15 }}>{orderTotal ? 'Total' : 'Subtotal'}</Text>
+            <Text style={[styles.total, { color: t.text }]}>₦{(orderTotal ?? subtotal).toLocaleString()}</Text>
+          </View>
+          {!orderTotal ? (
+            <Text style={{ color: t.sub, fontSize: 12, marginTop: 6 }}>Delivery and any fees are worked out when you place the order. You will see the final total on the payment page.</Text>
+          ) : null}
+        </View>
 
-        {!PAYMENTS_ENABLED && (
-          <View style={[styles.comingSoonBanner, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
-            <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
-            <Text style={[styles.comingSoonText, { color: tc.text }]}>
-              Payments are coming soon. You can review your order here, but you can't complete a purchase yet.
+        {/* Where it goes and who to call: only before the order exists */}
+        {!orderId ? (
+          <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border, paddingVertical: 4 }]}>
+            <TouchableOpacity style={styles.summaryRow} onPress={() => setShowAddress(true)} activeOpacity={0.7}>
+              <Ionicons name="location" size={22} color={Colors.light.primary} accent="#FFA000" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: t.sub }]}>Deliver to</Text>
+                {destination ? (
+                  <Text style={[styles.rowValue, { color: t.text }]} numberOfLines={2}>
+                    {destination.label ? `${destination.label} · ` : ''}{destination.line1}, {destination.city}
+                  </Text>
+                ) : (
+                  <Text style={[styles.rowValue, { color: Colors.light.primary }]}>Add a delivery address</Text>
+                )}
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={t.sub} />
+            </TouchableOpacity>
+            <View style={[styles.divider, { backgroundColor: t.border, marginVertical: 0 }]} />
+            <TouchableOpacity style={styles.summaryRow} onPress={() => setShowPhone(true)} activeOpacity={0.7}>
+              <Ionicons name="call" size={22} color={Colors.light.primary} accent="#FFA000" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: t.sub }]}>Contact</Text>
+                <Text style={[styles.rowValue, { color: phone ? t.text : Colors.light.primary }]}>{phone || 'Add a phone number'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={t.sub} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {phase === 'awaiting' ? (
+          <View style={[styles.card, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
+            <Text style={{ color: t.text, fontSize: 14, lineHeight: 20 }}>
+              Finished paying? Tap below and we will check. If you closed the payment page, you can open it again.
             </Text>
+            <TouchableOpacity style={[styles.secondary, { borderColor: t.border }]} onPress={() => checkPayment(false)} disabled={busy}>
+              {busy ? <ActivityIndicator color={Colors.light.primary} /> : <Text style={[styles.secondaryText, { color: Colors.light.primary }]}>I have paid, check now</Text>}
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* Shipping Address */}
-        <TouchableOpacity
-          style={[styles.sectionRow, { backgroundColor: tc.card, borderColor: tc.border }]}
-          onPress={() => setShowAddressSheet(true)}
-        >
-          <View style={styles.sectionRowLeft}>
-            <Ionicons name="location" size={20} color={Colors.light.primary} />
-            <View style={styles.sectionRowText}>
-              <Text style={[styles.sectionRowLabel, { color: tc.sub }]}>Shipping Address</Text>
-              <Text style={[styles.sectionRowValue, { color: tc.text }]} numberOfLines={1}>
-                {isAddressComplete ? `${address}, ${city}` : 'Add Shipping Address'}
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={tc.sub} />
-        </TouchableOpacity>
-
-        {/* Contact Information */}
-        <TouchableOpacity
-          style={[styles.sectionRow, { backgroundColor: tc.card, borderColor: tc.border }]}
-          onPress={() => setShowContactSheet(true)}
-        >
-          <View style={styles.sectionRowLeft}>
-            <Ionicons name="person" size={20} color={Colors.light.primary} />
-            <View style={styles.sectionRowText}>
-              <Text style={[styles.sectionRowLabel, { color: tc.sub }]}>Contact Information</Text>
-              <Text style={[styles.sectionRowValue, { color: tc.text }]} numberOfLines={1}>
-                {isContactComplete ? phone : 'Add Contact Information'}
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={tc.sub} />
-        </TouchableOpacity>
-
-        {/* Item */}
-        <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-          <Text style={[styles.cardTitle, { color: tc.sub }]}>Item</Text>
-          <View style={styles.itemRow}>
-            <View style={[styles.itemImagePlaceholder, { backgroundColor: tc.input }]}>
-              <Ionicons name="image" size={28} color={tc.sub} />
-            </View>
-            <View style={styles.itemInfo}>
-              <Text style={[styles.itemName, { color: tc.text }]} numberOfLines={2}>{product.name}</Text>
-              <Text style={[styles.itemCategory, { color: tc.sub }]}>{product.category}</Text>
-            </View>
-            <Text style={[styles.itemPrice, { color: tc.text }]}>₦{product.price.toLocaleString()}</Text>
-          </View>
-        </View>
-
-        {/* Shipping Options */}
-        <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-          <Text style={[styles.cardTitle, { color: tc.sub }]}>Shipping Options</Text>
-          {(Object.keys(SHIPPING_OPTIONS) as ShippingOption[]).map(key => {
-            const opt = SHIPPING_OPTIONS[key];
-            const selected = shippingOption === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[styles.shippingOption, selected && { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}
-                onPress={() => setShippingOption(key)}
-              >
-                <View style={[styles.radioOuter, { borderColor: selected ? Colors.light.primary : tc.border }]}>
-                  {selected && <View style={styles.radioInner} />}
-                </View>
-                <View style={styles.shippingInfo}>
-                  <Text style={[styles.shippingLabel, { color: tc.text }]}>{opt.label}</Text>
-                  <Text style={[styles.shippingDuration, { color: tc.sub }]}>{opt.duration}</Text>
-                </View>
-                <Text style={[styles.shippingFee, { color: opt.fee === 0 ? '#4CD964' : tc.text }]}>
-                  {opt.fee === 0 ? 'Free' : `₦${opt.fee.toLocaleString()}`}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Price Summary */}
-        <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-          <Text style={[styles.cardTitle, { color: tc.sub }]}>Price Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: tc.sub }]}>Order</Text>
-            <Text style={[styles.summaryValue, { color: tc.text }]}>₦{product.price.toLocaleString()}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: tc.sub }]}>Service fee (3%)</Text>
-            <Text style={[styles.summaryValue, { color: tc.text }]}>₦{serviceFee.toLocaleString()}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: tc.sub }]}>Delivery</Text>
-            <Text style={[styles.summaryValue, { color: deliveryFee === 0 ? '#4CD964' : tc.text }]}>
-              {deliveryFee === 0 ? 'Free' : `₦${deliveryFee.toLocaleString()}`}
-            </Text>
-          </View>
-          <View style={[styles.divider, { backgroundColor: tc.border }]} />
-          <View style={styles.summaryRow}>
-            <Text style={[styles.totalLabel, { color: tc.text }]}>Total</Text>
-            <Text style={[styles.totalValue, { color: Colors.light.primary }]}>₦{total.toLocaleString()}</Text>
-          </View>
-        </View>
-
-        {/* Payment Method */}
-        <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-          <Text style={[styles.cardTitle, { color: tc.sub }]}>Payment Method</Text>
-          {PAYMENT_METHODS.map(method => {
-            const selected = paymentMethod === method.key;
-            return (
-              <TouchableOpacity
-                key={method.key}
-                style={[styles.paymentOption, selected && { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}
-                onPress={() => setPaymentMethod(method.key)}
-              >
-                <View style={[styles.paymentIconWrap, { backgroundColor: selected ? Colors.light.primary : tc.input }]}>
-                  <Ionicons name={method.icon as any} size={20} color={selected ? '#0F1419' : tc.sub} />
-                </View>
-                <View style={styles.paymentInfo}>
-                  <Text style={[styles.paymentLabel, { color: tc.text }]}>{method.label}</Text>
-                  <Text style={[styles.paymentDesc, { color: tc.sub }]}>{method.description}</Text>
-                  {method.key === 'wallet' && (
-                    <Text style={[styles.walletBalance, { color: Colors.light.primary }]}>
-                      Balance: ₦{walletBalance.toLocaleString()}
-                    </Text>
-                  )}
-                </View>
-                <View style={[styles.radioOuter, { borderColor: selected ? Colors.light.primary : tc.border }]}>
-                  {selected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={{ height: 100 }} />
+        ) : null}
       </ScrollView>
 
-      {/* Footer Pay Button */}
-      <View style={[styles.footer, { backgroundColor: tc.card, borderTopColor: tc.border, paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.footerTotal}>
-          <Text style={[styles.footerTotalLabel, { color: tc.sub }]}>Total</Text>
-          <Text style={[styles.footerTotalValue, { color: tc.text }]}>₦{total.toLocaleString()}</Text>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: t.card, borderTopColor: t.border }]}>
+        <View style={styles.footerRow}>
+          <View>
+            <Text style={{ color: t.sub, fontSize: 12 }}>{orderTotal ? 'Total' : 'Subtotal'}</Text>
+            <Text style={[styles.footerTotal, { color: t.text }]}>₦{total.toLocaleString()}</Text>
+          </View>
+          <TouchableOpacity style={[styles.primary, styles.payBtn, busy && { opacity: 0.6 }]} onPress={pay} disabled={busy}>
+            {busy && phase === 'form' ? (
+              <ActivityIndicator color="#0F1419" />
+            ) : (
+              <Text style={styles.primaryText}>{phase === 'awaiting' ? 'Open payment page' : 'Pay now'}</Text>
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.payBtn, (isProcessing || !PAYMENTS_ENABLED) && { opacity: 0.5 }]}
-          onPress={handlePay}
-          disabled={isProcessing || !PAYMENTS_ENABLED}
-        >
-          <Text style={styles.payBtnText}>
-            {!PAYMENTS_ENABLED ? 'Coming soon' : isProcessing ? 'Processing...' : 'Pay'}
-          </Text>
-        </TouchableOpacity>
+        <Text style={{ color: t.sub, fontSize: 12, textAlign: 'center', marginTop: 8 }}>
+          You pay on a secure page. Wami holds the money until your order is delivered.
+        </Text>
       </View>
 
-      {/* Shipping Address Bottom Sheet */}
-      <Modal visible={showAddressSheet} transparent animationType="slide">
-        <View style={styles.sheetOverlay}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
-            <View style={[styles.sheet, { backgroundColor: tc.card }]}>
-              <View style={styles.sheetHandle} />
-              <Text style={[styles.sheetTitle, { color: tc.text }]}>Shipping Address</Text>
-
-              <Text style={[styles.inputLabel, { color: tc.sub }]}>Country</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: tc.input, color: tc.text }]}
-                value={country}
-                onChangeText={setCountry}
-                placeholderTextColor={tc.sub}
-              />
-              <Text style={[styles.inputLabel, { color: tc.sub }]}>Address</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: tc.input, color: tc.text }]}
-                placeholder="Street address"
-                placeholderTextColor={tc.sub}
-                value={address}
-                onChangeText={setAddress}
-              />
-              <Text style={[styles.inputLabel, { color: tc.sub }]}>Town / City</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: tc.input, color: tc.text }]}
-                placeholder="City"
-                placeholderTextColor={tc.sub}
-                value={city}
-                onChangeText={setCity}
-              />
-              <TouchableOpacity style={styles.saveBtn} onPress={() => setShowAddressSheet(false)}>
-                <Text style={styles.saveBtnText}>Save Changes</Text>
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      {/* Contact Info Bottom Sheet */}
-      <Modal visible={showContactSheet} transparent animationType="slide">
-        <View style={styles.sheetOverlay}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
-            <View style={[styles.sheet, { backgroundColor: tc.card }]}>
-              <View style={styles.sheetHandle} />
-              <Text style={[styles.sheetTitle, { color: tc.text }]}>Contact Information</Text>
-
-              <Text style={[styles.inputLabel, { color: tc.sub }]}>Phone Number</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: tc.input, color: tc.text }]}
-                placeholder="e.g. 08012345678"
-                placeholderTextColor={tc.sub}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
-              <Text style={[styles.inputLabel, { color: tc.sub }]}>Email</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: tc.input, color: tc.text }]}
-                placeholder="email@example.com"
-                placeholderTextColor={tc.sub}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              <TouchableOpacity style={styles.saveBtn} onPress={() => setShowContactSheet(false)}>
-                <Text style={styles.saveBtnText}>Save Changes</Text>
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      {/* Bank Transfer Sheet */}
-      <Modal visible={showPaymentSheet} transparent animationType="slide">
-        <View style={styles.sheetOverlay}>
-          <View style={[styles.sheet, { backgroundColor: tc.card }]}>
-            <View style={styles.sheetHandle} />
-            <Text style={[styles.sheetTitle, { color: tc.text }]}>Bank Transfer</Text>
-            <Text style={[styles.sheetSub, { color: tc.sub }]}>Transfer exactly the amount below to complete your order</Text>
-
-            <View style={[styles.bankCard, { backgroundColor: tc.input }]}>
-              {!!bankDetails?.bank && (
-                <View style={styles.bankRow}>
-                  <Text style={[styles.bankLabel, { color: tc.sub }]}>Bank</Text>
-                  <Text style={[styles.bankValue, { color: tc.text }]}>{bankDetails.bank}</Text>
-                </View>
-              )}
-              {!!bankDetails?.accountNumber && (
-                <View style={styles.bankRow}>
-                  <Text style={[styles.bankLabel, { color: tc.sub }]}>Account Number</Text>
-                  <Text style={[styles.bankValue, { color: tc.text }]}>{bankDetails.accountNumber}</Text>
-                </View>
-              )}
-              {!!bankDetails?.accountName && (
-                <View style={styles.bankRow}>
-                  <Text style={[styles.bankLabel, { color: tc.sub }]}>Account Name</Text>
-                  <Text style={[styles.bankValue, { color: tc.text }]}>{bankDetails.accountName}</Text>
-                </View>
-              )}
-              {!bankDetails?.accountNumber && (
-                <Text style={[styles.bankLabel, { color: tc.sub }]}>
-                  Bank details aren't available yet. Please don't transfer any money until they appear here.
-                </Text>
-              )}
-              <View style={[styles.divider, { backgroundColor: tc.border, marginVertical: 12 }]} />
-              <View style={styles.bankRow}>
-                <Text style={[styles.bankLabel, { color: tc.sub }]}>Amount to Transfer</Text>
-                <Text style={[styles.transferAmount, { color: Colors.light.primary }]}>₦{total.toLocaleString()}</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.saveBtn, !bankDetails?.accountNumber && { opacity: 0.5 }]}
-              onPress={confirmBankTransfer}
-              disabled={!bankDetails?.accountNumber}
-            >
-              <Text style={styles.saveBtnText}>I've Transferred — Confirm Order</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowPaymentSheet(false)} style={styles.cancelBtn}>
-              <Text style={[styles.cancelBtnText, { color: tc.sub }]}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </View>
+      <AddressSheet
+        visible={showAddress}
+        onClose={() => setShowAddress(false)}
+        userId={user?.id}
+        saved={saved}
+        selectedId={destination?.id}
+        accountPhone={accountPhone}
+        onSaved={setSaved}
+        onSelect={(d, savedPhone) => {
+          setDestination(d);
+          if (savedPhone) setPhone(savedPhone);
+        }}
+      />
+      <PhoneSheet visible={showPhone} onClose={() => setShowPhone(false)} phone={phone} accountPhone={accountPhone} onSave={setPhone} />
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  centerContent: { justifyContent: 'center', alignItems: 'center' },
-  comingSoonBanner: {
-    flexDirection: 'row', gap: 12, padding: 16,
-    borderRadius: 16, borderWidth: 1, alignItems: 'flex-start',
-  },
-  comingSoonText: { fontSize: 14, flex: 1, lineHeight: 20 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1,
-  },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  goBackBtn: { alignItems: 'center', paddingBottom: 40 },
-  goBackBtnText: { fontSize: 15, fontWeight: '600' },
-  scrollContent: { padding: 16, gap: 12 },
-  sectionRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderRadius: 16, borderWidth: 1,
-  },
-  sectionRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  sectionRowText: { flex: 1 },
-  sectionRowLabel: { fontSize: 12, marginBottom: 2 },
-  sectionRowValue: { fontSize: 15, fontWeight: '600' },
-  card: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 12 },
-  cardTitle: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  itemImagePlaceholder: { width: 60, height: 60, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  itemInfo: { flex: 1 },
-  itemName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
-  itemCategory: { fontSize: 13 },
-  itemPrice: { fontSize: 16, fontWeight: '700' },
-  shippingOption: {
-    flexDirection: 'row', alignItems: 'center', padding: 14,
-    borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', gap: 12,
-  },
-  radioOuter: {
-    width: 20, height: 20, borderRadius: 10, borderWidth: 2,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.light.primary },
-  shippingInfo: { flex: 1 },
-  shippingLabel: { fontSize: 15, fontWeight: '600' },
-  shippingDuration: { fontSize: 12, marginTop: 2 },
-  shippingFee: { fontSize: 15, fontWeight: '700' },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryLabel: { fontSize: 14 },
-  summaryValue: { fontSize: 14, fontWeight: '500' },
-  totalLabel: { fontSize: 16, fontWeight: '700' },
-  totalValue: { fontSize: 20, fontWeight: '800' },
-  divider: { height: 1 },
-  paymentOption: {
-    flexDirection: 'row', alignItems: 'center', padding: 14,
-    borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', gap: 12,
-  },
-  paymentIconWrap: {
-    width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  paymentInfo: { flex: 1 },
-  paymentLabel: { fontSize: 15, fontWeight: '600' },
-  paymentDesc: { fontSize: 12, marginTop: 2 },
-  walletBalance: { fontSize: 12, fontWeight: '600', marginTop: 4 },
-  footer: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-    paddingTop: 16, borderTopWidth: 1, gap: 16,
-  },
-  footerTotal: { flex: 1 },
-  footerTotalLabel: { fontSize: 12 },
-  footerTotalValue: { fontSize: 20, fontWeight: '800' },
-  payBtn: {
-    backgroundColor: Colors.light.primary, paddingHorizontal: 40,
-    paddingVertical: 13, borderRadius: 12,
-  },
-  payBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
-  // Sheets
-  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB', alignSelf: 'center', marginBottom: 20 },
-  sheetTitle: { fontSize: 20, fontWeight: '700', marginBottom: 6 },
-  sheetSub: { fontSize: 14, marginBottom: 20 },
-  inputLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 12 },
-  input: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11, fontSize: 15 },
-  saveBtn: {
-    backgroundColor: Colors.light.primary, borderRadius: 12,
-    paddingVertical: 13, alignItems: 'center', marginTop: 24,
-  },
-  saveBtnText: { color: '#0F1419', fontSize: 16, fontWeight: '700' },
-  cancelBtn: { alignItems: 'center', marginTop: 12, paddingVertical: 8 },
-  cancelBtnText: { fontSize: 15, fontWeight: '500' },
-  bankCard: { borderRadius: 16, padding: 16, gap: 10 },
-  bankRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  bankLabel: { fontSize: 13 },
-  bankValue: { fontSize: 14, fontWeight: '600', textAlign: 'right', flex: 1, marginLeft: 16 },
-  transferAmount: { fontSize: 20, fontWeight: '800' },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1 },
+  back: { width: 40, height: 40, justifyContent: 'center' },
+  title: { fontSize: 17, fontWeight: '700' },
+  card: { borderRadius: 16, padding: 16, borderWidth: 1 },
+  label: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
+  thumb: { width: 52, height: 52, borderRadius: 10 },
+  thumbEmpty: { backgroundColor: '#E3F7FA', alignItems: 'center', justifyContent: 'center' },
+  itemName: { fontSize: 14, fontWeight: '600' },
+  itemPrice: { fontSize: 14, fontWeight: '700' },
+  divider: { height: 1, marginVertical: 14 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+  rowLabel: { fontSize: 12, fontWeight: '600' },
+  rowValue: { fontSize: 15, fontWeight: '700', marginTop: 2 },
+  footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  footerTotal: { fontSize: 22, fontWeight: '800' },
+  payBtn: { flex: 1, maxWidth: 220 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  total: { fontSize: 20, fontWeight: '800' },
+  footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1 },
+  primary: { height: 48, borderRadius: 12, backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { fontSize: 16, fontWeight: '700', color: '#0F1419' },
+  secondary: { height: 44, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  secondaryText: { fontSize: 15, fontWeight: '700' },
 });

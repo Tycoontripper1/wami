@@ -173,16 +173,20 @@ export const describeOrderStatus = (status: string): { label: string; tone: Orde
     case 'placed':
     case 'pending':
       return { label: 'Order placed', tone: 'warn' };
+    case 'packing':
+    case 'packed':
     case 'confirmed':
     case 'processing':
-    case 'packed':
-      return { label: humanize(status), tone: 'info' };
+      return { label: 'Being packed', tone: 'info' };
+    case 'dispatched':
     case 'shipped':
     case 'out_for_delivery':
-      return { label: humanize(status), tone: 'info' };
+      return { label: 'On its way', tone: 'info' };
     case 'delivered':
-    case 'completed':
       return { label: 'Delivered', tone: 'good' };
+    case 'complete':
+    case 'completed':
+      return { label: 'Complete', tone: 'good' };
     case 'cancelled':
     case 'canceled':
     case 'failed':

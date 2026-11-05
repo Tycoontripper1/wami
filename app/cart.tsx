@@ -4,7 +4,6 @@ import EmptyState from '@/components/EmptyState';
 import { Ionicons } from '@/components/FlatIcon';
 import GuestPrompt from '@/components/GuestPrompt';
 import Colors from '@/constants/Colors';
-import { PAYMENTS_ENABLED } from '@/constants/Payments';
 import { CartLine, getCartLines, removeCartItem, updateCartItem } from '@/services/api/ordersService';
 import type { RootState } from '@/store/store';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -89,18 +88,7 @@ export default function CartScreen() {
 
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
 
-  // Checkout still takes one product at a time, and payments are not switched on yet.
-  const checkout = () => {
-    if (!PAYMENTS_ENABLED) {
-      Alert.alert('Payments coming soon', "We're finishing setting up payments. Your cart is saved, so you can check out as soon as they open.");
-      return;
-    }
-    if (lines.length !== 1) {
-      Alert.alert('One item at a time', 'Checkout takes one item at a time for now. Remove the others, or buy them one by one.');
-      return;
-    }
-    router.push(`/checkout?productId=${lines[0].productId}` as any);
-  };
+  const checkout = () => router.push('/checkout' as any);
 
   return (
     <View style={[styles.container, { backgroundColor: t.bg }]}>

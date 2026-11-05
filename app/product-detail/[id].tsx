@@ -3,7 +3,7 @@ import type { RootState } from '@/store/store';
 import { formatAmountInput, parseAmount } from '@/utils/money';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { startConversation } from '@/services/api/chatService';
-import { addCartItem } from '@/services/api/ordersService';
+import { addCartItem, getCartLines } from '@/services/api/ordersService';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { absoluteUrl } from '@/utils/mediaUrl';
 import { getOfferingById } from '@/services/api/offeringsService';
@@ -209,17 +209,28 @@ export default function ProductDetailScreen() {
     );
   }
 
-  // The route's id is the listing id. It is passed on as it came, because the
-  // product's own id can collide with another listing's id.
+  // Buy Now: make sure the item is in the cart, then check out the cart.
   const handleBuyNow = () =>
-    gate('Sign in to buy this.', () => {
+    gate('Sign in to buy this.', async () => {
       if (isMine) {
         Alert.alert("That's your own listing", "You can't buy something you are selling.");
         return;
       }
-      router.push(`/checkout?productId=${productId}` as any);
+      setIsAddingToCart(true);
+      try {
+        const wanted = product.cartProductId ?? product.id;
+        const lines = await getCartLines();
+        if (!lines.some((l) => l.productId === wanted)) {
+          await addCartItem({ product_id: wanted, quantity: 1 });
+        }
+        router.push('/checkout' as any);
+      } catch (error: any) {
+        console.error('Buy now failed:', error);
+        Alert.alert("Couldn't start checkout", error?.message ?? 'Please try again.');
+      } finally {
+        setIsAddingToCart(false);
+      }
     });
-
 
   const handleAddToCart = () =>
     gate('Sign in to add things to your cart.', async () => {

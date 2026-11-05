@@ -185,6 +185,7 @@ function RootLayoutNav() {
           <Stack.Screen name="product-detail/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="favourites" options={{ headerShown: false }} />
           <Stack.Screen name="cart" options={{ headerShown: false }} />
+          <Stack.Screen name="addresses" options={{ headerShown: false }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
           <Stack.Screen name="account-actions" options={{ headerShown: false }} />
           <Stack.Screen name="wallet/add-funds" options={{ headerShown: false }} />
