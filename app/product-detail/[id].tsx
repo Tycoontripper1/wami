@@ -1,5 +1,11 @@
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store/store';
 import { formatAmountInput, parseAmount } from '@/utils/money';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
+import { startConversation } from '@/services/api/chatService';
+import { addCartItem } from '@/services/api/ordersService';
+import { useAuthGate } from '@/hooks/useAuthGate';
+import { absoluteUrl } from '@/utils/mediaUrl';
 import { getOfferingById } from '@/services/api/offeringsService';
 import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
@@ -37,7 +43,11 @@ interface ProductDetail {
   condition?: string;
   size?: string;
   description?: string;
+  /** The id /cart/items wants; the old product id, which differs from the listing id. */
+  cartProductId?: string;
   sellerName?: string;
+  sellerId?: string;
+  sellerAvatar?: string;
   officialStore?: boolean;
 }
 
@@ -63,6 +73,10 @@ const mapApiProductToDetail = (p: any): ProductDetail => ({
     p.seller?.name ||
     [p.user?.first_name, p.user?.last_name].filter(Boolean).join(' ') ||
     undefined,
+  cartProductId: p.legacy?.product_id !== undefined ? String(p.legacy.product_id) : p.id !== undefined ? String(p.id) : undefined,
+  sellerId:
+    p.creator?.id !== undefined ? String(p.creator.id) : p.creator_id !== undefined ? String(p.creator_id) : undefined,
+  sellerAvatar: absoluteUrl(p.creator?.profile_image),
   officialStore: p.officialStore,
 });
 
@@ -74,6 +88,10 @@ export default function ProductDetailScreen() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showOfferInput, setShowOfferInput] = useState(false);
   const [offerPrice, setOfferPrice] = useState('');
+  const [isSendingOffer, setIsSendingOffer] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const { gate } = useAuthGate();
+  const myId = useSelector((st: RootState) => (st.auth.user as any)?.id);
 
   const productId = params.id as string;
   const [product, setProduct] = useState<ProductDetail | null>(null);
@@ -115,17 +133,51 @@ export default function ProductDetailScreen() {
     setSelectedImageIndex(index);
   };
 
-  const handleSendOffer = () => {
-    if (!offerPrice.trim()) {
-      Alert.alert('Missing Offer', 'Please enter an offer amount');
-      return;
-    }
-    Alert.alert(
-      'Offer Sent! 🎉',
-      `Your offer of ₦${parseAmount(offerPrice).toLocaleString()} has been sent to the seller. They typically respond within 24 hours, or may counter with a different price.`,
-      [{ text: 'OK', onPress: () => { setShowOfferInput(false); setOfferPrice(''); } }]
-    );
-  };
+  const isMine = !!product?.sellerId && myId !== undefined && String(myId) === product.sellerId;
+
+  // An offer goes to the seller as a chat message, so they see it and can
+  // answer it there. There is no separate offers endpoint.
+  const handleSendOffer = () =>
+    gate('Sign in to make an offer, so the seller can reply to you.', async () => {
+      const amount = parseAmount(offerPrice);
+      if (!product || !product.sellerId) {
+        Alert.alert("Can't send an offer", 'We could not tell who is selling this. Please try again later.');
+        return;
+      }
+      if (amount <= 0) {
+        Alert.alert('Missing Offer', 'Please enter an offer amount');
+        return;
+      }
+      setIsSendingOffer(true);
+      try {
+        const body = `Hi${product.sellerName ? ` ${product.sellerName.split(' ')[0]}` : ''}, I'd like to offer ₦${amount.toLocaleString()} for "${product.name}" (listed at ₦${product.price.toLocaleString()}). Would that work?`;
+        const res = await startConversation(product.sellerId, body);
+        setShowOfferInput(false);
+        setOfferPrice('');
+        const conversationId = (res.data as any)?.id ?? (res.data as any)?.conversation_id;
+        Alert.alert('Offer sent', 'The seller has your offer in chat. You will see their reply there.', [
+          {
+            text: 'Open chat',
+            onPress: () =>
+              router.push({
+                pathname: '/chat/[id]',
+                params: {
+                  id: conversationId !== undefined ? String(conversationId) : 'new',
+                  recipientId: product.sellerId,
+                  name: product.sellerName ?? 'Seller',
+                  avatar: product.sellerAvatar ?? '',
+                },
+              } as any),
+          },
+          { text: 'Done', style: 'cancel' },
+        ]);
+      } catch (error: any) {
+        console.error('Failed to send offer:', error);
+        Alert.alert("Couldn't send your offer", error?.message ?? 'Please try again.');
+      } finally {
+        setIsSendingOffer(false);
+      }
+    });
 
   const themeColors = {
     background: isDark ? '#000' : '#fff',
@@ -157,18 +209,50 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const handleBuyNow = () => {
-    router.push(`/checkout?productId=${product.id}` as any);
-  };
+  // The route's id is the listing id. It is passed on as it came, because the
+  // product's own id can collide with another listing's id.
+  const handleBuyNow = () =>
+    gate('Sign in to buy this.', () => {
+      if (isMine) {
+        Alert.alert("That's your own listing", "You can't buy something you are selling.");
+        return;
+      }
+      router.push(`/checkout?productId=${productId}` as any);
+    });
 
 
-  const handleAddToCart = () => {
-    Alert.alert('Added to Cart', `${product.name} has been added to your cart`);
-  };
+  const handleAddToCart = () =>
+    gate('Sign in to add things to your cart.', async () => {
+      if (isMine) {
+        Alert.alert("That's your own listing", "You can't buy something you are selling.");
+        return;
+      }
+      setIsAddingToCart(true);
+      try {
+        await addCartItem({ product_id: product.cartProductId ?? product.id, quantity: 1 });
+        Alert.alert('Added to your cart', product.name, [
+          { text: 'View cart', onPress: () => router.push('/cart' as any) },
+          { text: 'Keep browsing', style: 'cancel' },
+        ]);
+      } catch (error: any) {
+        console.error('Failed to add to cart:', error);
+        Alert.alert("Couldn't add it to your cart", error?.message ?? 'Please try again.');
+      } finally {
+        setIsAddingToCart(false);
+      }
+    });
 
-  const handleContactSeller = () => {
-    Alert.alert('Contact Seller', 'Opening chat with seller... (Demo)');
-  };
+  const handleContactSeller = () =>
+    gate('Sign in to message the seller.', () => {
+      if (!product.sellerId) {
+        Alert.alert("Can't open chat", 'We could not tell who is selling this. Please try again later.');
+        return;
+      }
+      router.push({
+        pathname: '/chat/[id]',
+        params: { id: 'new', recipientId: product.sellerId, name: product.sellerName ?? 'Seller', avatar: product.sellerAvatar ?? '' },
+      } as any);
+    });
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -180,9 +264,14 @@ export default function ProductDetailScreen() {
           <TouchableOpacity onPress={() => router.back()} style={[styles.headerButton, { alignItems: 'flex-start' }]}>
             <Ionicons name="arrow-back" size={24} color={themeColors.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.headerButton, { alignItems: 'flex-end' }]}>
-            <Ionicons name="share-outline" size={24} color={themeColors.text} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity style={[styles.headerButton, { alignItems: 'flex-end' }]} onPress={() => router.push('/cart' as any)} accessibilityLabel="Cart">
+              <Ionicons name="cart" size={24} color={themeColors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.headerButton, { alignItems: 'flex-end' }]}>
+              <Ionicons name="share-outline" size={24} color={themeColors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -283,6 +372,7 @@ export default function ProductDetailScreen() {
             </View>
           </View>
 
+          {!isMine && (
           <View style={styles.sellerActionsRow}>
             <TouchableOpacity
               style={[styles.offerButton, { borderColor: Colors.light.primary }]}
@@ -295,8 +385,9 @@ export default function ProductDetailScreen() {
               <Text style={styles.messageButtonText}>Message</Text>
             </TouchableOpacity>
           </View>
+          )}
 
-          {showOfferInput && (
+          {showOfferInput && !isMine && (
             <View style={[styles.offerInlineCard, { backgroundColor: themeColors.cardBg, borderColor: themeColors.border }]}>
               <Text style={[styles.offerInlineLabel, { color: themeColors.text }]}>Make an Offer</Text>
               <View style={[styles.offerInputRow, { borderColor: themeColors.border }]}>
@@ -313,8 +404,8 @@ export default function ProductDetailScreen() {
               <Text style={[styles.offerCounterNote, { color: themeColors.subText }]}>
                 The seller may accept, counter, or decline your offer.
               </Text>
-              <TouchableOpacity style={styles.sendOfferButton} onPress={handleSendOffer}>
-                <Text style={styles.sendOfferButtonText}>Send Offer</Text>
+              <TouchableOpacity style={[styles.sendOfferButton, isSendingOffer && { opacity: 0.6 }]} onPress={handleSendOffer} disabled={isSendingOffer}>
+                {isSendingOffer ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.sendOfferButtonText}>Send Offer</Text>}
               </TouchableOpacity>
             </View>
           )}
@@ -354,10 +445,16 @@ export default function ProductDetailScreen() {
       <SafeAreaView edges={['bottom']}>
         <View style={[styles.bottomActions, { backgroundColor: themeColors.background, borderTopColor: themeColors.border }]}>
           <TouchableOpacity
-            style={[styles.addToCartButton, { borderColor: Colors.light.primary }]}
+            style={[styles.addToCartButton, { borderColor: Colors.light.primary }, isAddingToCart && { opacity: 0.6 }]}
             onPress={handleAddToCart}
+            disabled={isAddingToCart || product.status !== 'Active'}
+            accessibilityLabel="Add to cart"
           >
-            <Ionicons name="cart-outline" size={20} color={Colors.light.primary} />
+            {isAddingToCart ? (
+              <ActivityIndicator size="small" color={Colors.light.primary} />
+            ) : (
+              <Ionicons name="cart-outline" size={20} color={Colors.light.primary} />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buyButton}

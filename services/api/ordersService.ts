@@ -12,6 +12,7 @@ import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
 import { extractList } from '@/utils/extractList';
 import { ApiResponse } from './types';
+import { absoluteUrl } from '@/utils/mediaUrl';
 
 export interface ApiCart {
   items: any[];
@@ -49,6 +50,52 @@ export const addCartItem = async (
   payload: AddCartItemPayload
 ): Promise<ApiResponse<any>> => {
   return apiClient.post(API_ENDPOINTS.CART.ADD_ITEM, payload);
+};
+
+// PUT /cart/items/:id  { quantity }
+export const updateCartItem = async (
+  id: string | number,
+  quantity: number
+): Promise<ApiResponse<any>> => {
+  return apiClient.put(API_ENDPOINTS.CART.ITEM(id), { quantity });
+};
+
+// DELETE /cart/items/:id
+export const removeCartItem = async (id: string | number): Promise<ApiResponse<any>> => {
+  return apiClient.delete(API_ENDPOINTS.CART.ITEM(id));
+};
+
+/** One row of the cart, read loosely because the cart shape is not pinned down. */
+export interface CartLine {
+  /** The cart line's own id, for changing or removing it. */
+  id: string;
+  /** The product this line is for. */
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+const toLine = (raw: any, index: number): CartLine => {
+  const product = raw.product ?? raw.listing ?? {};
+  const quantity = Number(raw.quantity ?? raw.qty ?? 1) || 1;
+  const unit = Number(raw.unit_price ?? raw.price ?? product.price ?? 0) || 0;
+  return {
+    id: String(raw.id ?? raw.cart_item_id ?? index),
+    productId: String(raw.product_id ?? product.id ?? raw.id ?? ''),
+    name: product.title || product.name || raw.title || raw.name || 'Item',
+    price: unit,
+    quantity,
+    image: absoluteUrl(product.thumbnail_url || product.media_url || raw.thumbnail_url || raw.media_url),
+  };
+};
+
+// GET /cart, as rows ready to show.
+export const getCartLines = async (): Promise<CartLine[]> => {
+  const res = await getCart();
+  const body: any = res.data;
+  return extractList<any>(body?.items ?? body?.cart_items ?? body).map(toLine);
 };
 
 // POST /orders  { shipping_address }
