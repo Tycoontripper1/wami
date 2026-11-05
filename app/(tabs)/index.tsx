@@ -1,3 +1,4 @@
+import GuestPrompt from '@/components/GuestPrompt';
 import AppGuidance from '@/components/AppGuidance';
 import { Text } from '@/components/AppText';
 import EmptyState from '@/components/EmptyState';
@@ -37,7 +38,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const TABS = ['For you', 'Near you', 'Trending'] as const;
+const TABS = ['For you', 'Following', 'Near you', 'Trending'] as const;
 type Tab = (typeof TABS)[number];
 
 const DISMISSED_KEY = '@wami_dismissed_cards';
@@ -82,6 +83,8 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('For you');
   const [feed, setFeed] = useState<DiscoveryOffering[] | null>(null);
   const [nearYou, setNearYou] = useState<DiscoveryOffering[] | null>(null);
+  const [following, setFollowing] = useState<DiscoveryOffering[] | null>(null);
+  const [followingError, setFollowingError] = useState(false);
   const [listings, setListings] = useState<ListingData[]>([]);
   const [feedError, setFeedError] = useState(false);
   const [nearYouError, setNearYouError] = useState(false);
@@ -133,6 +136,23 @@ export default function HomeScreen() {
     }, [loadFeed])
   );
 
+  const loadFollowing = useCallback(async () => {
+    setFollowingError(false);
+    try {
+      const res = await getDiscoveryFeed({ tab: 'following' });
+      setFollowing(extractList<DiscoveryOffering>(res.data));
+    } catch (error) {
+      console.error('Failed to load the following feed:', error);
+      setFollowing(null);
+      setFollowingError(true);
+    }
+  }, []);
+
+  // Following is read fresh each time it is opened, so a new follow shows up.
+  useEffect(() => {
+    if (activeTab === 'Following' && signedIn) loadFollowing();
+  }, [activeTab, signedIn, loadFollowing]);
+
   useEffect(() => {
     if (activeTab === 'Near you' && nearYou === null && !nearYouError) loadNearYou();
   }, [activeTab, nearYou, nearYouError, loadNearYou]);
@@ -155,9 +175,13 @@ export default function HomeScreen() {
 
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await Promise.allSettled([loadFeed(), activeTab === 'Near you' ? loadNearYou() : Promise.resolve()]);
+    await Promise.allSettled([
+      loadFeed(),
+      activeTab === 'Near you' ? loadNearYou() : Promise.resolve(),
+      activeTab === 'Following' && signedIn ? loadFollowing() : Promise.resolve(),
+    ]);
     setIsRefreshing(false);
-  }, [loadFeed, loadNearYou, activeTab]);
+  }, [loadFeed, loadNearYou, loadFollowing, activeTab, signedIn]);
 
   const dismiss = (id: string) => {
     const next = [...dismissed, id];
@@ -175,6 +199,7 @@ export default function HomeScreen() {
     const cards = WAMI_CARDS.filter((c) => !dismissed.includes(c.id));
     let creatives: CreativeData[];
     if (activeTab === 'Near you') creatives = (nearYou ?? []).map(mapOfferingToCreativeData);
+    else if (activeTab === 'Following') creatives = (following ?? []).map(mapOfferingToCreativeData);
     else {
       creatives = (feed ?? []).map(mapOfferingToCreativeData);
       if (activeTab === 'Trending') creatives.sort((a, b) => b.rating * b.reviews - a.rating * a.reviews);
@@ -194,11 +219,12 @@ export default function HomeScreen() {
       out.push({ kind: 'wami', key: `wami-${cards[1].id}`, card: cards[1] });
     }
     return out;
-  }, [activeTab, feed, nearYou, listings, dismissed]);
+  }, [activeTab, feed, nearYou, following, listings, dismissed]);
 
   const hasContent = items.some((i) => i.kind !== 'wami');
-  const currentError = activeTab === 'Near you' ? nearYouError : feedError && listings.length === 0;
-  const retry = activeTab === 'Near you' ? loadNearYou : loadFeed;
+  const currentError =
+    activeTab === 'Near you' ? nearYouError : activeTab === 'Following' ? signedIn && followingError : feedError && listings.length === 0;
+  const retry = activeTab === 'Near you' ? loadNearYou : activeTab === 'Following' ? loadFollowing : loadFeed;
 
   const renderItem = ({ item }: { item: FeedItem }) => {
     if (item.kind === 'wami') {
@@ -272,7 +298,9 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {isLoading ? (
+      {activeTab === 'Following' && !signedIn ? (
+        <GuestPrompt illustration="heart" title="Follow the people you like" message="Sign in, follow creatives, and their new work shows up here." />
+      ) : isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={Colors.light.primary} size="large" />
         </View>
@@ -294,13 +322,23 @@ export default function HomeScreen() {
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />}
           ListFooterComponent={
             !hasContent ? (
-              <EmptyState
-                icon="location-outline"
-                title="No creatives nearby"
-                message="Try changing your location to discover more creatives"
-                onRetry={() => router.push('/location-picker' as any)}
-                retryLabel="Change location"
-              />
+              activeTab === 'Following' ? (
+                <EmptyState
+                  illustration="heart"
+                  title="You are not following anyone yet"
+                  message="Open a creative's page and tap Follow. Their new work will show here."
+                  onRetry={() => router.push('/swipe' as any)}
+                  retryLabel="Find creatives"
+                />
+              ) : (
+                <EmptyState
+                  icon="location-outline"
+                  title="No creatives nearby"
+                  message="Try changing your location to discover more creatives"
+                  onRetry={() => router.push('/location-picker' as any)}
+                  retryLabel="Change location"
+                />
+              )
             ) : undefined
           }
         />

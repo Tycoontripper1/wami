@@ -107,8 +107,7 @@
 //           ),
 //         }}
 //       />
-//       <Tabs.Screen name="wallet" options={{ href: null }} />
-//       <Tabs.Screen name="two" options={{ href: null }} />
+// //       <Tabs.Screen name="two" options={{ href: null }} />
 //     </Tabs>
 //   );
 // }

@@ -70,6 +70,14 @@ export const getSalesAnalytics = async (params: {
   return apiClient.get(API_ENDPOINTS.SELLER.SALES_ANALYTICS, { params });
 };
 
+// GET /seller/analytics/traffic?from=&to=  Views, clicks and saves on your listings.
+export const getSellerTraffic = async (params: {
+  from: string;
+  to: string;
+}): Promise<ApiResponse<any>> => {
+  return apiClient.get(API_ENDPOINTS.SELLER.TRAFFIC, { params });
+};
+
 // GET /v1/seller/analytics/top-products?limit=
 export const getTopProducts = async (params?: {
   limit?: number;

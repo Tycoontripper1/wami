@@ -1,4 +1,5 @@
 import AnimatedHeart from '@/components/AnimatedHeart';
+import CartButton from '@/components/CartButton';
 import EmptyState from '@/components/EmptyState';
 import { CreativeData } from '@/components/SwipeableCardStack';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -238,13 +239,14 @@ export default function DiscoverScreen() {
       <View style={{ height: insets.top > 20 ? insets.top : 8 }} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <View>
+        <View style={[styles.headerRow, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }]}>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.pageTitle, { color: themeColors.text }]}>Shop</Text>
             <Text style={[styles.pageSubtitle, { color: themeColors.subText }]}>
               Discover products from creatives near you
             </Text>
           </View>
+          <CartButton color={themeColors.text} />
         </View>
 
         {/* Search entry point */}

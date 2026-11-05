@@ -40,3 +40,23 @@ export const markNotificationRead = async (
 export const markAllNotificationsRead = async (): Promise<ApiResponse<null>> => {
   return apiClient.post(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
 };
+
+/** Push and email switches per category, such as { new_message: { push: true, email: false } }. */
+export type NotificationSettings = Record<string, { push?: boolean; email?: boolean }>;
+
+// GET /settings/notifications. Read loosely: the switches may sit under `settings` or be the body itself.
+export const getNotificationSettings = async (): Promise<NotificationSettings> => {
+  const res = await apiClient.get<any>(API_ENDPOINTS.NOTIFICATIONS.SETTINGS);
+  const raw: any = res.data?.settings ?? res.data ?? {};
+  const out: NotificationSettings = {};
+  Object.keys(raw).forEach((key) => {
+    const v = raw[key];
+    if (v && typeof v === 'object' && ('push' in v || 'email' in v)) out[key] = { push: !!v.push, email: !!v.email };
+  });
+  return out;
+};
+
+// PATCH /settings/notifications  { settings: { category: { push, email } } }
+export const updateNotificationSettings = async (settings: NotificationSettings): Promise<ApiResponse<any>> => {
+  return apiClient.patch(API_ENDPOINTS.NOTIFICATIONS.SETTINGS, { settings });
+};

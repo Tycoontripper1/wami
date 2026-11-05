@@ -35,6 +35,8 @@ export interface DiscoveryOffering {
 export interface DiscoveryListParams {
   page?: number;
   limit?: number;
+  /** 'following' returns only what the people you follow have posted. */
+  tab?: 'following';
 }
 
 // GET /discovery/feed

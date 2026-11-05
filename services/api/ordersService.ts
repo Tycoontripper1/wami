@@ -157,6 +157,21 @@ export const getOrderById = async (id: string | number): Promise<ApiOrderRecord>
   return res.data as ApiOrderRecord;
 };
 
+/** placed, packing, dispatched, delivered, complete, cancelled. */
+export type OrderStatusValue = 'placed' | 'packing' | 'dispatched' | 'delivered' | 'complete' | 'cancelled';
+
+// PUT /orders/:id/status  { status }. The server decides who may make which move.
+export const updateOrderStatus = async (
+  id: string | number,
+  status: OrderStatusValue
+): Promise<ApiResponse<ApiOrderRecord>> => {
+  return apiClient.put(API_ENDPOINTS.ORDERS.STATUS(id), { status });
+};
+
+/** Which side of an order the signed-in person is on. */
+export const orderRole = (order: ApiOrderRecord, myId?: string | number): 'seller' | 'buyer' =>
+  myId !== undefined && String(order.seller_id) === String(myId) ? 'seller' : 'buyer';
+
 /* ── presentation helpers ────────────────────────────────────────────────── */
 
 const humanize = (value: string) =>

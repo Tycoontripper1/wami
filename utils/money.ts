@@ -26,3 +26,15 @@ export function parseAmount(text: string | number | null | undefined): number {
   const n = Number(String(text ?? '').replace(/,/g, ''));
   return Number.isFinite(n) ? n : 0;
 }
+
+/** A short form for axes and tight spaces: 950, 12.5k, 1.2M. No currency sign. */
+export function formatCompact(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000_000) return `${sign}${trim(abs / 1_000_000_000)}B`;
+  if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}M`;
+  if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}k`;
+  return `${sign}${Math.round(abs)}`;
+}
+
+const trim = (n: number) => (n >= 100 ? Math.round(n) : Math.round(n * 10) / 10).toString();

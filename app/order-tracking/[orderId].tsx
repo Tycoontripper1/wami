@@ -8,12 +8,19 @@ import {
   describeOrderStatus,
   describePaymentStatus,
   getOrderById,
+  OrderStatusValue,
+  orderRole,
   toAmount,
+  updateOrderStatus,
 } from '@/services/api/ordersService';
 import { formatCurrency } from '@/types/payment';
+import { Alert } from '@/components/AppAlert';
+import type { RootState } from '@/store/store';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSelector } from 'react-redux';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
@@ -37,6 +44,8 @@ export default function OrderDetailScreen() {
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
   const tones = orderToneColors(isDark);
+  const myId = useSelector((st: RootState) => (st.auth.user as any)?.id);
+  const [moving, setMoving] = useState(false);
 
   const [order, setOrder] = useState<ApiOrderRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,6 +132,41 @@ export default function OrderDetailScreen() {
   const address = order.shipping_address ?? {};
   const addressLines = [address.line1, address.city, address.country].filter(Boolean) as string[];
   const awaitingPayment = (order.payment_status || '').toLowerCase() === 'pending';
+  const role = orderRole(order, myId);
+  const paid = ['paid', 'success', 'successful'].includes((order.payment_status || '').toLowerCase());
+  const st = (order.status || '').toLowerCase();
+
+  // The next move for this person, if there is one. The server has the last
+  // word on who may do what; a refused move comes back as a message.
+  let nextMove: { to: OrderStatusValue; label: string; ask: string } | null = null;
+  if (role === 'seller' && paid) {
+    if (st === 'placed') nextMove = { to: 'packing', label: 'Start packing', ask: 'Let the buyer know you are packing this order?' };
+    else if (st === 'packing') nextMove = { to: 'dispatched', label: 'Mark as dispatched', ask: 'Mark this order as sent out for delivery?' };
+    else if (st === 'dispatched') nextMove = { to: 'delivered', label: 'Mark as delivered', ask: 'Mark this order as delivered?' };
+  } else if (role === 'buyer' && st === 'delivered') {
+    nextMove = { to: 'complete', label: 'I received it', ask: 'Confirm you have received everything. This pays the seller.' };
+  }
+  const canCancel = role === 'buyer' && awaitingPayment && st === 'placed';
+
+  const move = (to: OrderStatusValue, ask: string, label: string, destructive = false) =>
+    Alert.alert(label, ask, [
+      { text: 'Not now', style: 'cancel' },
+      {
+        text: label,
+        style: destructive ? 'destructive' : 'default',
+        onPress: async () => {
+          setMoving(true);
+          try {
+            await updateOrderStatus(order.id, to);
+            await load('refresh');
+          } catch (error: any) {
+            Alert.alert("That didn't go through", error?.message ?? 'Please try again.');
+          } finally {
+            setMoving(false);
+          }
+        },
+      },
+    ]);
 
   return (
     <View style={[styles.container, { backgroundColor: tc.bg }]}>
@@ -145,7 +189,10 @@ export default function OrderDetailScreen() {
             </View>
           </View>
           <Text style={[styles.meta, { color: tc.sub }]}>Placed on {placed}</Text>
-          {awaitingPayment ? (
+          {awaitingPayment && role === 'seller' ? (
+            <Text style={[styles.note, { color: tc.text }]}>Waiting for the buyer to pay. You will be able to start packing once they have.</Text>
+          ) : null}
+          {awaitingPayment && role === 'buyer' ? (
             <>
               <Text style={[styles.note, { color: tc.text }]}>This order is waiting for payment.</Text>
               <TouchableOpacity
@@ -155,6 +202,20 @@ export default function OrderDetailScreen() {
                 <Text style={{ color: '#0F1419', fontSize: 15, fontWeight: '700' }}>Pay now</Text>
               </TouchableOpacity>
             </>
+          ) : null}
+          {nextMove ? (
+            <TouchableOpacity
+              style={{ height: 44, borderRadius: 10, backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center', marginTop: 12, opacity: moving ? 0.6 : 1 }}
+              onPress={() => move(nextMove!.to, nextMove!.ask, nextMove!.label)}
+              disabled={moving}
+            >
+              {moving ? <ActivityIndicator color="#0F1419" /> : <Text style={{ color: '#0F1419', fontSize: 15, fontWeight: '700' }}>{nextMove.label}</Text>}
+            </TouchableOpacity>
+          ) : null}
+          {canCancel ? (
+            <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 8 }} onPress={() => move('cancelled', 'This order has not been paid for. Cancel it?', 'Cancel order', true)} disabled={moving}>
+              <Text style={{ color: '#E5533F', fontSize: 14, fontWeight: '700' }}>Cancel this order</Text>
+            </TouchableOpacity>
           ) : null}
         </View>
 
@@ -222,11 +283,17 @@ export default function OrderDetailScreen() {
         {/* Address */}
         {addressLines.length > 0 ? (
           <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-            <Text style={[styles.sectionTitle, { color: tc.text }]}>Deliver to</Text>
+            <Text style={[styles.sectionTitle, { color: tc.text }]}>{role === 'seller' ? 'Send to' : 'Deliver to'}</Text>
             <View style={styles.addressRow}>
               <Ionicons name="location" size={18} color={Colors.light.primary} />
               <Text style={[styles.addressText, { color: tc.text }]}>{addressLines.join(', ')}</Text>
             </View>
+            {address.phone ? (
+              <View style={styles.addressRow}>
+                <Ionicons name="call" size={18} color={Colors.light.primary} />
+                <Text style={[styles.addressText, { color: tc.text }]}>{address.phone}</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
 

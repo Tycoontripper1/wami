@@ -43,8 +43,6 @@ export default function ProfileScreen() {
   const favouritesCount = useSelector((state: RootState) => state.favorites.items.length);
   // Real booking count from the backend's paginator; null until it loads.
   const [bookingsCount, setBookingsCount] = useState<number | null>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -106,7 +104,7 @@ export default function ProfileScreen() {
       title: 'Account',
       items: [
         { icon: 'person', label: 'Edit Profile', route: '/edit-profile' },
-        { icon: 'wallet', label: 'Wallet', route: '/(tabs)/wallet' },
+        { icon: 'wallet', label: 'Wallet', route: '/wallet' },
         { icon: 'basket', label: 'My Products', route: '/my-products' },
         { icon: 'calendar', label: 'Manage Availability', route: '/creative-dashboard' },
         // Hidden in release builds until INSTAGRAM_IMPORT_ENABLED (the backend's
@@ -128,8 +126,8 @@ export default function ProfileScreen() {
     {
       title: 'Preferences',
       items: [
-        { icon: 'notifications', label: 'Notifications', toggle: true, value: notificationsEnabled, onToggle: setNotificationsEnabled },
-        { icon: 'location', label: 'Location Services', toggle: true, value: locationEnabled, onToggle: setLocationEnabled },
+        { icon: 'notifications', label: 'Notifications', route: '/notification-settings' },
+        { icon: 'location', label: 'Location Services', route: '/privacy' },
       ],
     },
     {

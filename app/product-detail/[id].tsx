@@ -2,6 +2,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '@/store/store';
 import { formatAmountInput, parseAmount } from '@/utils/money';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
+import CartButton from '@/components/CartButton';
 import { startConversation } from '@/services/api/chatService';
 import { addCartItem, getCartLines } from '@/services/api/ordersService';
 import { useAuthGate } from '@/hooks/useAuthGate';
@@ -276,9 +277,7 @@ export default function ProductDetailScreen() {
             <Ionicons name="arrow-back" size={24} color={themeColors.text} />
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            <TouchableOpacity style={[styles.headerButton, { alignItems: 'flex-end' }]} onPress={() => router.push('/cart' as any)} accessibilityLabel="Cart">
-              <Ionicons name="cart" size={24} color={themeColors.text} />
-            </TouchableOpacity>
+            <CartButton color={themeColors.text} />
             <TouchableOpacity style={[styles.headerButton, { alignItems: 'flex-end' }]}>
               <Ionicons name="share-outline" size={24} color={themeColors.text} />
             </TouchableOpacity>

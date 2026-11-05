@@ -118,6 +118,7 @@ export const API_ENDPOINTS = {
     CREATE: '/orders',
     LIST: '/orders',
     BY_ID: (id: string | number) => `/orders/${id}`,
+    STATUS: (id: string | number) => `/orders/${id}/status`,
   },
 
   // Payments — "Payments" folder. The collection only documents
@@ -187,11 +188,12 @@ export const API_ENDPOINTS = {
   // (seller-scoped part) folders. BASE_URL already supplies /v1 — see its
   // comment above; do not re-add a literal /v1/ here.
   SELLER: {
-    WALLET: '/seller/wallet',
-    TRANSACTIONS: '/seller/transactions',
+    WALLET: '/wallet',
+    TRANSACTIONS: '/wallet/transactions',
     PAYOUT_REQUESTS: '/seller/payout-requests',
     SALES_ANALYTICS: '/seller/analytics/sales',
     TOP_PRODUCTS: '/seller/analytics/top-products',
+    TRAFFIC: '/seller/analytics/traffic',
   },
 
   // Reviews & Ratings
@@ -238,6 +240,7 @@ export const API_ENDPOINTS = {
   },
 
   NOTIFICATIONS: {
+    SETTINGS: '/settings/notifications',
     LIST: '/notifications',
     UNREAD_COUNT: '/notifications/unread-count',
     MARK_READ: (id: string | number) => `/notifications/${id}/read`,

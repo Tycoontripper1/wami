@@ -186,10 +186,10 @@ function RootLayoutNav() {
           <Stack.Screen name="favourites" options={{ headerShown: false }} />
           <Stack.Screen name="cart" options={{ headerShown: false }} />
           <Stack.Screen name="addresses" options={{ headerShown: false }} />
+          <Stack.Screen name="notification-settings" options={{ headerShown: false }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
           <Stack.Screen name="account-actions" options={{ headerShown: false }} />
-          <Stack.Screen name="wallet/add-funds" options={{ headerShown: false }} />
-          <Stack.Screen name="wallet/payment-methods" options={{ headerShown: false }} />
+          <Stack.Screen name="wallet/index" options={{ headerShown: false }} />
           <Stack.Screen name="wallet/withdraw" options={{ headerShown: false }} />
           <Stack.Screen name="add-service" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="delivery/arrange/[orderId]" options={{ headerShown: false }} />

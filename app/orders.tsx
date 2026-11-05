@@ -10,10 +10,13 @@ import {
   describePaymentStatus,
   getOrderById,
   getOrders,
+  orderRole,
   toAmount,
 } from '@/services/api/ordersService';
 import { formatCurrency } from '@/types/payment';
+import type { RootState } from '@/store/store';
 import { useRouter } from 'expo-router';
+import { useSelector } from 'react-redux';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
@@ -38,6 +41,8 @@ export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
   const isDark = useColorScheme() === 'dark';
   const tones = orderToneColors(isDark);
+  const myId = useSelector((st: RootState) => (st.auth.user as any)?.id);
+  const [side, setSide] = useState<'buyer' | 'seller'>('buyer');
 
   const [orders, setOrders] = useState<ApiOrderRecord[]>([]);
   const [summaries, setSummaries] = useState<Record<number, OrderSummary>>({});
@@ -87,6 +92,12 @@ export default function OrdersScreen() {
     void load();
   }, [load]);
 
+  const buying = orders.filter((o) => orderRole(o, myId) === 'buyer');
+  const selling = orders.filter((o) => orderRole(o, myId) === 'seller');
+  const shown = side === 'seller' ? selling : buying;
+  // The tabs only matter once someone has sold something.
+  const showTabs = selling.length > 0;
+
   const renderOrder = ({ item }: { item: ApiOrderRecord }) => {
     const status = describeOrderStatus(item.status);
     const payment = describePaymentStatus(item.payment_status);
@@ -134,6 +145,11 @@ export default function OrdersScreen() {
           <View style={[styles.badge, { backgroundColor: tones[payment.tone].bg }]}>
             <Text style={[styles.badgeText, { color: tones[payment.tone].fg }]}>{payment.label}</Text>
           </View>
+          {orderRole(item, myId) === 'seller' ? (
+            <View style={[styles.badge, { backgroundColor: Colors.light.primary + '25' }]}>
+              <Text style={[styles.badgeText, { color: Colors.light.primary }]}>Sale</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={[styles.divider, { backgroundColor: tc.border }]} />
@@ -177,7 +193,7 @@ export default function OrdersScreen() {
         onRetry={() => void load()}
       />
     );
-  } else if (orders.length === 0) {
+  } else if (shown.length === 0) {
     body = (
       <View style={styles.emptyState}>
         <View style={{ marginBottom: 12 }}>
@@ -195,7 +211,7 @@ export default function OrdersScreen() {
   } else {
     body = (
       <FlatList
-        data={orders}
+        data={shown}
         renderItem={renderOrder}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
@@ -218,6 +234,19 @@ export default function OrdersScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      {showTabs ? (
+        <View style={styles.tabs}>
+          {([['buyer', `Buying ${buying.length}`], ['seller', `Selling ${selling.length}`]] as const).map(([key, label]) => {
+            const active = side === key;
+            return (
+              <TouchableOpacity key={key} style={[styles.tab, { backgroundColor: active ? Colors.light.primary : tc.card, borderColor: active ? Colors.light.primary : tc.border }]} onPress={() => setSide(key)}>
+                <Text style={{ color: active ? '#0F1419' : tc.text, fontSize: 14, fontWeight: '700' }}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
+
       {body}
     </View>
   );
@@ -236,6 +265,8 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700' },
   list: { padding: 16, gap: 12 },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+  tab: { paddingHorizontal: 16, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   orderCard: { borderRadius: 20, borderWidth: 1, overflow: 'hidden' },
   orderTop: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 10, gap: 12 },
   thumb: { width: 52, height: 52, borderRadius: 14 },

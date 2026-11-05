@@ -1,3 +1,4 @@
+import FlatIllustration from '@/components/illustrations/FlatIllustration';
 import { formatAmountInput, parseAmount } from '@/utils/money';
 import { extractList } from '@/utils/extractList';
 import SalesChart, { SalesChartPoint } from '@/components/analytics/SalesChart';
@@ -58,22 +59,16 @@ export default function WalletScreen() {
   // State
   const [showBalance, setShowBalance] = useState(true);
   const [balance, setBalance] = useState(0);
+  const [pending, setPending] = useState(0);
   const [isLoadingWallet, setIsLoadingWallet] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('All');
 
   // Modals
-  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyTab, setHistoryTab] = useState<'transactions' | 'analytics'>('transactions');
   const [showTxnDetailModal, setShowTxnDetailModal] = useState(false);
   const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
   
-  // Form states
-  const [fundAmount, setFundAmount] = useState('');
-  const [transferAmount, setTransferAmount] = useState('');
-  const [transferRecipient, setTransferRecipient] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const isNigeria = region?.code === 'NG' || region?.name === 'Nigeria';
@@ -87,7 +82,10 @@ export default function WalletScreen() {
         getSellerWallet(),
         getSellerTransactions({ page: 1 }),
       ]);
-      setBalance(Number((walletRes.data as any)?.balance ?? 0));
+      // Earnings: what can be withdrawn now, and what is still held until orders and bookings finish.
+      const w: any = walletRes.data ?? {};
+      setBalance(Number(w.available ?? w.available_balance ?? w.balance ?? 0));
+      setPending(Number(w.pending ?? w.pending_balance ?? 0));
       const txnData: any = txnsRes.data;
       const items: SellerTransaction[] = extractList(txnData);
       setTransactions(items.map(mapSellerTransaction));
@@ -158,27 +156,6 @@ export default function WalletScreen() {
 
   // Handlers
   //
-  // Neither "add funds" (wallet top-up) nor a peer-to-peer "transfer" has any
-  // matching endpoint anywhere in the WAMI Postman collection — only the
-  // seller wallet balance/transactions and payout-requests are documented
-  // (see docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §2.3/§3.9). Faking a
-  // credit/debit here would make the screen lie about money that never
-  // actually moved, so both are left honestly unavailable until backend
-  // confirms a real contract, instead of manufacturing a fake transaction.
-  const handleAddFunds = () => {
-    setShowAddFundsModal(false);
-    setFundAmount('');
-    setSelectedPaymentMethod(null);
-    Alert.alert('Not Available Yet', "Adding funds isn't supported by the backend yet. Please check back soon.");
-  };
-
-  const handleTransfer = () => {
-    setShowTransferModal(false);
-    setTransferAmount('');
-    setTransferRecipient('');
-    Alert.alert('Not Available Yet', "Wallet-to-wallet transfers aren't supported by the backend yet. Please check back soon.");
-  };
-
   const openTxnDetail = (txn: Transaction) => {
     setSelectedTxn(txn);
     setShowTxnDetailModal(true);
@@ -194,229 +171,95 @@ export default function WalletScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.greeting, { color: themeColors.subText }]}>Welcome back 👋</Text>
-            <Text style={[styles.headerTitle, { color: themeColors.text }]}>My Wallet</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/seller-analytics' as any)}>
-              <Ionicons name="stats-chart-outline" size={20} color={themeColors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/notifications' as any)}>
-              <Ionicons name="notifications-outline" size={22} color={themeColors.text} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.simpleHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.headerBtn, { backgroundColor: themeColors.cardBg }]} accessibilityLabel="Back">
+            <Ionicons name="arrow-back" size={22} color={themeColors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: themeColors.text }]}>Wallet</Text>
         </View>
 
-        {/* Balance Card */}
-        <View style={styles.cardWrapper}>
-          <LinearGradient
-            colors={['#00BCD4', '#0097A7', '#00838F'] as const}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.balanceCard}
-          >
-            <View style={styles.decorCircle1} />
-            <View style={styles.decorCircle2} />
-            <View style={styles.decorCircle3} />
-
-            <View style={styles.cardContent}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardChip}>
-                  <Ionicons name="wallet" size={18} color="#fff" />
-                </View>
-                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowBalance(!showBalance)}>
-                  <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={20} color="rgba(255,255,255,0.8)" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.balanceSection}>
-                <Text style={styles.balanceLabel}>Available Balance</Text>
-                <Text style={styles.balanceAmount}>{showBalance ? formatPrice(balance) : '••••••••'}</Text>
-              </View>
-
-              <View style={styles.quickActions}>
-                <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowAddFundsModal(true)}>
-                  <View style={styles.quickActionIcon}><Ionicons name="add" size={22} color="#00BCD4" /></View>
-                  <Text style={styles.quickActionText}>Add Money</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/wallet/withdraw')}>
-                  <View style={styles.quickActionIcon}><Ionicons name="arrow-up" size={22} color="#00BCD4" /></View>
-                  <Text style={styles.quickActionText}>Withdraw</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowTransferModal(true)}>
-                  <View style={styles.quickActionIcon}><Ionicons name="swap-horizontal" size={22} color="#00BCD4" /></View>
-                  <Text style={styles.quickActionText}>Transfer</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.quickActionBtn} onPress={() => setShowHistoryModal(true)}>
-                  <View style={styles.quickActionIcon}><Ionicons name="time" size={22} color="#00BCD4" /></View>
-                  <Text style={styles.quickActionText}>History</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </LinearGradient>
-        </View>
-
-
-
-        {/* Filters */}
-        <View style={styles.filterSection}>
-          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Recent Transactions</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {['All', 'Credit', 'Debit', 'Pending'].map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                style={[styles.filterPill, { backgroundColor: selectedFilter === filter ? Colors.light.primary : themeColors.cardBg, borderColor: selectedFilter === filter ? Colors.light.primary : themeColors.border }]}
-                onPress={() => setSelectedFilter(filter)}
-              >
-                <Text style={[styles.filterText, { color: selectedFilter === filter ? '#0F1419' : themeColors.text }]}>{filter}</Text>
+        {/* Balance */}
+        <View style={styles.balanceBox}>
+          <View style={styles.balanceTop}>
+            <View style={{ flex: 1 }}>
+              <TouchableOpacity style={styles.balanceLabelRow} onPress={() => setShowBalance(!showBalance)} accessibilityLabel={showBalance ? 'Hide balance' : 'Show balance'}>
+                <Text style={styles.balanceLabelText}>Available to withdraw</Text>
+                <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={16} color="rgba(15,20,25,0.7)" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Transactions */}
-        <View style={styles.transactionsList}>
-          {isLoadingWallet && <ActivityIndicator color={Colors.light.primary} style={{ marginVertical: 20 }} />}
-          {!isLoadingWallet && filteredTransactions.length === 0 && (
-            <Text style={[styles.emptyText, { color: themeColors.subText, textAlign: 'center', marginTop: 20 }]}>No transactions yet</Text>
-          )}
-          {filteredTransactions.slice(0, 5).map((txn) => (
-            <TouchableOpacity key={txn.id} style={[styles.txnItem, { backgroundColor: themeColors.cardBg }]} onPress={() => openTxnDetail(txn)}>
-              <View style={[styles.txnIconBg, { backgroundColor: txn.type === 'credit' ? '#E8F5E9' : '#FFEBEE' }]}>
-                <Ionicons name={txn.type === 'credit' ? 'arrow-down' : 'arrow-up'} size={20} color={txn.type === 'credit' ? '#4CAF50' : '#F44336'} />
-              </View>
-              <View style={styles.txnDetails}>
-                <Text style={[styles.txnTitle, { color: themeColors.text }]}>{txn.title}</Text>
-                <Text style={[styles.txnDate, { color: themeColors.subText }]}>{txn.date}</Text>
-              </View>
-              <View style={styles.txnRight}>
-                <Text style={[styles.txnAmount, { color: txn.type === 'credit' ? '#4CAF50' : themeColors.text }]}>
-                  {txn.type === 'credit' ? '+' : '-'}{formatPrice(txn.amount)}
+              <Text style={styles.balanceFigure}>{showBalance ? formatPrice(balance) : '••••••'}</Text>
+              {pending > 0 ? (
+                <Text style={styles.pendingText}>
+                  {showBalance ? formatPrice(pending) : '••••'} held until the work is done
                 </Text>
-                <View style={[styles.txnStatus, { backgroundColor: txn.status === 'success' ? '#E8F5E9' : '#FFF3E0' }]}>
-                  <Text style={[styles.txnStatusText, { color: txn.status === 'success' ? '#4CAF50' : '#FF9800' }]}>{txn.status}</Text>
+              ) : null}
+            </View>
+            <FlatIllustration name="coins" width={132} animated />
+          </View>
+          <TouchableOpacity
+            style={[styles.withdrawBtn, balance <= 0 && { opacity: 0.5 }]}
+            onPress={() => router.push('/wallet/withdraw')}
+            disabled={balance <= 0}
+          >
+            <Text style={styles.withdrawText}>Withdraw</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Recent activity */}
+        <View style={styles.activityHead}>
+          <Text style={[styles.sectionTitle, { color: themeColors.text }]}>Recent activity</Text>
+          {transactions.length > 5 ? (
+            <TouchableOpacity onPress={() => setShowHistoryModal(true)}>
+              <Text style={[styles.seeAll, { color: Colors.light.primary }]}>See all</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {isLoadingWallet ? <ActivityIndicator color={Colors.light.primary} style={{ marginVertical: 20 }} /> : null}
+        {!isLoadingWallet && transactions.length === 0 ? (
+          <View style={[styles.emptyBox, { backgroundColor: themeColors.cardBg }]}>
+            <Text style={{ color: themeColors.text, fontSize: 15, fontWeight: '700' }}>Nothing here yet</Text>
+            <Text style={{ color: themeColors.subText, fontSize: 14, marginTop: 4, lineHeight: 20 }}>
+              When someone pays you for an order or a booking, it shows up here.
+            </Text>
+          </View>
+        ) : null}
+        <View style={[styles.activityList, transactions.length > 0 && { backgroundColor: themeColors.cardBg }]}>
+          {transactions.slice(0, 5).map((txn, i) => {
+            const credit = txn.type === 'credit';
+            const when = new Date(txn.date);
+            const dateLabel = isNaN(when.getTime()) ? txn.date : when.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+            return (
+              <TouchableOpacity
+                key={txn.id}
+                style={[styles.activityRow, i > 0 && { borderTopColor: themeColors.border, borderTopWidth: StyleSheet.hairlineWidth }]}
+                onPress={() => openTxnDetail(txn)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.activityIcon, { backgroundColor: credit ? '#E8F5E9' : '#FFEBEE' }]}>
+                  <Ionicons name={credit ? 'arrow-down' : 'arrow-up'} size={18} color={credit ? '#2E7D32' : '#C62828'} />
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-          
-          {transactions.length > 5 && (
-            <TouchableOpacity style={[styles.viewAllBtn, { backgroundColor: themeColors.cardBg }]} onPress={() => setShowHistoryModal(true)}>
-              <Text style={[styles.viewAllText, { color: Colors.light.primary }]}>View All Transactions</Text>
-              <Ionicons name="arrow-forward" size={16} color={Colors.light.primary} />
-            </TouchableOpacity>
-          )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.activityTitle, { color: themeColors.text }]} numberOfLines={1}>{txn.title}</Text>
+                  <Text style={[styles.activityDate, { color: themeColors.subText }]}>
+                    {dateLabel}
+                    {txn.status === 'pending' ? '  ·  Pending' : ''}
+                  </Text>
+                </View>
+                <Text style={[styles.activityAmount, { color: credit ? '#2E7D32' : themeColors.text }]}>
+                  {credit ? '+' : '-'}{formatPrice(txn.amount)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
+
+        {/* Where to go next */}
+        <TouchableOpacity style={[styles.linkRow, { backgroundColor: themeColors.cardBg }]} onPress={() => router.push('/seller-analytics' as any)} activeOpacity={0.7}>
+          <Ionicons name="stats-chart" size={22} color={Colors.light.primary} accent="#FFA000" />
+          <Text style={[styles.linkText, { color: themeColors.text }]}>Sales and earnings</Text>
+          <Ionicons name="chevron-forward" size={20} color={themeColors.subText} />
+        </TouchableOpacity>
       </ScrollView>
-
-      {/* ADD FUNDS MODAL */}
-      <Modal visible={showAddFundsModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAddFundsModal(false)}>
-        <View style={[styles.modalContainer, { backgroundColor: themeColors.background }]}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => setShowAddFundsModal(false)}><Ionicons name="close" size={28} color={themeColors.text} /></TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>Add Funds</Text>
-            <View style={{ width: 28 }} />
-          </View>
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.amountSection}>
-              <Text style={[styles.amountLabel, { color: themeColors.subText }]}>Enter Amount</Text>
-              <View style={[styles.amountInputBox, { backgroundColor: themeColors.cardBg }]}>
-                <Text style={[styles.currencyPrefix, { color: themeColors.text }]}>{currencySymbol}</Text>
-                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={fundAmount} onChangeText={(t) => setFundAmount(formatAmountInput(t, { decimals: true }))} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
-              </View>
-            </View>
-            <View style={styles.presetsSection}>
-              <Text style={[styles.presetsLabel, { color: themeColors.subText }]}>Quick Select</Text>
-              <View style={styles.presetsGrid}>
-                {presetAmounts.map((amount) => (
-                  <TouchableOpacity key={amount} style={[styles.presetBtn, { backgroundColor: parseAmount(fundAmount) === amount ? Colors.light.primary : themeColors.cardBg }]} onPress={() => setFundAmount(formatAmountInput(amount.toString()))}>
-                    <Text style={[styles.presetText, { color: parseAmount(fundAmount) === amount ? '#0F1419' : themeColors.text }]}>{currencySymbol}{amount.toLocaleString()}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            <View style={styles.paymentSection}>
-              <Text style={[styles.paymentLabel, { color: themeColors.subText }]}>Payment Method</Text>
-              {isNigeria ? (
-                <>
-                  <TouchableOpacity style={[styles.paymentOption, { backgroundColor: themeColors.cardBg }]} onPress={() => setSelectedPaymentMethod('bank')}>
-                    <View style={[styles.paymentIconBg, { backgroundColor: '#E8F5E9' }]}><Ionicons name="business" size={24} color="#4CAF50" /></View>
-                    <View style={styles.paymentInfo}><Text style={[styles.paymentTitle, { color: themeColors.text }]}>Bank Transfer</Text><Text style={[styles.paymentDesc, { color: themeColors.subText }]}>Transfer from Nigerian bank</Text></View>
-                    {selectedPaymentMethod === 'bank' && <Ionicons name="checkmark-circle" size={24} color={Colors.light.primary} />}
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.paymentOption, { backgroundColor: themeColors.cardBg }]} onPress={() => setSelectedPaymentMethod('paystack')}>
-                    <View style={[styles.paymentIconBg, { backgroundColor: '#E3F2FD' }]}><Ionicons name="card" size={24} color="#2196F3" /></View>
-                    <View style={styles.paymentInfo}><Text style={[styles.paymentTitle, { color: themeColors.text }]}>Debit Card (Paystack)</Text><Text style={[styles.paymentDesc, { color: themeColors.subText }]}>Visa, Mastercard, Verve</Text></View>
-                    {selectedPaymentMethod === 'paystack' && <Ionicons name="checkmark-circle" size={24} color={Colors.light.primary} />}
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity style={[styles.paymentOption, { backgroundColor: themeColors.cardBg }]} onPress={() => setSelectedPaymentMethod('stripe')}>
-                  <View style={[styles.paymentIconBg, { backgroundColor: '#EDE7F6' }]}><Ionicons name="card" size={24} color="#673AB7" /></View>
-                  <View style={styles.paymentInfo}><Text style={[styles.paymentTitle, { color: themeColors.text }]}>Credit/Debit Card (Stripe)</Text><Text style={[styles.paymentDesc, { color: themeColors.subText }]}>Pay securely</Text></View>
-                  {selectedPaymentMethod === 'stripe' && <Ionicons name="checkmark-circle" size={24} color={Colors.light.primary} />}
-                </TouchableOpacity>
-              )}
-            </View>
-            {/* No wallet top-up endpoint exists in the API, so there is no real
-                account to show here — the previous hardcoded "Wema Bank /
-                0123456789" was a fake destination for real money. */}
-            <View style={[styles.bankDetails, { backgroundColor: themeColors.cardBg }]}>
-              <Text style={[styles.bankNote, { color: Colors.light.primary }]}>
-                ⓘ Adding funds isn't available yet. Please don't send any money to fund your wallet.
-              </Text>
-            </View>
-          </ScrollView>
-          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: fundAmount && selectedPaymentMethod ? Colors.light.primary : themeColors.border }]} onPress={handleAddFunds} disabled={!fundAmount || !selectedPaymentMethod}>
-              <Text style={styles.confirmBtnText}>Add Funds</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* TRANSFER MODAL */}
-      <Modal visible={showTransferModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowTransferModal(false)}>
-        <View style={[styles.modalContainer, { backgroundColor: themeColors.background }]}>
-          <View style={[styles.modalHeader, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity onPress={() => setShowTransferModal(false)}><Ionicons name="close" size={28} color={themeColors.text} /></TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: themeColors.text }]}>Transfer</Text>
-            <View style={{ width: 28 }} />
-          </View>
-          <ScrollView style={styles.modalContent}>
-            <View style={[styles.balancePreview, { backgroundColor: themeColors.cardBg }]}>
-              <Text style={[styles.balancePreviewLabel, { color: themeColors.subText }]}>Available Balance</Text>
-              <Text style={[styles.balancePreviewAmount, { color: themeColors.text }]}>{formatPrice(balance)}</Text>
-            </View>
-            <View style={styles.amountSection}>
-              <Text style={[styles.amountLabel, { color: themeColors.subText }]}>Recipient Username/Email</Text>
-              <View style={[styles.amountInputBox, { backgroundColor: themeColors.cardBg }]}>
-                <Ionicons name="person-outline" size={20} color={themeColors.subText} style={{ marginRight: 10 }} />
-                <TextInput style={[styles.amountInput, { color: themeColors.text, fontSize: 16 }]} value={transferRecipient} onChangeText={setTransferRecipient} placeholder="Enter username or email" placeholderTextColor={themeColors.subText} />
-              </View>
-            </View>
-            <View style={styles.amountSection}>
-              <Text style={[styles.amountLabel, { color: themeColors.subText }]}>Amount</Text>
-              <View style={[styles.amountInputBox, { backgroundColor: themeColors.cardBg }]}>
-                <Text style={[styles.currencyPrefix, { color: themeColors.text }]}>{currencySymbol}</Text>
-                <TextInput style={[styles.amountInput, { color: themeColors.text }]} value={transferAmount} onChangeText={(t) => setTransferAmount(formatAmountInput(t, { decimals: true }))} placeholder="0.00" placeholderTextColor={themeColors.subText} keyboardType="numeric" />
-              </View>
-            </View>
-          </ScrollView>
-          <View style={[styles.modalFooter, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: transferAmount && transferRecipient && parseAmount(transferAmount) <= balance ? Colors.light.primary : themeColors.border }]} onPress={handleTransfer} disabled={!transferAmount || !transferRecipient || parseAmount(transferAmount) > balance}>
-              <Text style={styles.confirmBtnText}>Send Money</Text>
-              <Ionicons name="send" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* HISTORY MODAL */}
       <Modal visible={showHistoryModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowHistoryModal(false)}>
@@ -632,6 +475,27 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   greeting: { fontSize: 14, marginBottom: 2 },
   headerTitle: { fontSize: 26, fontWeight: '800' },
+  simpleHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
+  // Brand orange in both light and dark mode, with the teal coins against it and dark text on top.
+  balanceBox: { borderRadius: 20, padding: 18, backgroundColor: '#FFA000' },
+  balanceTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  balanceLabelText: { fontSize: 14, fontWeight: '600', color: 'rgba(15,20,25,0.72)' },
+  balanceFigure: { fontSize: 30, fontWeight: '800', marginTop: 6, color: '#0F1419' },
+  pendingText: { fontSize: 13, marginTop: 6, lineHeight: 18, color: 'rgba(15,20,25,0.72)' },
+  withdrawBtn: { height: 48, borderRadius: 12, backgroundColor: '#0F1419', alignItems: 'center', justifyContent: 'center', marginTop: 14 },
+  withdrawText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+  activityHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 10 },
+  seeAll: { fontSize: 14, fontWeight: '700' },
+  emptyBox: { borderRadius: 16, padding: 16 },
+  activityList: { borderRadius: 16, overflow: 'hidden' },
+  activityRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 14 },
+  activityIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  activityTitle: { fontSize: 15, fontWeight: '600' },
+  activityDate: { fontSize: 12, marginTop: 2 },
+  activityAmount: { fontSize: 15, fontWeight: '800' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 16, marginTop: 14 },
+  linkText: { flex: 1, fontSize: 15, fontWeight: '700' },
   headerBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   notifDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF3B30' },
   cardWrapper: { marginBottom: 20 },

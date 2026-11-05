@@ -1,7 +1,7 @@
 import { Illo } from '@/constants/Illustration';
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Platform, useColorScheme } from 'react-native';
-import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 
 /* Flat, outline-free scenes. Depth comes from a lit face and a shaded face of
    the same colour; every scene is drawn on a 240×180 grid and scales to any
@@ -17,7 +17,8 @@ export type IllustrationName =
   | 'offline'
   | 'search'
   | 'check'
-  | 'goodbye';
+  | 'goodbye'
+  | 'coins';
 
 const c = Illo;
 const TAU = Math.PI * 2;
@@ -380,6 +381,83 @@ function Goodbye({ p }: SceneProps) {
   );
 }
 
+/* ── coins: stacks of engraved coins ────────────────────────────
+   Detail comes from the same two-tone idea as the other scenes, then pushed
+   further: ridged coin edges, an engraved rim and a naira sign on each stack's
+   top coin. The still parts are
+   memoised so the floating coin can animate without redrawing all of it. */
+
+type CoinProps = { x: number; y: number; r: number; h: number; top: string; rim: string; edge: string; glyph?: boolean };
+
+const Coin = React.memo(function Coin({ x, y, r, h, top, rim, edge, glyph }: CoinProps) {
+  const ry = r / 2;
+  const ridges: React.JSX.Element[] = [];
+  const count = Math.max(6, Math.round(r / 3));
+  for (let i = 1; i < count; i++) {
+    const t = -1 + (2 * i) / count;
+    const px = x + t * r;
+    const dy = ry * Math.sqrt(1 - t * t);
+    ridges.push(<Line key={i} x1={px} y1={y + dy} x2={px} y2={y + dy + h} stroke={c.ink} strokeWidth={0.7} opacity={0.22} />);
+  }
+  const s = r * 0.3;
+  return (
+    <G>
+      <Path d={`M ${x - r} ${y} v ${h} a ${r} ${ry} 0 0 0 ${2 * r} 0 v ${-h} Z`} fill={edge} />
+      {ridges}
+      <Ellipse cx={x} cy={y} rx={r} ry={ry} fill={top} />
+      <Ellipse cx={x} cy={y} rx={r * 0.82} ry={ry * 0.82} fill="none" stroke={rim} strokeWidth={1.2} />
+      <Ellipse cx={x} cy={y} rx={r * 0.66} ry={ry * 0.66} fill={rim} />
+      <Ellipse cx={x} cy={y} rx={r * 0.5} ry={ry * 0.5} fill={top} opacity={0.5} />
+      <Path d={`M ${x - r * 0.72} ${y - ry * 0.15} Q ${x - r * 0.55} ${y - ry * 0.78} ${x - r * 0.1} ${y - ry * 0.88}`} stroke={c.paper} strokeWidth={1.4} strokeLinecap="round" fill="none" opacity={0.65} />
+      {glyph ? (
+        <G transform={`translate(${x} ${y}) scale(1 0.55)`}>
+          <Path
+            d={`M ${-s} ${s} L ${-s} ${-s} L ${s} ${s} L ${s} ${-s} M ${-s * 1.45} ${-s * 0.28} H ${s * 1.45} M ${-s * 1.45} ${s * 0.28} H ${s * 1.45}`}
+            stroke={edge}
+            strokeWidth={Math.max(1.4, r * 0.085)}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </G>
+      ) : null}
+    </G>
+  );
+});
+
+function Stack({ x, y, n, r, h, top, rim, edge }: { x: number; y: number; n: number; r: number; h: number; top: string; rim: string; edge: string }) {
+  return (
+    <G>
+      {Array.from({ length: n }, (_, i) => (
+        <Coin key={i} x={x} y={y - i * h} r={r} h={h} top={top} rim={rim} edge={edge} glyph={i === n - 1} />
+      ))}
+    </G>
+  );
+}
+
+const CoinsStatic = React.memo(function CoinsStatic() {
+  return (
+    <G>
+      <Ellipse cx={120} cy={158} rx={96} ry={9} fill={c.ink} opacity={0.16} />
+      <Stack x={78} y={140} n={3} r={20} h={7} top={c.tealLight} rim={c.glass} edge={c.tealDeep} />
+      <Stack x={158} y={142} n={2} r={20} h={7} top={c.tealDeep} rim={c.tealLight} edge={c.tealNight} />
+      <Stack x={120} y={132} n={5} r={30} h={8} top={c.teal} rim={c.glass} edge={c.tealDeep} />
+    </G>
+  );
+});
+
+function Coins({ p }: SceneProps) {
+  const bob = Math.sin(p * TAU) * 4;
+  return (
+    <G>
+      <CoinsStatic />
+      <G transform={`translate(0 ${bob})`}>
+        <Coin x={120} y={58} r={17} h={5} top={c.glass} rim={c.teal} edge={c.tealDeep} glyph />
+      </G>
+    </G>
+  );
+}
+
 const scenes: Record<IllustrationName, (props: SceneProps) => React.JSX.Element> = {
   town: Town,
   calendar: Calendar,
@@ -391,6 +469,7 @@ const scenes: Record<IllustrationName, (props: SceneProps) => React.JSX.Element>
   search: Search,
   check: Check,
   goodbye: Goodbye,
+  coins: Coins,
 };
 
 // Decorative: keep it out of the accessibility tree. The prop names differ by
