@@ -1,6 +1,8 @@
 import GuestPrompt from '@/components/GuestPrompt';
 import AppGuidance from '@/components/AppGuidance';
-import { Text } from '@/components/AppText';
+import { Text, TextInput } from '@/components/AppText';
+import FilterSheet from '@/components/home/FilterSheet';
+import NearYouStrip, { NearCreative } from '@/components/home/NearYouStrip';
 import EmptyState from '@/components/EmptyState';
 import {
   CreativeFeedCard,
@@ -19,7 +21,11 @@ import { useLocation } from '@/hooks/useLocationData';
 import { DiscoveryOffering, getDiscoveryFeed, getNearYou } from '@/services/api/discoveryService';
 import { getUnreadCount as getUnreadNotificationCount } from '@/services/api/notificationsService';
 import { getProducts } from '@/services/api/productsService';
+import { COUNTRY_VIEW } from '@/data/regionGeo';
+import { getMapPlaces } from '@/services/api/creatorsService';
 import { extractList } from '@/utils/extractList';
+import { bboxFor } from '@/utils/mapBox';
+import { absoluteUrl } from '@/utils/mediaUrl';
 import { openCreator } from '@/utils/openCreator';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import { mapOfferingToCreativeData } from '@/utils/mapOffering';
@@ -77,13 +83,17 @@ export default function HomeScreen() {
   const router = useRouter();
   const isDark = useColorScheme() === 'dark';
   const { isFavorite, toggle: toggleFavorite } = useFavorites();
-  const { region, city } = useLocation();
+  const { region, city, coordinates } = useLocation();
   const { signedIn, gate } = useAuthGate();
 
   const [activeTab, setActiveTab] = useState<Tab>('For you');
   const [feed, setFeed] = useState<DiscoveryOffering[] | null>(null);
   const [nearYou, setNearYou] = useState<DiscoveryOffering[] | null>(null);
   const [following, setFollowing] = useState<DiscoveryOffering[] | null>(null);
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const [showFilter, setShowFilter] = useState(false);
+  const [nearby, setNearby] = useState<NearCreative[]>([]);
   const [followingError, setFollowingError] = useState(false);
   const [listings, setListings] = useState<ListingData[]>([]);
   const [feedError, setFeedError] = useState(false);
@@ -135,6 +145,30 @@ export default function HomeScreen() {
       loadFeed().finally(() => setIsLoading(false));
     }, [loadFeed])
   );
+
+  useEffect(() => {
+    let live = true;
+    const view = coordinates
+      ? { latitude: coordinates.lat, longitude: coordinates.lng, latitudeDelta: 1.2, longitudeDelta: 1.2 }
+      : COUNTRY_VIEW[region.code] ?? COUNTRY_VIEW.NG;
+    getMapPlaces({ bbox: bboxFor(view), limit: 20 })
+      .then((res) => {
+        if (!live) return;
+        setNearby(
+          extractList<any>(res.data).map((p) => ({
+            id: String(p.id),
+            username: p.username ? String(p.username) : undefined,
+            name: String(p.name ?? ''),
+            role: p.role ? String(p.role) : undefined,
+            image: absoluteUrl(p.avatar_url),
+          }))
+        );
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [coordinates, region.code]);
 
   const loadFollowing = useCallback(async () => {
     setFollowingError(false);
@@ -193,10 +227,13 @@ export default function HomeScreen() {
     openCreator(router, item);
   };
 
-  // What the list shows: a pinned From Wami card, then creatives and
-  // listings taking turns, with a second From Wami card further down.
+  const searching = query.trim().length > 0 || category !== null;
+
+  // What the list shows: creatives and listings taking turns, with a From Wami
+  // card a few posts down and a second further on. A search or a filter shows
+  // only what matches, with no promo cards.
   const items: FeedItem[] = useMemo(() => {
-    const cards = WAMI_CARDS.filter((c) => !dismissed.includes(c.id));
+    const cards = searching ? [] : WAMI_CARDS.filter((c) => !dismissed.includes(c.id));
     let creatives: CreativeData[];
     if (activeTab === 'Near you') creatives = (nearYou ?? []).map(mapOfferingToCreativeData);
     else if (activeTab === 'Following') creatives = (following ?? []).map(mapOfferingToCreativeData);
@@ -204,22 +241,41 @@ export default function HomeScreen() {
       creatives = (feed ?? []).map(mapOfferingToCreativeData);
       if (activeTab === 'Trending') creatives.sort((a, b) => b.rating * b.reviews - a.rating * a.reviews);
     }
-    const shop = activeTab === 'For you' ? listings : [];
+    let shop = activeTab === 'For you' ? listings : [];
+
+    const q = query.trim().toLowerCase();
+    const wanted = category?.toLowerCase() ?? null;
+    if (q || wanted) {
+      creatives = creatives.filter((p) => {
+        const haystack = [p.name, p.role, p.creatorName, p.creatorUsername, p.caption, ...(p.tags ?? [])].filter(Boolean).join(' ').toLowerCase();
+        return (!q || haystack.includes(q)) && (!wanted || (p.role ?? '').toLowerCase() === wanted);
+      });
+      shop = shop.filter((p) => (!q || `${p.name} ${p.category}`.toLowerCase().includes(q)) && (!wanted || (p.category ?? '').toLowerCase() === wanted));
+    }
 
     const out: FeedItem[] = [];
-    if (cards[0]) out.push({ kind: 'wami', key: `wami-${cards[0].id}`, card: cards[0] });
+    const placed = new Set<string>();
+    const place = (i: 0 | 1) => {
+      if (cards[i] && !placed.has(cards[i].id)) {
+        placed.add(cards[i].id);
+        out.push({ kind: 'wami', key: `wami-${cards[i].id}`, card: cards[i] });
+      }
+    };
     let c = 0;
     let l = 0;
     while (c < creatives.length || l < shop.length) {
       if (c < creatives.length) out.push({ kind: 'creative', key: `c-${creatives[c].id}`, data: creatives[c++] });
       if (l < shop.length) out.push({ kind: 'listing', key: `l-${shop[l].id}`, data: shop[l++] });
-      if (cards[1] && out.length === 5) out.push({ kind: 'wami', key: `wami-${cards[1].id}`, card: cards[1] });
+      if (out.length === 4) place(0);
+      if (out.length === 10) place(1);
     }
-    if (cards[1] && !out.some((i) => i.kind === 'wami' && i.card.id === cards[1].id) && out.length >= 1) {
-      out.push({ kind: 'wami', key: `wami-${cards[1].id}`, card: cards[1] });
+    // A short feed still shows the cards, after everything else.
+    if (out.length >= 1) {
+      place(0);
+      if (out.length >= 6) place(1);
     }
     return out;
-  }, [activeTab, feed, nearYou, following, listings, dismissed]);
+  }, [activeTab, feed, nearYou, following, listings, dismissed, query, category, searching]);
 
   const hasContent = items.some((i) => i.kind !== 'wami');
   const currentError =
@@ -268,8 +324,8 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/explore-map' as any)} accessibilityLabel="Explore on the map">
               <Ionicons name="map" size={24} color={tc.text} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/products-listing' as any)} accessibilityLabel="Shop">
-              <Ionicons name="basket" size={24} color={tc.text} />
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/swipe' as any)} accessibilityLabel="Swipe through creatives">
+              <Ionicons name="albums" size={24} color={tc.text} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.iconBtn} onPress={() => gate('Sign in to see your notifications.', () => router.push('/notifications' as any))} accessibilityLabel="Notifications">
               <Ionicons name="notifications" size={24} color={tc.text} />
@@ -277,6 +333,42 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        <View style={styles.searchRow}>
+          <View style={[styles.searchBox, { backgroundColor: tc.chip }]}>
+            <Ionicons name="search" size={20} color={tc.sub} />
+            <TextInput
+              style={[styles.searchInput, { color: tc.text }]}
+              placeholder="Search creatives and their work"
+              placeholderTextColor={tc.sub}
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {query.length > 0 ? (
+              <TouchableOpacity onPress={() => setQuery('')} accessibilityLabel="Clear search" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={20} color={tc.sub} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[styles.filterBtn, { backgroundColor: category ? Colors.light.primary : tc.chip }]}
+            onPress={() => setShowFilter(true)}
+            accessibilityLabel={category ? `Filter, showing ${category}` : 'Filter'}
+          >
+            <Ionicons name="options-outline" size={22} color={category ? '#0F1419' : tc.text} />
+          </TouchableOpacity>
+        </View>
+
+        {category ? (
+          <View style={styles.activeFilterRow}>
+            <TouchableOpacity style={[styles.activeFilter, { backgroundColor: Colors.light.primary + '22' }]} onPress={() => setCategory(null)}>
+              <Text style={[styles.activeFilterText, { color: Colors.light.primary }]}>{category}</Text>
+              <Ionicons name="close" size={14} color={Colors.light.primary} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         <View style={styles.tabRow}>
           {TABS.map((tab) => {
@@ -291,10 +383,6 @@ export default function HomeScreen() {
               </TouchableOpacity>
             );
           })}
-          <TouchableOpacity style={styles.swipeBtn} onPress={() => router.push('/swipe' as any)} accessibilityLabel="Swipe through creatives">
-            <Ionicons name="albums" size={18} color={Colors.light.primary} accent="#FFA000" />
-            <Text style={styles.swipeText}>Swipe</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -320,9 +408,29 @@ export default function HomeScreen() {
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 120 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={Colors.light.primary} />}
+          ListHeaderComponent={
+            activeTab === 'For you' && !searching && nearby.length > 0 ? (
+              <NearYouStrip
+                people={nearby}
+                onOpen={(p) => router.push(`/creator/${p.id}` as any)}
+                onSeeMap={() => router.push('/explore-map' as any)}
+              />
+            ) : undefined
+          }
           ListFooterComponent={
             !hasContent ? (
-              activeTab === 'Following' ? (
+              searching ? (
+                <EmptyState
+                  icon="search-outline"
+                  title="Nothing matches that"
+                  message="Try a different word, or clear the filter."
+                  onRetry={() => {
+                    setQuery('');
+                    setCategory(null);
+                  }}
+                  retryLabel="Clear search"
+                />
+              ) : activeTab === 'Following' ? (
                 <EmptyState
                   illustration="heart"
                   title="You are not following anyone yet"
@@ -344,6 +452,8 @@ export default function HomeScreen() {
         />
       )}
 
+      <FilterSheet visible={showFilter} category={category} onClose={() => setShowFilter(false)} onApply={setCategory} />
+
       <AppGuidance />
     </View>
   );
@@ -361,8 +471,13 @@ const styles = StyleSheet.create({
   tabRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tab: { paddingHorizontal: 14, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   tabText: { fontSize: 14, fontWeight: '700' },
-  swipeBtn: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 5, height: 36, paddingHorizontal: 6 },
-  swipeText: { fontSize: 14, fontWeight: '700', color: Colors.light.primary },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  searchBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, paddingHorizontal: 14 },
+  searchInput: { flex: 1, fontSize: 15, height: '100%' },
+  filterBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  activeFilterRow: { flexDirection: 'row', marginBottom: 10 },
+  activeFilter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30, borderRadius: 15 },
+  activeFilterText: { fontSize: 13, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: 16, paddingTop: 6 },
 });

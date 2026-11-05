@@ -23,7 +23,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import 'react-native-reanimated';
-import { Provider, useDispatch } from 'react-redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
+import { registerDevice } from '@/services/pushService';
+import type { RootState } from '@/store/store';
 
 // How often to proactively check whether the stored token is still valid.
 // There's no GET /auth/me or POST /auth/refresh yet (see
@@ -105,6 +107,12 @@ export default function RootLayout() {
  */
 function ExpiredSessionHandler() {
   const dispatch = useDispatch();
+  const signedIn = useSelector((s: RootState) => s.auth.isAuthenticated);
+
+  // Once someone is signed in, let the server know which phone to notify.
+  useEffect(() => {
+    if (signedIn) void registerDevice();
+  }, [signedIn]);
 
   useEffect(() => {
     // One place that ends an expired session: clear what is stored, clear the

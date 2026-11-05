@@ -7,6 +7,7 @@ import {
 } from '@/types/accountTypes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from './api/client';
+import { unregisterDevice } from './pushService';
 import { API_ENDPOINTS } from './api/config';
 
 const STORAGE_KEYS = {
@@ -77,6 +78,8 @@ export const authService = {
    */
   async signOut(): Promise<void> {
     if (apiClient.getAuthToken()) {
+      // Stop pushes to this phone while the token is still good.
+      await Promise.race([unregisterDevice(), new Promise((resolve) => setTimeout(resolve, 2500))]);
       try {
         await Promise.race([
           apiClient.post<any>(API_ENDPOINTS.AUTH.LOGOUT, {}, { expectUnsupported: true }),

@@ -239,6 +239,12 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string | number) => `/media/${id}`,
   },
 
+  // Push tokens: register this phone on sign-in, remove it on sign-out
+  DEVICES: {
+    REGISTER: '/devices',
+    BY_TOKEN: (token: string) => `/devices/${encodeURIComponent(token)}`,
+  },
+
   NOTIFICATIONS: {
     SETTINGS: '/settings/notifications',
     LIST: '/notifications',
