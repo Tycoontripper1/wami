@@ -8,11 +8,13 @@ import {
     cancelBooking,
     getBookingById,
     normaliseStatus,
+    payBooking,
     releaseMilestone,
 } from '@/services/api/bookingsService';
 import { cancelBooking as cancelLocalBooking } from '@/store/bookingsSlice';
 import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -78,6 +80,7 @@ export default function ServiceTrackingScreen() {
   const dispatch = useDispatch();
   const myId = useSelector((st: RootState) => (st.auth.user as any)?.id);
   const [acting, setActing] = useState<BookingAction | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -120,6 +123,30 @@ export default function ServiceTrackingScreen() {
       Alert.alert("That didn't go through", error?.message ?? 'Please try again.');
     } finally {
       setActing(null);
+    }
+  };
+
+  // Pay an accepted booking: the server gives a payment page, the buyer pays
+  // there, and the booking turns 'paid' when the webhook lands. After the page
+  // closes the booking is asked about a few times until it does.
+  const payNow = async () => {
+    setPaying(true);
+    try {
+      const { authorization_url } = await payBooking(bookingId);
+      if (!authorization_url) throw new Error('The payment page did not open. Please try again.');
+      await WebBrowser.openBrowserAsync(authorization_url);
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const res = await getBookingById(bookingId);
+        setBooking(res.data);
+        if (normaliseStatus(res.data.status) !== 'accepted') return;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
+      Alert.alert('Not paid yet', 'We have not received your payment. If you have just paid, give it a moment and pull to refresh.');
+    } catch (error: any) {
+      console.error('Booking payment failed:', error);
+      Alert.alert("Couldn't start your payment", error?.message ?? 'Please try again.');
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -313,6 +340,12 @@ export default function ServiceTrackingScreen() {
               Accepted. Once you pay, Wami holds the money until the work is done.
             </Text>
           </View>
+        )}
+
+        {status === 'accepted' && role === 'buyer' && (
+          <TouchableOpacity style={[styles.primaryBtn, (paying || busy) && { opacity: 0.6 }]} onPress={payNow} disabled={paying || busy}>
+            {paying ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Pay now</Text>}
+          </TouchableOpacity>
         )}
 
         {status === 'requested' && role === 'creative' && (

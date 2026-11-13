@@ -5,11 +5,12 @@ import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
 import { ApiResponse, PaginatedResponse } from './types';
 
-// Confirmed live 2026-10-03 by probing POST /v1/reviews directly: valid
-// values are 'App\Models\Product' (gated server-side by "you must have
-// purchased it"), 'App\Models\Offering' (gated by "you must have booked
-// it"), and 'App\Models\Booking'. 'App\Models\User' is rejected outright.
-export type ReviewableType = 'App\\Models\\Product' | 'App\\Models\\Offering' | 'App\\Models\\Booking';
+// The backend now documents three names (confirmed live 2026-11-13: anything
+// else is a 422 "must be listing, booking or product"): 'listing' for a
+// service or product listing (the id is the listing id), 'booking', and
+// 'product' (the old product id). The long class names still work but are the
+// legacy spelling, so the app sends the short ones.
+export type ReviewableType = 'listing' | 'booking' | 'product';
 
 export interface ApiReview {
   id: string | number;

@@ -99,6 +99,20 @@ export const bookingAction = async (
   return apiClient.post(API_ENDPOINTS.BOOKINGS.ACTION(id, action), body);
 };
 
+// POST /bookings/:id/pay, buyer only, once the creative has accepted. Returns
+// { authorization_url, reference }: open the page to pay; the booking moves to
+// 'paid' when the gateway's webhook lands, so the screen asks again afterwards.
+export const payBooking = async (
+  id: string | number
+): Promise<{ authorization_url?: string; reference?: string }> => {
+  const res = await apiClient.post<any>(`/bookings/${id}/pay`, {});
+  const body: any = res.data ?? {};
+  return {
+    authorization_url: body.authorization_url ?? body.data?.authorization_url,
+    reference: body.reference ?? body.data?.reference,
+  };
+};
+
 // POST /bookings/:id/cancel  { reason }. Either side; returns anything held.
 export const cancelBooking = async (
   id: string | number,

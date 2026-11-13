@@ -112,6 +112,7 @@ export const API_ENDPOINTS = {
   CART: {
     GET: '/cart',
     ADD_ITEM: '/cart/items',
+    QUOTE: '/cart/quote',
     ITEM: (id: string | number) => `/cart/items/${id}`,
   },
   ORDERS: {

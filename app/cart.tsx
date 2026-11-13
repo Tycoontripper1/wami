@@ -4,10 +4,10 @@ import EmptyState from '@/components/EmptyState';
 import { Ionicons } from '@/components/FlatIcon';
 import GuestPrompt from '@/components/GuestPrompt';
 import Colors from '@/constants/Colors';
-import { CartLine, getCartLines, removeCartItem, updateCartItem } from '@/services/api/ordersService';
+import { CartLine, CartQuote, getCartLines, getCartQuote, removeCartItem, updateCartItem } from '@/services/api/ordersService';
 import type { RootState } from '@/store/store';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
@@ -22,6 +22,7 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [quote, setQuote] = useState<CartQuote | null>(null);
 
   const t = {
     bg: isDark ? '#000' : '#fff',
@@ -87,6 +88,21 @@ export default function CartScreen() {
     ]);
 
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+
+  // What the server says it will cost, with delivery. Asked again whenever the
+  // cart changes; until it answers (or if it cannot) the item prices show alone.
+  const cartKey = lines.map((l) => `${l.id}:${l.quantity}`).join(',');
+  useEffect(() => {
+    if (!signedIn || lines.length === 0) {
+      setQuote(null);
+      return;
+    }
+    let live = true;
+    getCartQuote().then((q) => live && setQuote(q));
+    return () => {
+      live = false;
+    };
+  }, [signedIn, cartKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkout = () => router.push('/checkout' as any);
 
@@ -158,8 +174,20 @@ export default function CartScreen() {
           <View style={[styles.footer, { paddingBottom: insets.bottom + 16, borderTopColor: t.border, backgroundColor: t.bg }]}>
             <View style={styles.totalRow}>
               <Text style={{ color: t.sub, fontSize: 15 }}>Subtotal</Text>
-              <Text style={[styles.total, { color: t.text }]}>₦{subtotal.toLocaleString()}</Text>
+              <Text style={[styles.total, { color: t.text, fontSize: quote ? 16 : 20 }]}>₦{(quote?.subtotal || subtotal).toLocaleString()}</Text>
             </View>
+            {quote ? (
+              <>
+                <View style={styles.totalRow}>
+                  <Text style={{ color: t.sub, fontSize: 15 }}>Delivery</Text>
+                  <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{quote.shipping > 0 ? `₦${quote.shipping.toLocaleString()}` : 'Free'}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={{ color: t.text, fontSize: 15, fontWeight: '700' }}>Total</Text>
+                  <Text style={[styles.total, { color: t.text }]}>₦{quote.total.toLocaleString()}</Text>
+                </View>
+              </>
+            ) : null}
             <TouchableOpacity style={styles.checkout} onPress={checkout}>
               <Text style={styles.checkoutText}>Checkout</Text>
             </TouchableOpacity>

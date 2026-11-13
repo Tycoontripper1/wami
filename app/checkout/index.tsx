@@ -6,8 +6,10 @@ import EmptyState from '@/components/EmptyState';
 import Colors from '@/constants/Colors';
 import {
   CartLine,
+  CartQuote,
   describePaymentStatus,
   getCartLines,
+  getCartQuote,
   getOrderById,
   placeOrder,
   toAmount,
@@ -71,6 +73,7 @@ export default function CheckoutScreen() {
   const [orderTotal, setOrderTotal] = useState<number | null>(null);
   const reference = useRef<string | null>(null);
 
+  const [quote, setQuote] = useState<CartQuote | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
   const [busy, setBusy] = useState(false);
   const checking = useRef(false);
@@ -127,7 +130,19 @@ export default function CheckoutScreen() {
   }, [user?.id]);
 
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
-  const total = orderTotal ?? subtotal;
+
+  // The server's own sum with delivery, asked once the cart is read and only
+  // before an order exists (after that the order itself has the real total).
+  useEffect(() => {
+    if (orderId || lines.length === 0) return;
+    let live = true;
+    getCartQuote().then((q) => live && setQuote(q));
+    return () => {
+      live = false;
+    };
+  }, [orderId, lines.length]);
+
+  const total = orderTotal ?? quote?.total ?? subtotal;
   const needsAddress = !orderId && !destination;
   const needsPhone = !orderId && phone.trim().length === 0;
 
@@ -194,7 +209,13 @@ export default function CheckoutScreen() {
       // The order is created once; paying again after a cancelled attempt reuses it.
       let id = orderId;
       if (!id) {
-        const res = await placeOrder({ shipping_address: { line1: destination!.line1, city: destination!.city, country: 'Nigeria', phone: phone.trim() } });
+        // A saved address is sent by id (the order keeps a copy of it as it is today);
+        // the typed address goes along too, for a server that wants it or a one-off.
+        const savedMatch = destination!.id ? saved.find((a) => a.id === destination!.id && a.synced) : undefined;
+        const res = await placeOrder({
+          shipping_address: { line1: destination!.line1, city: destination!.city, country: 'Nigeria', phone: phone.trim() },
+          ...(savedMatch ? { address_id: savedMatch.id } : {}),
+        });
         id = String((res.data as any)?.id ?? (res.data as any)?.order?.id ?? '');
         if (!id) throw new Error('The order was created but we did not get its number back.');
         setOrderId(id);
@@ -273,10 +294,16 @@ export default function CheckoutScreen() {
           )}
           <View style={[styles.divider, { backgroundColor: t.border }]} />
           <View style={styles.row}>
-            <Text style={{ color: t.sub, fontSize: 15 }}>{orderTotal ? 'Total' : 'Subtotal'}</Text>
-            <Text style={[styles.total, { color: t.text }]}>₦{(orderTotal ?? subtotal).toLocaleString()}</Text>
+            <Text style={{ color: t.sub, fontSize: 15 }}>{orderTotal || quote ? 'Total' : 'Subtotal'}</Text>
+            <Text style={[styles.total, { color: t.text }]}>₦{total.toLocaleString()}</Text>
           </View>
-          {!orderTotal ? (
+          {!orderTotal && quote ? (
+            <Text style={{ color: t.sub, fontSize: 13, marginTop: 6 }}>
+              Items ₦{quote.subtotal.toLocaleString()} · Delivery {quote.shipping > 0 ? `₦${quote.shipping.toLocaleString()}` : 'free'}
+              {quote.tax > 0 ? ` · Fees ₦${quote.tax.toLocaleString()}` : ''}
+            </Text>
+          ) : null}
+          {!orderTotal && !quote ? (
             <Text style={{ color: t.sub, fontSize: 12, marginTop: 6 }}>Delivery and any fees are worked out when you place the order. You will see the final total on the payment page.</Text>
           ) : null}
         </View>
@@ -325,7 +352,7 @@ export default function CheckoutScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: t.card, borderTopColor: t.border }]}>
         <View style={styles.footerRow}>
           <View>
-            <Text style={{ color: t.sub, fontSize: 12 }}>{orderTotal ? 'Total' : 'Subtotal'}</Text>
+            <Text style={{ color: t.sub, fontSize: 12 }}>{orderTotal || quote ? 'Total' : 'Subtotal'}</Text>
             <Text style={[styles.footerTotal, { color: t.text }]}>₦{total.toLocaleString()}</Text>
           </View>
           <TouchableOpacity style={[styles.primary, styles.payBtn, busy && { opacity: 0.6 }]} onPress={pay} disabled={busy}>

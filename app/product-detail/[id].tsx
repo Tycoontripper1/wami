@@ -50,6 +50,9 @@ interface ProductDetail {
   sellerId?: string;
   sellerAvatar?: string;
   officialStore?: boolean;
+  /** Naira the seller charges to deliver; 0 is free. */
+  deliveryFee?: number;
+  pickupAvailable?: boolean;
 }
 
 const mapApiProductToDetail = (p: any): ProductDetail => ({
@@ -79,6 +82,8 @@ const mapApiProductToDetail = (p: any): ProductDetail => ({
     p.creator?.id !== undefined ? String(p.creator.id) : p.creator_id !== undefined ? String(p.creator_id) : undefined,
   sellerAvatar: absoluteUrl(p.creator?.profile_image),
   officialStore: p.officialStore,
+  deliveryFee: Number(p.delivery_fee) || 0,
+  pickupAvailable: p.pickup_available === true || p.pickup_available === 1,
 });
 
 export default function ProductDetailScreen() {
@@ -357,6 +362,10 @@ export default function ProductDetailScreen() {
           </View>
           <Text style={[styles.serviceChargeNote, { color: themeColors.subText }]}>
             Price includes Wami buyer protection · service charge calculated at checkout
+          </Text>
+          <Text style={[styles.serviceChargeNote, { color: themeColors.text, fontWeight: '600', marginTop: 4 }]}>
+            {product.deliveryFee ? `Delivery ₦${product.deliveryFee.toLocaleString()}` : 'Free delivery'}
+            {product.pickupAvailable ? ' · Pickup available' : ''}
           </Text>
 
           {/* Seller Info */}

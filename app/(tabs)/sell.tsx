@@ -19,6 +19,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   TouchableOpacity,
   View,
   useColorScheme,
@@ -38,6 +39,7 @@ export default function SellScreen() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+  const [pickupAvailable, setPickupAvailable] = useState(false);
   const [stock, setStock] = useState('1');
   const [photos, setPhotos] = useState<string[]>([]);
   const [isListing, setIsListing] = useState(false);
@@ -100,6 +102,8 @@ export default function SellScreen() {
         currency: 'NGN',
         category: category || 'Others',
         stock: Number(stock) || 1,
+        delivery_fee: parseAmount(deliveryFee) || 0,
+        pickup_available: pickupAvailable,
         status: 'published',
         media_ids: mediaIds.length > 0 ? mediaIds : undefined,
       });
@@ -112,6 +116,7 @@ export default function SellScreen() {
       setPrice('');
       setCategory('');
       setDeliveryFee('');
+      setPickupAvailable(false);
       setStock('1');
       setPhotos([]);
     } catch (error) {
@@ -211,6 +216,14 @@ export default function SellScreen() {
             </View>
           </View>
 
+          <View style={[styles.pickupRow, { backgroundColor: themeColors.inputBg, borderColor: themeColors.border }]}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ color: themeColors.text, fontSize: 15, fontWeight: '600' }}>Buyers can pick up</Text>
+              <Text style={{ color: themeColors.subText, fontSize: 12, marginTop: 2 }}>Delivery is free when a buyer collects it from you.</Text>
+            </View>
+            <Switch value={pickupAvailable} onValueChange={setPickupAvailable} trackColor={{ true: Colors.light.primary }} />
+          </View>
+
           <FloatingLabelInput
             label="Stock Quantity"
             value={stock}
@@ -234,6 +247,15 @@ export default function SellScreen() {
 }
 
 const styles = StyleSheet.create({
+  pickupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
   container: {
     flex: 1,
   },

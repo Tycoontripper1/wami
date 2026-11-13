@@ -89,6 +89,10 @@ export interface CreateProductPayload {
   category: string;
   stock: number;
   status: 'draft' | 'published';
+  /** Naira the seller charges to deliver, once per seller on an order. 0 = free. */
+  delivery_fee?: number;
+  /** Whether a buyer may collect instead; delivery is then free for that seller. */
+  pickup_available?: boolean;
   /** Ids from POST /media; the first is the cover photo. */
   media_ids?: string[];
 }

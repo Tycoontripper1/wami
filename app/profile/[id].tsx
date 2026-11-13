@@ -28,11 +28,9 @@ import { Text, TextInput } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 
-// Reviews on this screen are scoped to the specific offering being viewed —
-// confirmed live 2026-10-03 that 'App\Models\Offering' is the only valid
-// reviewable_type for this kind of thing ('App\Models\User' is rejected
-// outright). See reviewsService.ts for the full finding.
-const REVIEWABLE_TYPE: ReviewableType = 'App\\Models\\Offering';
+// Reviews on this screen are scoped to the listing being viewed, so the type
+// is 'listing' and the id is the listing id. See reviewsService.ts.
+const REVIEWABLE_TYPE: ReviewableType = 'listing';
 
 type DisplayReview = {
   id: string;

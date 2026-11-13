@@ -32,6 +32,8 @@ export interface ShippingAddress {
 
 export interface PlaceOrderPayload {
   shipping_address: ShippingAddress;
+  /** A saved address on the account. The order keeps its own copy of it, so editing or deleting the saved one later does not change this order. */
+  address_id?: string | number;
 }
 
 export interface ApiOrder {
@@ -63,6 +65,41 @@ export const updateCartItem = async (
 // DELETE /cart/items/:id
 export const removeCartItem = async (id: string | number): Promise<ApiResponse<any>> => {
   return apiClient.delete(API_ENDPOINTS.CART.ITEM(id));
+};
+
+/** What the cart will cost, worked out by the server before an order exists. */
+export interface CartQuote {
+  subtotal: number;
+  /** One delivery fee per seller in the cart, added up. 0 when it is all free or pickup. */
+  shipping: number;
+  tax: number;
+  total: number;
+}
+
+const money = (value: unknown): number => {
+  const n = Number(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+/* GET /cart/quote returns subtotal, shipping, tax and total (per seller, per the
+   backend brief). The exact envelope is not pinned down, so this reads a single
+   block or adds up a list of per-seller blocks, and gives null when nothing
+   usable comes back so the screens fall back to the item prices. */
+export const getCartQuote = async (): Promise<CartQuote | null> => {
+  try {
+    const res = await apiClient.get<any>(API_ENDPOINTS.CART.QUOTE, { expectUnsupported: true });
+    const body: any = res.data?.quote ?? res.data;
+    if (!body) return null;
+    const groups: any[] = Array.isArray(body) ? body : body.sellers ?? body.groups ?? body.quotes ?? [];
+    const sources = groups.length ? groups : [body];
+    const sum = (key: string) => sources.reduce((acc, g) => acc + money(g?.[key]), 0);
+    const quote = { subtotal: sum('subtotal'), shipping: sum('shipping'), tax: sum('tax'), total: sum('total') };
+    if (!quote.total && !quote.subtotal) return null;
+    if (!quote.total) quote.total = quote.subtotal + quote.shipping + quote.tax;
+    return quote;
+  } catch {
+    return null;
+  }
 };
 
 /** One row of the cart, read loosely because the cart shape is not pinned down. */
