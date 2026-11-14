@@ -7,6 +7,7 @@
 
 import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
+import { ApiOffer, normaliseOffer } from './offersService';
 import { ApiResponse, PaginatedResponse } from './types';
 
 export interface ApiConversation {
@@ -23,6 +24,9 @@ export interface ApiMessage {
   sender_id?: string | number;
   body: string;
   created_at?: string;
+  /** 'offer' when the message is a price offer; then `offer` holds it. */
+  type?: string;
+  offer?: ApiOffer | null;
   [key: string]: any;
 }
 
@@ -56,8 +60,25 @@ export const startConversation = async (
 export const getMessages = async (
   conversationId: string | number
 ): Promise<ApiResponse<ApiMessage[]>> => {
-  return apiClient.get(API_ENDPOINTS.MESSAGES.BY_ID(conversationId));
+  // Confirmed live 2026-11-15: the history comes back beside the conversation,
+  // as { data: {conversation}, messages: [...newest first], pagination }, so the
+  // normal unwrapping (which keeps only `data`) would drop it. Read it raw,
+  // and hand back the messages oldest first, each with a sender_id.
+  const res: any = await apiClient.get(API_ENDPOINTS.MESSAGES.BY_ID(conversationId), { raw: true });
+  const body: any = res?.data ?? res ?? {};
+  const list: any[] = Array.isArray(body.messages) ? body.messages : Array.isArray(body.data?.messages) ? body.data.messages : Array.isArray(body.data) ? body.data : [];
+  const messages = list
+    .map(normaliseMessage)
+    .sort((a, b) => String(a.created_at ?? '').localeCompare(String(b.created_at ?? '')));
+  return { ...res, data: messages } as ApiResponse<ApiMessage[]>;
 };
+
+/** A message as the screens read it: the server sends `sender: { id, name }`, the screens want `sender_id`. */
+export const normaliseMessage = (m: any): ApiMessage => ({
+  ...m,
+  sender_id: m?.sender_id ?? m?.sender?.id ?? m?.user_id,
+  offer: m?.offer ? normaliseOffer(m.offer) : undefined,
+});
 
 // POST /v1/messages/conversations/:id  { body } — send a message into an
 // existing conversation (the collection reuses the conversation's own URL
@@ -66,7 +87,9 @@ export const sendMessage = async (
   conversationId: string | number,
   body: string
 ): Promise<ApiResponse<ApiMessage>> => {
-  return apiClient.post(API_ENDPOINTS.MESSAGES.BY_ID(conversationId), { body });
+  const res = await apiClient.post<any>(API_ENDPOINTS.MESSAGES.BY_ID(conversationId), { body });
+  const sent = (res.data as any)?.message ?? res.data;
+  return { ...res, data: sent ? normaliseMessage(sent) : sent } as ApiResponse<ApiMessage>;
 };
 
 // POST /v1/messages/conversations/:id/read

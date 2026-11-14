@@ -10,6 +10,7 @@ import { Ionicons } from '@/components/FlatIcon';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
+  AppState,
   FlatList,
   Image,
   StatusBar,
@@ -24,13 +25,13 @@ import GuestPrompt from '@/components/GuestPrompt';
 import type { RootState } from '@/store/store';
 import { useSelector } from 'react-redux';
 
-// The collection's conversation shape is unconfirmed beyond `id` — map
-// defensively, the same way discoveryService's DiscoveryOffering does.
-// See docs/API-AUDIT-02-MARKETPLACE-AND-BEYOND.md §3.7.
+// A conversation row carries `other`: the other person's id, name, username,
+// full avatar_url and account_type (confirmed live 2026-11-15), plus the
+// listing an offer was about. The older guesses stay as fallbacks.
 const displayName = (c: ApiConversation) =>
-  c.name || c.recipient?.name || c.recipient_name || `Conversation #${c.id}`;
+  c.other?.name || c.other?.username || c.name || c.recipient?.name || c.recipient_name || `Conversation #${c.id}`;
 const displayAvatar = (c: ApiConversation): string | undefined =>
-  c.avatar || c.recipient?.avatar || c.image;
+  c.other?.avatar_url || c.avatar || c.recipient?.avatar || c.image;
 const displayLastMessage = (c: ApiConversation) => {
   const lm: any = c.last_message;
   return (typeof lm === 'object' ? lm?.body : lm) || c.body || 'No messages yet';
@@ -75,6 +76,28 @@ export default function MessagesScreen() {
     }, [load])
   );
 
+  // And keep it fresh while the tab is open: a quiet check every 10 seconds, so
+  // a new message shows up with its unread badge without leaving the tab.
+  useFocusEffect(
+    useCallback(() => {
+      if (!signedIn) return;
+      let live = true;
+      const timer = setInterval(async () => {
+        if (AppState.currentState !== 'active') return;
+        try {
+          const res = await getConversations({ page: 1 });
+          if (live) setConversations(extractList(res.data as any));
+        } catch {
+          // try again on the next tick
+        }
+      }, 10000);
+      return () => {
+        live = false;
+        clearInterval(timer);
+      };
+    }, [signedIn])
+  );
+
   const themeColors = {
     background: isDark ? '#000' : '#fff',
     text: isDark ? '#fff' : '#0F1419',
@@ -109,7 +132,7 @@ export default function MessagesScreen() {
         onPress={() =>
           router.push({
             pathname: '/chat/[id]',
-            params: { id: String(item.id), name: displayName(item), avatar: avatar ?? '', role: item.recipient?.account_type ?? item.account_type ?? '' },
+            params: { id: String(item.id), name: displayName(item), avatar: avatar ?? '', role: item.other?.account_type ?? item.recipient?.account_type ?? item.account_type ?? '' },
           } as any)
         }
       >
@@ -128,7 +151,7 @@ export default function MessagesScreen() {
               {displayName(item)}
             </Text>
           </View>
-          <RoleBadge role={roleOf(item.recipient?.account_type ?? item.account_type)} small />
+          <RoleBadge role={roleOf(item.other?.account_type ?? item.recipient?.account_type ?? item.account_type)} small />
           <View style={styles.messageRow}>
             <Text
               style={[

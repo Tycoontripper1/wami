@@ -1,3 +1,4 @@
+import OfferCard from '@/components/chat/OfferCard';
 import RoleBadge from '@/components/RoleBadge';
 import { roleOf } from '@/utils/accountRole';
 import Colors from '@/constants/Colors';
@@ -10,10 +11,11 @@ import {
 } from '@/services/api/chatService';
 import { RootState } from '@/store/store';
 import { Ionicons } from '@/components/FlatIcon';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   FlatList,
   Image,
   Keyboard,
@@ -84,6 +86,45 @@ export default function ChatScreen() {
     load();
   }, [load]);
 
+  /* The server has no push channel to an open chat, so the screen asks again
+     every few seconds while it is in front and the app is awake. It runs quietly
+     (no spinner), only touches the list when something changed, and marks new
+     incoming messages as read. A message still being sent is left alone. */
+  const lastSeen = useRef<string>('');
+  useFocusEffect(
+    useCallback(() => {
+      if (!conversationId) return;
+      let live = true;
+      const poll = async () => {
+        if (AppState.currentState !== 'active') return;
+        try {
+          const res = await getMessages(conversationId);
+          if (!live || !Array.isArray(res.data)) return;
+          const fresh = res.data;
+          const key = `${fresh.length}:${fresh[fresh.length - 1]?.id ?? ''}:${fresh.map((m) => m.offer?.status ?? '').join('')}`;
+          if (key === lastSeen.current) return;
+          const hadSome = lastSeen.current !== '';
+          lastSeen.current = key;
+          setMessages((prev) => {
+            const pending = prev.filter((m) => String(m.id).startsWith('optimistic-'));
+            return [...fresh, ...pending];
+          });
+          if (hadSome) {
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+            markConversationRead(conversationId).catch(() => {});
+          }
+        } catch {
+          // a missed poll is fine; the next one tries again
+        }
+      };
+      const timer = setInterval(poll, 4000);
+      return () => {
+        live = false;
+        clearInterval(timer);
+      };
+    }, [conversationId])
+  );
+
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
@@ -138,6 +179,23 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: ApiMessage }) => {
     const isMyMessage = String(item.sender_id ?? '') === currentUserId;
+    // A price offer is a card with its own buttons, not a bubble of text.
+    if (item.type === 'offer' && item.offer) {
+      return (
+        <View style={[styles.messageRow, isMyMessage && styles.myMessageRow]}>
+          {!isMyMessage && recipientAvatar && <Image source={{ uri: recipientAvatar }} style={styles.messageAvatar} />}
+          <OfferCard
+            offer={item.offer}
+            incoming={!isMyMessage}
+            theme={{ text: themeColors.text, subText: themeColors.subText, border: themeColors.border, card: themeColors.theirBubble }}
+            onChange={(next, countered) => {
+              setMessages((prev) => prev.map((m) => (m.id === item.id ? { ...m, offer: next } : m)));
+              if (countered) load();
+            }}
+          />
+        </View>
+      );
+    }
     return (
       <View style={[styles.messageRow, isMyMessage && styles.myMessageRow]}>
         {!isMyMessage && recipientAvatar && (

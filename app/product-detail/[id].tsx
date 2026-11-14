@@ -3,7 +3,9 @@ import type { RootState } from '@/store/store';
 import { formatAmountInput, parseAmount } from '@/utils/money';
 import { loadLocalProductPhotos, localProductPhoto } from '@/utils/localProductPhotos';
 import CartButton from '@/components/CartButton';
+import { OFFERS_ENABLED } from '@/constants/Features';
 import { startConversation } from '@/services/api/chatService';
+import { createOffer } from '@/services/api/offersService';
 import { addCartItem, getCartLines } from '@/services/api/ordersService';
 import { useAuthGate } from '@/hooks/useAuthGate';
 import { absoluteUrl } from '@/utils/mediaUrl';
@@ -141,8 +143,8 @@ export default function ProductDetailScreen() {
 
   const isMine = !!product?.sellerId && myId !== undefined && String(myId) === product.sellerId;
 
-  // An offer goes to the seller as a chat message, so they see it and can
-  // answer it there. There is no separate offers endpoint.
+  // An offer goes to the seller in chat. Until the server has offers
+  // (OFFERS_ENABLED) it is a plain message and the seller answers in text.
   const handleSendOffer = () =>
     gate('Sign in to make an offer, so the seller can reply to you.', async () => {
       const amount = parseAmount(offerPrice);
@@ -156,6 +158,25 @@ export default function ProductDetailScreen() {
       }
       setIsSendingOffer(true);
       try {
+        // With offers on the server, the offer is a real record the seller answers with
+        // buttons. Without them it is a plain chat message and the seller replies in text.
+        if (OFFERS_ENABLED) {
+          const offer = await createOffer({ listing_id: productId, amount });
+          setShowOfferInput(false);
+          setOfferPrice('');
+          Alert.alert('Offer sent', 'The seller can accept, decline or counter it in chat.', [
+            {
+              text: 'Open chat',
+              onPress: () =>
+                router.push({
+                  pathname: '/chat/[id]',
+                  params: { id: offer.conversation_id ?? 'new', recipientId: product.sellerId, name: product.sellerName ?? 'Seller', avatar: product.sellerAvatar ?? '' },
+                } as any),
+            },
+            { text: 'Done', style: 'cancel' },
+          ]);
+          return;
+        }
         const body = `Hi${product.sellerName ? ` ${product.sellerName.split(' ')[0]}` : ''}, I'd like to offer ₦${amount.toLocaleString()} for "${product.name}" (listed at ₦${product.price.toLocaleString()}). Would that work?`;
         const res = await startConversation(product.sellerId, body);
         setShowOfferInput(false);

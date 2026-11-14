@@ -19,3 +19,10 @@ export const INSTAGRAM_IMPORT_ENABLED = false;
 // delivery endpoint; services/deliveryService.ts invents the drivers, their
 // bids, avatars and the hand-over code.
 export const DELIVERY_ENABLED = false;
+
+// Price offers with Accept, Decline and Counter (services/api/offersService.ts,
+// components/chat/OfferCard.tsx). The backend has no /offers endpoints yet
+// (404), so "Offer price" still sends a plain chat message and the seller can
+// only reply in text. Flip to true once POST /offers and PUT /offers/:id exist
+// and an accepted offer sets the price in the cart (see the backend brief).
+export const OFFERS_ENABLED = false;
