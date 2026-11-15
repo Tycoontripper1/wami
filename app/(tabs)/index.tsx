@@ -197,7 +197,7 @@ export default function HomeScreen() {
       return;
     }
     getUnreadNotificationCount()
-      .then((res) => setUnread(res.data?.count ?? 0))
+      .then((res) => setUnread(Number((res.data as any)?.unread_count ?? res.data?.count ?? 0)))
       .catch((error) => console.error('Failed to load unread notification count:', error));
   }, [signedIn]);
 

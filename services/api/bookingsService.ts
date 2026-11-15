@@ -150,12 +150,12 @@ export const addMilestone = async (
   return apiClient.post(API_ENDPOINTS.BOOKINGS.MILESTONES(bookingId), payload);
 };
 
-// POST /bookings/:id/milestones/:milestoneId/release
+// PATCH /bookings/:id/milestones/:milestoneId/release (POST is 405, confirmed live 2026-11-15)
 export const releaseMilestone = async (
   bookingId: string | number,
   milestoneId: string | number
 ): Promise<ApiResponse<ApiMilestone>> => {
-  return apiClient.post(API_ENDPOINTS.BOOKINGS.RELEASE_MILESTONE(bookingId, milestoneId));
+  return apiClient.patch(API_ENDPOINTS.BOOKINGS.RELEASE_MILESTONE(bookingId, milestoneId));
 };
 
 export interface RescheduleBookingPayload {

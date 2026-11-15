@@ -317,10 +317,10 @@ export const authService = {
 
   /**
    * Update account setup.
-   * PATCH /account/update
+   * PUT /account/update (PATCH is 405, confirmed live 2026-11-15)
    */
   async updateAccount(data: Partial<SetupAccountRequest>): Promise<{ message: string; success: boolean }> {
-    const response = await apiClient.patch<any>(API_ENDPOINTS.ACCOUNT.UPDATE, data);
+    const response = await apiClient.put<any>(API_ENDPOINTS.ACCOUNT.UPDATE, data);
     return {
       message: response.message || 'Account updated successfully',
       success: response.success,

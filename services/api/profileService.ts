@@ -18,14 +18,16 @@ const getProfile = async (): Promise<ApiResponse<User>> => {
 const updateProfile = async (
   data: UpdateProfileRequest
 ): Promise<ApiResponse<User>> => {
-  return apiClient.post(API_ENDPOINTS.PROFILE.UPDATE, data);
+  // PUT: the server answers 405 to POST on this route (confirmed live 2026-11-15).
+  return apiClient.put(API_ENDPOINTS.PROFILE.UPDATE, data);
 };
 
 // Update password
 const updatePassword = async (
   data: UpdatePasswordRequest
 ): Promise<ApiResponse<{ message: string }>> => {
-  return apiClient.post(API_ENDPOINTS.PROFILE.PASSWORD, data);
+  // PUT: the server answers 405 to POST on this route (confirmed live 2026-11-15).
+  return apiClient.put(API_ENDPOINTS.PROFILE.PASSWORD, data);
 };
 
 // Deactivate account
