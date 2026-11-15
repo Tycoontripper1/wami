@@ -18,6 +18,8 @@ export interface InitializePaymentPayload {
 export interface VerifyPaymentPayload {
   order_id: string | number;
   reference: string;
+  /** Required by the server (422 "The gateway field is required", confirmed 2026-11-15). The order carries it as payment_gateway. */
+  gateway?: string;
 }
 
 export const initializePayment = async (
@@ -29,5 +31,5 @@ export const initializePayment = async (
 export const verifyPayment = async (
   payload: VerifyPaymentPayload
 ): Promise<ApiResponse<any>> => {
-  return apiClient.post(API_ENDPOINTS.PAYMENTS.VERIFY, payload);
+  return apiClient.post(API_ENDPOINTS.PAYMENTS.VERIFY, { gateway: 'paystack', ...payload });
 };

@@ -171,6 +171,7 @@ export interface ApiOrderRecord {
   status: string;
   payment_status: string;
   payment_method?: string | null;
+  payment_gateway?: string | null;
   payment_reference?: string | null;
   subtotal: string;
   tax: string;
@@ -255,6 +256,7 @@ export const describePaymentStatus = (status: string): { label: string; tone: Or
     case 'successful':
       return { label: 'Paid', tone: 'good' };
     case 'pending':
+    case 'initialized':
       return { label: 'Awaiting payment', tone: 'warn' };
     case 'failed':
       return { label: 'Payment failed', tone: 'bad' };

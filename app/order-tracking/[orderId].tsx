@@ -13,6 +13,8 @@ import {
   toAmount,
   updateOrderStatus,
 } from '@/services/api/ordersService';
+import OrderJourney from '@/components/order/OrderJourney';
+import { verifyPayment } from '@/services/api/paymentsService';
 import { formatCurrency } from '@/types/payment';
 import { Alert } from '@/components/AppAlert';
 import type { RootState } from '@/store/store';
@@ -32,6 +34,9 @@ import {
 } from 'react-native';
 import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+/** Payment states that mean "not paid yet": the server says pending, or initialized once a payment page was opened. */
+const UNPAID = ['pending', 'initialized'];
 
 /**
  * One order, read from GET /orders/:id: its state, items, amounts and the
@@ -66,7 +71,15 @@ export default function OrderDetailScreen() {
       else setIsRefreshing(true);
       setHasError(false);
       try {
-        setOrder(await getOrderById(orderId));
+        let next = await getOrderById(orderId);
+        // An order whose payment is still open is asked about once: the gateway's
+        // confirmation can be late (or never arrive), and verify settles it from
+        // the payment reference the order already carries.
+        if (UNPAID.includes(String(next.payment_status ?? '').toLowerCase()) && next.payment_reference) {
+          await verifyPayment({ order_id: next.id, reference: String(next.payment_reference), gateway: String(next.payment_gateway ?? 'paystack') }).catch(() => {});
+          next = await getOrderById(orderId);
+        }
+        setOrder(next);
       } catch (error) {
         console.error('Failed to load order:', error);
         setHasError(true);
@@ -131,7 +144,7 @@ export default function OrderDetailScreen() {
   });
   const address = order.shipping_address ?? {};
   const addressLines = [address.line1, address.city, address.country].filter(Boolean) as string[];
-  const awaitingPayment = (order.payment_status || '').toLowerCase() === 'pending';
+  const awaitingPayment = UNPAID.includes((order.payment_status || '').toLowerCase());
   const role = orderRole(order, myId);
   const paid = ['paid', 'success', 'successful'].includes((order.payment_status || '').toLowerCase());
   const st = (order.status || '').toLowerCase();
@@ -142,9 +155,12 @@ export default function OrderDetailScreen() {
   if (role === 'seller' && paid) {
     if (st === 'placed') nextMove = { to: 'packing', label: 'Start packing', ask: 'Let the buyer know you are packing this order?' };
     else if (st === 'packing') nextMove = { to: 'dispatched', label: 'Mark as dispatched', ask: 'Mark this order as sent out for delivery?' };
-    else if (st === 'dispatched') nextMove = { to: 'delivered', label: 'Mark as delivered', ask: 'Mark this order as delivered?' };
+    // After dispatch the seller is done: only the buyer can say it arrived
+    // (confirmed live 2026-11-15, 422 not_your_step "Only the buyer can do that").
+  } else if (role === 'buyer' && st === 'dispatched') {
+    nextMove = { to: 'delivered', label: 'I received it', ask: 'Confirm your order has arrived. The seller is told, and the payment moves on to them.' };
   } else if (role === 'buyer' && st === 'delivered') {
-    nextMove = { to: 'complete', label: 'I received it', ask: 'Confirm you have received everything. This pays the seller.' };
+    nextMove = { to: 'complete', label: 'Confirm and finish', ask: 'Confirm everything is as you ordered. This closes the order.' };
   }
   const canCancel = role === 'buyer' && awaitingPayment && st === 'placed';
 
@@ -178,30 +194,28 @@ export default function OrderDetailScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void load('refresh')} />}
       >
-        {/* State */}
+        {/* State: the journey, then what to do next */}
         <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-          <View style={styles.badges}>
-            <View style={[styles.badge, { backgroundColor: tones[status.tone].bg }]}>
-              <Text style={[styles.badgeText, { color: tones[status.tone].fg }]}>{status.label}</Text>
+          {st === 'cancelled' ? (
+            <View style={styles.badges}>
+              <View style={[styles.badge, { backgroundColor: tones[status.tone].bg }]}>
+                <Text style={[styles.badgeText, { color: tones[status.tone].fg }]}>{status.label}</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: tones[payment.tone].bg }]}>
+                <Text style={[styles.badgeText, { color: tones[payment.tone].fg }]}>{payment.label}</Text>
+              </View>
             </View>
-            <View style={[styles.badge, { backgroundColor: tones[payment.tone].bg }]}>
-              <Text style={[styles.badgeText, { color: tones[payment.tone].fg }]}>{payment.label}</Text>
-            </View>
-          </View>
-          <Text style={[styles.meta, { color: tc.sub }]}>Placed on {placed}</Text>
-          {awaitingPayment && role === 'seller' ? (
-            <Text style={[styles.note, { color: tc.text }]}>Waiting for the buyer to pay. You will be able to start packing once they have.</Text>
-          ) : null}
+          ) : (
+            <OrderJourney status={st} paid={paid} role={role} isDark={isDark} theme={{ text: tc.text, sub: tc.sub, border: tc.border }} />
+          )}
+          <Text style={[styles.meta, { color: tc.sub, marginTop: 12 }]}>Placed on {placed}</Text>
           {awaitingPayment && role === 'buyer' ? (
-            <>
-              <Text style={[styles.note, { color: tc.text }]}>This order is waiting for payment.</Text>
-              <TouchableOpacity
-                style={{ height: 44, borderRadius: 10, backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center', marginTop: 12 }}
-                onPress={() => router.push(`/checkout?orderId=${order.id}` as any)}
-              >
-                <Text style={{ color: '#0F1419', fontSize: 15, fontWeight: '700' }}>Pay now</Text>
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity
+              style={{ height: 44, borderRadius: 10, backgroundColor: Colors.light.primary, alignItems: 'center', justifyContent: 'center', marginTop: 12 }}
+              onPress={() => router.push(`/checkout?orderId=${order.id}` as any)}
+            >
+              <Text style={{ color: '#0F1419', fontSize: 15, fontWeight: '700' }}>Pay now</Text>
+            </TouchableOpacity>
           ) : null}
           {nextMove ? (
             <TouchableOpacity
