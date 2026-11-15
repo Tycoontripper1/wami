@@ -87,6 +87,7 @@ export default function AddServiceScreen() {
         currency: 'NGN',
         type: 'service',
         category: category || 'Others',
+        status: 'published',
         media_ids: mediaIds.length > 0 ? mediaIds : undefined,
       });
       Alert.alert('Service Added', 'Your service has been listed successfully.', [

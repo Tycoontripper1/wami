@@ -1,7 +1,7 @@
 import { absoluteUrl } from '@/utils/mediaUrl';
 import Colors from '@/constants/Colors';
 import { INSTAGRAM_IMPORT_ENABLED } from '@/constants/Features';
-import { getBookings } from '@/services/api/bookingsService';
+import { getAllMyBookings } from '@/services/api/bookingsService';
 import { profileService } from '@/services/api/profileService';
 import { authService } from '@/services/authService';
 import { signOut, updateUser } from '@/store/authSlice';
@@ -54,11 +54,9 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (!signedIn) return;
     fetchProfile();
-    getBookings({ page: 1 })
-      .then((res) => {
-        const data: any = res.data;
-        setBookingsCount(typeof data?.total === 'number' ? data.total : extractList(data).length);
-      })
+    // Counted on both sides: the server lists only the bookings where you are the creative unless asked for the buyer side too.
+    getAllMyBookings()
+      .then((list) => setBookingsCount(list.length))
       .catch((error) => console.error('Error fetching booking count:', error));
   }, [signedIn]);
 

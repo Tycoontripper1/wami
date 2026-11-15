@@ -6,6 +6,7 @@
 
 import { apiClient } from './client';
 import { API_ENDPOINTS } from './config';
+import { extractList } from '@/utils/extractList';
 import { ApiResponse, PaginatedResponse } from './types';
 
 // requested, accepted, declined, expired, paid, in_progress, completed.
@@ -71,6 +72,26 @@ export const getBookings = async (params?: {
   limit?: number;
 }): Promise<ApiResponse<PaginatedResponse<ApiBooking> | ApiBooking[]>> => {
   return apiClient.get(API_ENDPOINTS.BOOKINGS.LIST, { params });
+};
+
+/* GET /bookings takes role=buyer or role=seller (anything else is 422 "The selected
+   role is invalid", confirmed live 2026-11-15) and with no role it lists only the
+   bookings where you are the creative. So a person who has only booked would see
+   an empty history. This reads both sides and merges them, newest first. */
+export const getAllMyBookings = async (): Promise<ApiBooking[]> => {
+  const side = async (role: 'buyer' | 'seller'): Promise<ApiBooking[]> => {
+    try {
+      const res = await apiClient.get<any>(API_ENDPOINTS.BOOKINGS.LIST, { params: { page: 1, role } });
+      return extractList<ApiBooking>(res.data);
+    } catch {
+      return [];
+    }
+  };
+  const [asBuyer, asCreative] = await Promise.all([side('buyer'), side('seller')]);
+  const seen = new Set<string>();
+  return [...asBuyer, ...asCreative]
+    .filter((b) => (seen.has(String(b.id)) ? false : (seen.add(String(b.id)), true)))
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')));
 };
 
 // GET /bookings/:id

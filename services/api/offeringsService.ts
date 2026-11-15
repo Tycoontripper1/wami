@@ -22,6 +22,8 @@ export interface CreateOfferingPayload {
   currency: string;
   type: 'service' | 'product';
   category?: string;
+  /** Without this the server saves the listing as a draft that nobody can see or book (confirmed live 2026-11-15). */
+  status?: 'draft' | 'published';
   /** Ids from POST /media; the first is the cover photo. */
   media_ids?: string[];
 }

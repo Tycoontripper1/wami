@@ -6,9 +6,10 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
    third (the tile behind) knocked out for the details. All on a 32 grid.
 
    receipt: the order placed   coins: paid          box: being packed
-   van: on its way             house: delivered     medal: complete */
+   van: on its way             house: delivered     medal: complete
+   calendar: a booking asked   bubble: agreed      clock: the work under way */
 
-export type StepKind = 'receipt' | 'coins' | 'box' | 'van' | 'house' | 'medal';
+export type StepKind = 'receipt' | 'coins' | 'box' | 'van' | 'house' | 'medal' | 'calendar' | 'bubble' | 'clock';
 
 export default function StepIcon({
   kind,
@@ -85,6 +86,36 @@ export default function StepIcon({
           <Path d="M22 18.5L25.5 29 20 26.2l-2.6 4.3L16 21.9z" fill={soft} />
           <Circle cx="16" cy="12" r="9.5" fill={ink} />
           <Path d="M16 6.2l1.8 3.7 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill={cut} />
+        </>
+      ) : null}
+      {kind === 'calendar' ? (
+        <>
+          <Rect x="4" y="6" width="24" height="22" rx="4" fill={ink} />
+          <Path d="M4 10a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v3.5H4z" fill={soft} />
+          <Rect x="9.5" y="3" width="3" height="7" rx="1.5" fill={ink} />
+          <Rect x="19.5" y="3" width="3" height="7" rx="1.5" fill={ink} />
+          <Circle cx="10" cy="19" r="1.7" fill={cut} />
+          <Circle cx="16" cy="19" r="1.7" fill={cut} />
+          <Circle cx="22" cy="19" r="1.7" fill={cut} />
+          <Circle cx="10" cy="24" r="1.7" fill={cut} />
+          <Circle cx="16" cy="24" r="1.7" fill={soft} />
+        </>
+      ) : null}
+
+      {kind === 'bubble' ? (
+        <>
+          <Path d="M5 8a3.5 3.5 0 0 1 3.5-3.5h15A3.5 3.5 0 0 1 27 8v11a3.5 3.5 0 0 1-3.5 3.5H16L10 28v-5.5H8.5A3.5 3.5 0 0 1 5 19z" fill={ink} />
+          <Path d="M10.6 13.4l3.6 3.6 7.2-7.4" fill="none" stroke={cut} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : null}
+
+      {kind === 'clock' ? (
+        <>
+          <Circle cx="6.5" cy="7" r="3.6" fill={soft} />
+          <Circle cx="25.5" cy="7" r="3.6" fill={soft} />
+          <Circle cx="16" cy="17.5" r="11.5" fill={ink} />
+          <Path d="M16 10.5v7l5 3" fill="none" stroke={cut} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          <Circle cx="16" cy="17.5" r="1.4" fill={cut} />
         </>
       ) : null}
     </Svg>

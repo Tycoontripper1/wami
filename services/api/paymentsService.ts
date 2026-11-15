@@ -28,6 +28,16 @@ export const initializePayment = async (
   return apiClient.post(API_ENDPOINTS.PAYMENTS.INITIALIZE, payload);
 };
 
+/* Asks the server whether a booking's payment has landed. The order version takes
+   order_id; a booking takes booking_id (the same reference and gateway). */
+export const verifyBookingPayment = async (payload: {
+  booking_id: string | number;
+  reference: string;
+  gateway?: string;
+}): Promise<ApiResponse<any>> => {
+  return apiClient.post(API_ENDPOINTS.PAYMENTS.VERIFY, { gateway: 'paystack', ...payload });
+};
+
 export const verifyPayment = async (
   payload: VerifyPaymentPayload
 ): Promise<ApiResponse<any>> => {

@@ -6,6 +6,7 @@ import EmptyState from '@/components/EmptyState';
 import QuoteRequestModal from '@/components/QuoteRequestModal';
 import Colors from '@/constants/Colors';
 import { saveOffering, unsaveOffering } from '@/services/api/discoveryService';
+import { getCreatorListings } from '@/services/api/creatorsService';
 import { ApiOffering, getOfferingById } from '@/services/api/offeringsService';
 import { createReview, getReviews, ReviewableType } from '@/services/api/reviewsService';
 import { addFavorite, removeFavorite } from '@/store/favoritesSlice';
@@ -90,13 +91,25 @@ export default function ProfileScreen() {
       const res = await getOfferingById(id);
       setOffering(res.data);
     } catch (error) {
-      console.error('Failed to load offering:', error);
-      setOffering(null);
-      setOfferingError(true);
+      // GET /offerings/:id only answers for the listing's owner (404 for everyone
+      // else, confirmed live 2026-11-15), so a buyer opening someone's service
+      // would see nothing. The creator's public listings do include it: when we
+      // know whose it is, find it there.
+      try {
+        if (!params.creatorId) throw error;
+        const list = await getCreatorListings(params.creatorId);
+        const found = extractList<any>(list.data).find((l: any) => String(l.id) === String(id));
+        if (!found) throw error;
+        setOffering({ ...found, creator: found.creator ?? { id: params.creatorId, name: params.creatorName } } as ApiOffering);
+      } catch (fallbackError) {
+        console.error('Failed to load offering:', fallbackError);
+        setOffering(null);
+        setOfferingError(true);
+      }
     } finally {
       setIsLoadingOffering(false);
     }
-  }, [id]);
+  }, [id, params.creatorId, params.creatorName]);
 
   useEffect(() => {
     loadOffering();

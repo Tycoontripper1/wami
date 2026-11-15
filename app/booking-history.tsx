@@ -1,8 +1,10 @@
 import { extractList } from '@/utils/extractList';
 import FlatIllustration from '@/components/illustrations/FlatIllustration';
+import ProgressStrip from '@/components/order/ProgressStrip';
 import Colors from '@/constants/Colors';
-import { ApiBooking, getBookings, normaliseStatus } from '@/services/api/bookingsService';
+import { ApiBooking, bookingRole, getAllMyBookings, normaliseStatus } from '@/services/api/bookingsService';
 import { RootState } from '@/store/store';
+import { bookingState, needsFirst } from '@/utils/journeyState';
 import { Ionicons } from '@/components/FlatIcon';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -40,6 +42,7 @@ export default function BookingHistoryScreen() {
   // Local optimistic cache from the booking flow (components/BookingModal.tsx)
   // — used as an instant fallback if the real fetch below fails or is slow.
   const localBookings = useSelector((state: RootState) => state.bookings.items);
+  const myId = useSelector((state: RootState) => (state.auth.user as any)?.id);
 
   const [apiBookings, setApiBookings] = useState<ApiBooking[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,9 +52,7 @@ export default function BookingHistoryScreen() {
     setIsLoading(true);
     setLoadError(false);
     try {
-      const res = await getBookings({ page: 1 });
-      const data: any = res.data;
-      setApiBookings(extractList(data));
+      setApiBookings(await getAllMyBookings());
     } catch (error) {
       console.error('Failed to load bookings:', error);
       setLoadError(true);
@@ -91,7 +92,11 @@ export default function BookingHistoryScreen() {
 
   const renderBooking = ({ item }: { item: ApiBooking }) => {
     const status = STATUS_CONFIG[normaliseStatus(item.status)] || STATUS_CONFIG.requested;
-    const creativeName = localNameById.get(String(item.id)) ?? 'Booking';
+    // The other person: the creative when I booked, the buyer when I am the creative.
+    const who = (person: any): string | undefined =>
+      person ? person.name || [person.first_name, person.last_name].filter(Boolean).join(' ') || person.username : undefined;
+    const other = bookingRole(item, myId) === 'creative' ? who(item.buyer) : who(item.creative ?? item.creator);
+    const creativeName = other ?? localNameById.get(String(item.id)) ?? 'Booking';
 
     return (
       <TouchableOpacity
@@ -109,9 +114,8 @@ export default function BookingHistoryScreen() {
               ₦{Number(item.total_amount).toLocaleString()} {item.currency}
             </Text>
           )}
-          <View style={[styles.statusBadge, { backgroundColor: `${status.color}20` }]}>
-            <Ionicons name={status.icon as any} size={14} color={status.color} />
-            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+          <View style={{ marginTop: 10 }}>
+            <ProgressStrip state={bookingState(item, myId)} isDark={isDark} theme={{ text: themeColors.text, sub: themeColors.subText, border: themeColors.border }} />
           </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color={themeColors.subText} style={{ marginLeft: 8 }} />
@@ -158,7 +162,7 @@ export default function BookingHistoryScreen() {
         </View>
       ) : bookings.length > 0 ? (
         <FlatList
-          data={bookings}
+          data={needsFirst(bookings, (b) => bookingState(b, myId))}
           renderItem={renderBooking}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContainer}

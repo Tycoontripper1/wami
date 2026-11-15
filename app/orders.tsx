@@ -1,6 +1,7 @@
 import EmptyState from '@/components/EmptyState';
 import { Ionicons } from '@/components/FlatIcon';
 import FlatIllustration from '@/components/illustrations/FlatIllustration';
+import ProgressStrip from '@/components/order/ProgressStrip';
 import { SkeletonRow } from '@/components/Skeleton';
 import Colors from '@/constants/Colors';
 import { orderToneColors } from '@/constants/OrderTones';
@@ -14,10 +15,11 @@ import {
   toAmount,
 } from '@/services/api/ordersService';
 import { formatCurrency } from '@/types/payment';
+import { needsFirst, orderState } from '@/utils/journeyState';
 import type { RootState } from '@/store/store';
 import { useRouter } from 'expo-router';
 import { useSelector } from 'react-redux';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Image,
@@ -94,7 +96,17 @@ export default function OrdersScreen() {
 
   const buying = orders.filter((o) => orderRole(o, myId) === 'buyer');
   const selling = orders.filter((o) => orderRole(o, myId) === 'seller');
-  const shown = side === 'seller' ? selling : buying;
+
+  // Open on the side that has something: a seller with nothing bought should not
+  // land on an empty "Buying" tab. Only once, so a person's own choice is kept.
+  const choseSide = useRef(false);
+  useEffect(() => {
+    if (choseSide.current || isLoading) return;
+    if (buying.length === 0 && selling.length > 0) setSide('seller');
+    choseSide.current = true;
+  }, [isLoading, buying.length, selling.length]);
+  // What is waiting on this person comes first.
+  const shown = needsFirst(side === 'seller' ? selling : buying, (o) => orderState(o, myId));
   // The tabs only matter once someone has sold something.
   const showTabs = selling.length > 0;
 
@@ -138,18 +150,8 @@ export default function OrdersScreen() {
           </View>
         </View>
 
-        <View style={styles.badges}>
-          <View style={[styles.badge, { backgroundColor: tones[status.tone].bg }]}>
-            <Text style={[styles.badgeText, { color: tones[status.tone].fg }]}>{status.label}</Text>
-          </View>
-          <View style={[styles.badge, { backgroundColor: tones[payment.tone].bg }]}>
-            <Text style={[styles.badgeText, { color: tones[payment.tone].fg }]}>{payment.label}</Text>
-          </View>
-          {orderRole(item, myId) === 'seller' ? (
-            <View style={[styles.badge, { backgroundColor: Colors.light.primary + '25' }]}>
-              <Text style={[styles.badgeText, { color: Colors.light.primary }]}>Sale</Text>
-            </View>
-          ) : null}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
+          <ProgressStrip state={orderState(item, myId)} isDark={isDark} theme={{ text: tc.text, sub: tc.sub, border: tc.border }} />
         </View>
 
         <View style={[styles.divider, { backgroundColor: tc.border }]} />

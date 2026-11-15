@@ -1,3 +1,4 @@
+import BookingJourney from '@/components/order/BookingJourney';
 import Colors from '@/constants/Colors';
 import {
     ApiBooking,
@@ -11,6 +12,7 @@ import {
     payBooking,
     releaseMilestone,
 } from '@/services/api/bookingsService';
+import { verifyBookingPayment } from '@/services/api/paymentsService';
 import { cancelBooking as cancelLocalBooking } from '@/store/bookingsSlice';
 import { Ionicons } from '@/components/FlatIcon';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -30,22 +32,6 @@ import { Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store/store';
-
-const STATUS_STEPS: { status: string; label: string }[] = [
-  { status: 'requested', label: 'Requested' },
-  { status: 'accepted', label: 'Accepted' },
-  { status: 'paid', label: 'Paid, held by Wami' },
-  { status: 'in_progress', label: 'In progress' },
-  { status: 'completed', label: 'Completed' },
-];
-
-const STATUS_INDEX: Record<string, number> = {
-  requested: 0,
-  accepted: 1,
-  paid: 2,
-  in_progress: 3,
-  completed: 4,
-};
 
 // Ends that are not on the happy path, and what to tell people.
 const ENDED: Record<string, string> = {
@@ -81,6 +67,7 @@ export default function ServiceTrackingScreen() {
   const myId = useSelector((st: RootState) => (st.auth.user as any)?.id);
   const [acting, setActing] = useState<BookingAction | null>(null);
   const [paying, setPaying] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const tc = {
     bg: isDark ? '#0A0A0A' : '#F8F9FA',
@@ -96,7 +83,15 @@ export default function ServiceTrackingScreen() {
     setIsLoading(true);
     setLoadError(false);
     try {
-      const res = await getBookingById(bookingId);
+      let res = await getBookingById(bookingId);
+      // A payment that was opened but not yet confirmed is asked about once: the
+      // gateway's confirmation can be late, and verify settles it from the
+      // reference the booking already carries.
+      const open = ['initialized', 'pending'].includes(String(res.data.payment_status ?? '').toLowerCase());
+      if (open && res.data.payment_reference && normaliseStatus(res.data.status) === 'accepted') {
+        await verifyBookingPayment({ booking_id: res.data.id, reference: String(res.data.payment_reference), gateway: String(res.data.payment_gateway ?? 'paystack') }).catch(() => {});
+        res = await getBookingById(bookingId);
+      }
       setBooking(res.data);
     } catch (error) {
       console.error('Failed to load booking:', error);
@@ -147,6 +142,24 @@ export default function ServiceTrackingScreen() {
       Alert.alert("Couldn't start your payment", error?.message ?? 'Please try again.');
     } finally {
       setPaying(false);
+    }
+  };
+
+  // Ask the server whether the payment landed, then say so plainly either way.
+  const checkPayment = async () => {
+    if (!booking?.payment_reference) return;
+    setChecking(true);
+    try {
+      await verifyBookingPayment({ booking_id: booking.id, reference: String(booking.payment_reference), gateway: String(booking.payment_gateway ?? 'paystack') }).catch(() => {});
+      const res = await getBookingById(bookingId);
+      setBooking(res.data);
+      if (normaliseStatus(res.data.status) === 'accepted') {
+        Alert.alert('Not paid yet', 'We have not received your payment. If you have just paid, give it a minute and check again.');
+      }
+    } catch (error: any) {
+      Alert.alert("Couldn't check", error?.message ?? 'Please try again.');
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -214,12 +227,70 @@ export default function ServiceTrackingScreen() {
 
   const status = normaliseStatus(booking.status);
   const role = bookingRole(booking, myId);
-  const currentStatusIndex = STATUS_INDEX[status] ?? 0;
   const endedNote = ENDED[status];
   const when = booking.scheduled_at ?? booking.start_date;
   const amount = Number(booking.total_amount ?? booking.amount ?? booking.price ?? 0);
   const busy = acting !== null;
   const milestones = booking.milestones ?? [];
+
+  const paymentOpen = ['initialized', 'pending'].includes(String(booking.payment_status ?? '').toLowerCase()) && !!booking.payment_reference;
+  const primaryAction =
+    status === 'accepted' && role === 'buyer' && paymentOpen ? (
+      // A payment page was already opened: check it before offering to pay again,
+      // so nobody pays twice.
+      <View style={{ gap: 4 }}>
+        <TouchableOpacity style={[styles.primaryBtn, (checking || busy) && { opacity: 0.6 }]} onPress={checkPayment} disabled={checking || busy}>
+          {checking ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>I have paid, check now</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={payNow} disabled={paying || busy} style={{ alignItems: 'center', paddingVertical: 10 }}>
+          <Text style={{ color: tc.sub, fontSize: 13, fontWeight: '700' }}>{paying ? 'Opening…' : 'Not paid yet? Pay again'}</Text>
+        </TouchableOpacity>
+      </View>
+    ) : status === 'accepted' && role === 'buyer' ? (
+      <TouchableOpacity style={[styles.primaryBtn, (paying || busy) && { opacity: 0.6 }]} onPress={payNow} disabled={paying || busy}>
+        {paying ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Pay ₦{amount.toLocaleString()} now</Text>}
+      </TouchableOpacity>
+    ) : status === 'requested' && role === 'creative' ? (
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity style={[styles.primaryBtn, { flex: 1 }, busy && { opacity: 0.6 }]} onPress={() => run('accept')} disabled={busy}>
+          {acting === 'accept' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Accept</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rescheduleBtn, { flex: 1, borderColor: tc.border }, busy && { opacity: 0.6 }]}
+          onPress={() => confirmAction('decline', 'Decline this request?', 'The buyer will be told.', 'Decline', true)}
+          disabled={busy}
+        >
+          <Text style={[styles.rescheduleBtnText, { color: tc.text }]}>Decline</Text>
+        </TouchableOpacity>
+      </View>
+    ) : status === 'paid' && role === 'creative' ? (
+      <TouchableOpacity style={[styles.primaryBtn, busy && { opacity: 0.6 }]} onPress={() => run('start')} disabled={busy}>
+        {acting === 'start' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Start the work</Text>}
+      </TouchableOpacity>
+    ) : status === 'in_progress' && role === 'creative' ? (
+      <TouchableOpacity
+        style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+        onPress={() => confirmAction('complete', 'Mark the work done?', 'The buyer is asked to release the money.', 'Mark done')}
+        disabled={busy}
+      >
+        {acting === 'complete' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Mark work done</Text>}
+      </TouchableOpacity>
+    ) : (status === 'in_progress' || status === 'completed') && role === 'buyer' && booking.money_released !== true ? (
+      <TouchableOpacity
+        style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+        onPress={() => confirmAction('release', 'Release the money?', 'Only do this when you are happy with the work. It pays the creative.', 'Release')}
+        disabled={busy}
+      >
+        {acting === 'release' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Release payment</Text>}
+      </TouchableOpacity>
+    ) : null;
+
+  const day = when ? new Date(when) : null;
+  const validDay = day && !Number.isNaN(day.getTime()) ? day : null;
+  const otherName = role === 'buyer' ? booking.creative?.name ?? booking.creative_name : booking.buyer?.name ?? booking.buyer_name;
+  const canChange = ['requested', 'accepted', 'paid'].includes(status);
+  const canDispute = ['paid', 'in_progress', 'completed'].includes(status);
+
 
   return (
     <View style={[styles.container, { backgroundColor: tc.bg }]}>
@@ -239,46 +310,39 @@ export default function ServiceTrackingScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 16 }}>
 
-        {/* Booking Info */}
+        {/* The booking: the day first, then what it is */}
         <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-          <Text style={[styles.cardLabel, { color: tc.sub }]}>Booking Details</Text>
-          <Text style={[styles.serviceTitle, { color: tc.text }]}>{booking.project_title}</Text>
-          <Text style={[styles.servicePrice, { color: Colors.light.primary }]}>
-            {amount > 0 ? `₦${amount.toLocaleString()}` : 'Price set by the creative'}
-          </Text>
-          {!!(booking.notes ?? booking.project_details) && (
-            <Text style={[styles.projectDetails, { color: tc.sub }]}>{booking.notes ?? booking.project_details}</Text>
-          )}
-          <View style={[styles.divider, { backgroundColor: tc.border, marginVertical: 12 }]} />
-          <View style={styles.escrowRow}>
-            <Ionicons name="calendar" size={16} color={tc.sub} />
-            <Text style={[styles.escrowText, { color: tc.sub }]}>
-              {formatBookingDate(when)}{when && String(when).includes('T') ? ` · ${new Date(when).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}` : ''}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            {validDay ? (
+              <View style={{ width: 66, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: tc.border, alignItems: 'center' }}>
+                <View style={{ alignSelf: 'stretch', backgroundColor: Colors.light.primary, paddingVertical: 4, alignItems: 'center' }}>
+                  <Text style={{ color: '#0F1419', fontSize: 11, fontWeight: '800', letterSpacing: 1 }}>
+                    {validDay.toLocaleDateString('en-NG', { month: 'short' }).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={{ color: tc.text, fontSize: 28, fontWeight: '800', paddingTop: 4 }}>{validDay.getDate()}</Text>
+                <Text style={{ color: tc.sub, fontSize: 12, paddingBottom: 6 }}>
+                  {String(when).includes('T') ? validDay.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' }) : validDay.toLocaleDateString('en-NG', { weekday: 'short' })}
+                </Text>
+              </View>
+            ) : null}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.serviceTitle, { color: tc.text }]}>{booking.project_title}</Text>
+              <Text style={[styles.servicePrice, { color: Colors.light.primary }]}>
+                {amount > 0 ? `₦${amount.toLocaleString()}` : 'Price set by the creative'}
+              </Text>
+            </View>
           </View>
+          {!!(booking.notes ?? booking.project_details) && (
+            <Text style={[styles.projectDetails, { color: tc.sub, marginTop: 12 }]}>{booking.notes ?? booking.project_details}</Text>
+          )}
         </View>
 
-        {/* Timeline */}
+        {/* Where it is, and the one thing to do next */}
         {!endedNote ? (
           <View style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
-            <Text style={[styles.cardLabel, { color: tc.sub, marginBottom: 16 }]}>Status</Text>
-            {STATUS_STEPS.map((step, index) => {
-              const isLast = index === STATUS_STEPS.length - 1;
-              const completed = index <= currentStatusIndex;
-              return (
-                <View key={step.status} style={styles.timelineItem}>
-                  <View style={styles.timelineLeft}>
-                    <View style={[styles.timelineIcon, { backgroundColor: completed ? Colors.light.primary : tc.input }]}>
-                      <Ionicons name={completed ? 'checkmark' : 'ellipse'} size={14} color={completed ? '#0F1419' : tc.sub} />
-                    </View>
-                    {!isLast && <View style={[styles.timelineLine, { backgroundColor: completed ? Colors.light.primary : tc.border }]} />}
-                  </View>
-                  <View style={[styles.timelineContent, !isLast && { paddingBottom: 24 }]}>
-                    <Text style={[styles.timelineLabel, { color: completed ? tc.text : tc.sub }]}>{step.label}</Text>
-                  </View>
-                </View>
-              );
-            })}
+            <BookingJourney status={status} role={role === 'creative' ? 'creative' : role === 'buyer' ? 'buyer' : 'viewer'} who={otherName ? String(otherName).split(' ')[0] : undefined} isDark={isDark} theme={{ text: tc.text, sub: tc.sub, border: tc.border }} />
+            {primaryAction ? <View style={{ marginTop: 14 }}>{primaryAction}</View> : null}
           </View>
         ) : (
           <View style={[styles.infoBanner, { backgroundColor: '#FF3B3015', borderColor: '#FF3B30' }]}>
@@ -324,112 +388,30 @@ export default function ServiceTrackingScreen() {
           </View>
         )}
 
-        {status === 'requested' && (
-          <View style={[styles.infoBanner, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
-            <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
-            <Text style={[styles.infoText, { color: tc.text }]}>
-              {role === 'creative' ? 'A buyer is waiting for your answer.' : 'Waiting for the creative to answer your request.'}
-            </Text>
+        {/* The rest is quiet: small links, with cancelling last and in red */}
+        {canChange || canDispute ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 22, rowGap: 6 }}>
+            {canChange ? (
+              <TouchableOpacity onPress={() => router.push(`/booking-reschedule/${booking.id}` as any)} style={{ paddingVertical: 10 }}>
+                <Text style={{ color: Colors.light.primary, fontSize: 14, fontWeight: '700' }}>Change the date</Text>
+              </TouchableOpacity>
+            ) : null}
+            {canDispute ? (
+              <TouchableOpacity
+                onPress={() => confirmAction('dispute', 'Raise a dispute?', 'This freezes the money while we look into it.', 'Raise dispute', true)}
+                disabled={busy}
+                style={{ paddingVertical: 10 }}
+              >
+                <Text style={{ color: tc.sub, fontSize: 14, fontWeight: '700' }}>Something is wrong</Text>
+              </TouchableOpacity>
+            ) : null}
+            {canChange ? (
+              <TouchableOpacity onPress={handleCancelBooking} disabled={busy} style={{ paddingVertical: 10 }}>
+                <Text style={{ color: '#E5533F', fontSize: 14, fontWeight: '700' }}>{acting === 'cancel' ? 'Cancelling…' : 'Cancel booking'}</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
-        )}
-
-        {status === 'accepted' && role === 'buyer' && (
-          <View style={[styles.infoBanner, { backgroundColor: Colors.light.primary + '15', borderColor: Colors.light.primary }]}>
-            <Ionicons name="information-circle" size={20} color={Colors.light.primary} />
-            <Text style={[styles.infoText, { color: tc.text }]}>
-              Accepted. Once you pay, Wami holds the money until the work is done.
-            </Text>
-          </View>
-        )}
-
-        {status === 'accepted' && role === 'buyer' && (
-          <TouchableOpacity style={[styles.primaryBtn, (paying || busy) && { opacity: 0.6 }]} onPress={payNow} disabled={paying || busy}>
-            {paying ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Pay now</Text>}
-          </TouchableOpacity>
-        )}
-
-        {status === 'requested' && role === 'creative' && (
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity
-              style={[styles.primaryBtn, { flex: 1 }, busy && { opacity: 0.6 }]}
-              onPress={() => run('accept')}
-              disabled={busy}
-            >
-              {acting === 'accept' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Accept</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.rescheduleBtn, { flex: 1, borderColor: tc.border }, busy && { opacity: 0.6 }]}
-              onPress={() => confirmAction('decline', 'Decline this request?', 'The buyer will be told.', 'Decline', true)}
-              disabled={busy}
-            >
-              <Text style={[styles.rescheduleBtnText, { color: tc.text }]}>Decline</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {status === 'paid' && role === 'creative' && (
-          <TouchableOpacity style={[styles.primaryBtn, busy && { opacity: 0.6 }]} onPress={() => run('start')} disabled={busy}>
-            {acting === 'start' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Start the work</Text>}
-          </TouchableOpacity>
-        )}
-
-        {status === 'in_progress' && role === 'creative' && (
-          <TouchableOpacity
-            style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
-            onPress={() => confirmAction('complete', 'Mark the work done?', 'The buyer is asked to release the money.', 'Mark done')}
-            disabled={busy}
-          >
-            {acting === 'complete' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Mark work done</Text>}
-          </TouchableOpacity>
-        )}
-
-        {(status === 'in_progress' || status === 'completed') && role === 'buyer' && booking.money_released !== true && (
-          <TouchableOpacity
-            style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
-            onPress={() => confirmAction('release', 'Release the money?', 'Only do this when you are happy with the work. It pays the creative.', 'Release')}
-            disabled={busy}
-          >
-            {acting === 'release' ? <ActivityIndicator color="#0F1419" /> : <Text style={styles.primaryBtnText}>Release payment</Text>}
-          </TouchableOpacity>
-        )}
-
-        {['requested', 'accepted', 'paid'].includes(status) && (
-          <TouchableOpacity
-            style={[styles.rescheduleBtn, { borderColor: tc.border }]}
-            onPress={() => router.push(`/booking-reschedule/${booking.id}` as any)}
-          >
-            <Ionicons name="calendar-outline" size={18} color={Colors.light.primary} />
-            <Text style={[styles.rescheduleBtnText, { color: Colors.light.primary }]}>Change the date</Text>
-          </TouchableOpacity>
-        )}
-
-        {['paid', 'in_progress', 'completed'].includes(status) && (
-          <TouchableOpacity
-            style={[styles.rescheduleBtn, { borderColor: tc.border }]}
-            onPress={() => confirmAction('dispute', 'Raise a dispute?', 'This freezes the money while we look into it.', 'Raise dispute', true)}
-            disabled={busy}
-          >
-            <Ionicons name="flag" size={18} color={tc.sub} />
-            <Text style={[styles.rescheduleBtnText, { color: tc.sub }]}>Something is wrong</Text>
-          </TouchableOpacity>
-        )}
-
-        {['requested', 'accepted', 'paid'].includes(status) && (
-          <TouchableOpacity
-            style={[styles.rescheduleBtn, { borderColor: '#FF3B30' }, busy && { opacity: 0.6 }]}
-            onPress={handleCancelBooking}
-            disabled={busy}
-          >
-            {acting === 'cancel' ? (
-              <ActivityIndicator size="small" color="#FF3B30" />
-            ) : (
-              <Ionicons name="close-circle-outline" size={18} color="#FF3B30" />
-            )}
-            <Text style={[styles.rescheduleBtnText, { color: '#FF3B30' }]}>
-              {acting === 'cancel' ? 'Cancelling…' : 'Cancel booking'}
-            </Text>
-          </TouchableOpacity>
-        )}
+        ) : null}
 
         <View style={{ height: insets.bottom + 20 }} />
       </ScrollView>
