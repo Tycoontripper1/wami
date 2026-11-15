@@ -1,4 +1,5 @@
 import { DialogHost } from '@/components/AppAlert';
+import StepWatcher from '@/components/order/StepWatcher';
 import { AppSplashScreen } from '@/components/AppSplashScreen';
 import { useColorScheme } from '@/components/useColorScheme';
 import { apiClient } from '@/services/api/client';
@@ -160,6 +161,7 @@ function RootLayoutNav() {
     <Provider store={store}>
       <ExpiredSessionHandler />
       <DialogHost />
+      <StepWatcher />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />

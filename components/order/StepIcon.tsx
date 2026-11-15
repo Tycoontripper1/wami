@@ -9,7 +9,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
    van: on its way             house: delivered     medal: complete
    calendar: a booking asked   bubble: agreed      clock: the work under way */
 
-export type StepKind = 'receipt' | 'coins' | 'box' | 'van' | 'house' | 'medal' | 'calendar' | 'bubble' | 'clock';
+export type StepKind = 'receipt' | 'coins' | 'box' | 'van' | 'house' | 'medal' | 'calendar' | 'bubble' | 'clock' | 'chat';
 
 export default function StepIcon({
   kind,
@@ -106,6 +106,15 @@ export default function StepIcon({
         <>
           <Path d="M5 8a3.5 3.5 0 0 1 3.5-3.5h15A3.5 3.5 0 0 1 27 8v11a3.5 3.5 0 0 1-3.5 3.5H16L10 28v-5.5H8.5A3.5 3.5 0 0 1 5 19z" fill={ink} />
           <Path d="M10.6 13.4l3.6 3.6 7.2-7.4" fill="none" stroke={cut} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : null}
+
+      {kind === 'chat' ? (
+        <>
+          <Path d="M5 8a3.5 3.5 0 0 1 3.5-3.5h15A3.5 3.5 0 0 1 27 8v11a3.5 3.5 0 0 1-3.5 3.5H16L10 28v-5.5H8.5A3.5 3.5 0 0 1 5 19z" fill={ink} />
+          <Circle cx="11" cy="13.5" r="1.9" fill={cut} />
+          <Circle cx="16" cy="13.5" r="1.9" fill={cut} />
+          <Circle cx="21" cy="13.5" r="1.9" fill={soft} />
         </>
       ) : null}
 

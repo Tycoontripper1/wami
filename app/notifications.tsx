@@ -9,6 +9,8 @@ import {
     markNotificationRead,
 } from '@/services/api/notificationsService';
 import { Ionicons } from '@/components/FlatIcon';
+import StepIcon from '@/components/order/StepIcon';
+import { noticeFromNotification, timeAgo } from '@/utils/stepNotices';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -61,7 +63,10 @@ export default function NotificationsScreen() {
 
   const isRead = (n: ApiNotification) => n.is_read ?? Boolean(n.read_at);
 
+  // Opens what the notice is about, and marks it read on the way.
   const handlePressNotification = async (n: ApiNotification) => {
+    const notice = noticeFromNotification(n);
+    if (notice.href !== '/notifications') router.push(notice.href as any);
     if (isRead(n)) return;
     setNotifications((prev) => prev.map((item) => (item.id === n.id ? { ...item, is_read: true, read_at: new Date().toISOString() } : item)));
     try {
@@ -82,27 +87,27 @@ export default function NotificationsScreen() {
 
   const renderItem = ({ item }: { item: ApiNotification }) => {
     const read = isRead(item);
+    const notice = noticeFromNotification(item);
     return (
       <TouchableOpacity
         style={[styles.card, { backgroundColor: tc.card, borderColor: tc.border, opacity: read ? 0.65 : 1 }]}
         onPress={() => handlePressNotification(item)}
         activeOpacity={0.8}
       >
-        {!read && <View style={styles.unreadDot} />}
+        <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: read ? (isDark ? '#16313a' : '#D9F7FB') : Colors.light.primary, alignItems: 'center', justifyContent: 'center' }}>
+          <StepIcon kind={notice.kind} size={24} ink={read ? Colors.light.primary : '#0F1419'} soft={read ? '#6FDCEC' : '#FFFFFF'} cut={read ? (isDark ? '#16313a' : '#D9F7FB') : Colors.light.primary} />
+          {!read && <View style={[styles.unreadDot, { position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: 6, marginTop: 0, backgroundColor: '#FFB300', borderWidth: 2, borderColor: tc.card }]} />}
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, { color: tc.text }]} numberOfLines={2}>
-            {item.title ?? item.type ?? 'Notification'}
+            {notice.title}
           </Text>
-          {(item.body ?? item.message) && (
+          {notice.body ? (
             <Text style={[styles.body, { color: tc.sub }]} numberOfLines={3}>
-              {item.body ?? item.message}
+              {notice.body}
             </Text>
-          )}
-          {item.created_at && (
-            <Text style={[styles.date, { color: tc.sub }]}>
-              {new Date(item.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </Text>
-          )}
+          ) : null}
+          {item.created_at && <Text style={[styles.date, { color: tc.sub }]}>{timeAgo(item.created_at)}</Text>}
         </View>
       </TouchableOpacity>
     );
